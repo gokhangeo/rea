@@ -84,12 +84,12 @@ function createWindow() {
     y: a.top,
     frame: false,
     transparent: true,
-    resizable: true,
+    resizable: false,
     maximizable: false,
     minimizable: false,
     fullscreenable: false,
     skipTaskbar: true,
-    alwaysOnTop: true,
+    alwaysOnTop: false,
     hasShadow: false,
     focusable: false,
     acceptFirstMouse: true,
@@ -102,7 +102,6 @@ function createWindow() {
     },
   });
 
-  win.setAlwaysOnTop(true, 'floating');
   win.loadFile(path.join(__dirname, 'renderer', 'index.html'));
 
   // Çapayı (sağ-üst) hatırla — sık taşımada yazmayı geciktir
@@ -161,7 +160,7 @@ function toggleWindow() {
     win.hide();
   } else {
     win.show();
-    win.focus();
+    win.moveTop();
   }
 }
 
