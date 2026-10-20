@@ -1,0 +1,13 @@
+{
+  "name": "rea-ios-uygulama",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Rea ile üretilen iOS uygulaması (Capacitor). www/ içindeki web arayüzü iPhone uygulamasına paketlenir.",
+  "dependencies": {
+    "@capacitor/core": "^7.0.0",
+    "@capacitor/ios": "^7.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.0.0"
+  }
+}

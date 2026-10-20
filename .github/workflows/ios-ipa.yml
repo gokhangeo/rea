@@ -1,0 +1,49 @@
+# ios-uygulama/ klasöründeki uygulamayı bulutta (macOS) derleyip imzasız .ipa üretir.
+# .ipa, Actions sayfasındaki "Artifacts" bölümünden indirilir ve Windows'ta Sideloadly ile imzalanıp iPhone'a kurulur.
+name: iOS .ipa derle
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "ios-uygulama/**"
+      - ".github/workflows/ios-ipa.yml"
+
+jobs:
+  ipa:
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: ios-uygulama
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Bağımlılıkları kur
+        run: npm install
+
+      - name: iOS projesini oluştur
+        run: |
+          [ -d ios ] || npx cap add ios
+          npx cap sync ios
+
+      - name: İmzasız derle
+        run: |
+          xcodebuild -project ios/App/App.xcodeproj -scheme App \
+            -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build
+
+      - name: .ipa paketle
+        run: |
+          mkdir -p Payload
+          cp -R build/Build/Products/Release-iphoneos/App.app Payload/
+          zip -qr ReaUygulama.ipa Payload
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ReaUygulama-ipa
+          path: ios-uygulama/ReaUygulama.ipa

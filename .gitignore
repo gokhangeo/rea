@@ -25,3 +25,10 @@ latest*.yml
 npm-debug.log*
 .DS_Store
 Thumbs.db
+
+# iOS derleme çıktıları
+ios-uygulama/node_modules/
+ios-uygulama/build/
+ios-uygulama/Payload/
+*.ipa
+ios-uygulama/ios/
