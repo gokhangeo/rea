@@ -1,7 +1,7 @@
 {
   "name": "atac",
   "productName": "Ataç",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Windows için yüzen sürükle-bırak rafı: dosyaları/klasörleri geçici olarak topla, tek seferde başka yere bırak.",
   "author": "gokhangeo",
   "license": "MIT",
