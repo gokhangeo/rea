@@ -19,8 +19,8 @@
         <div class="kahraman-kolaj">
           <span style="--a:-8deg">✦</span><span style="--a:4deg">☺</span><span style="--a:-3deg">✧</span>
         </div>
-        <h1>Tek fotoğraf,<br>sayısız yeni çekim</h1>
-        <p>Gözler kapalı mı çıktı, gülüş olmadı mı? Fotoğrafınızı seçin, yapay zekâ sizin için yeniden çeksin.</p>
+        <h1>Fotoğraflarını<br><em>yapay zekâ ile</em> düzelt</h1>
+        <p>Gözler kapalı mı çıktı, gülüş olmadı mı? İster dünkü ister yıllar önceki fotoğraf olsun, seçin, yapay zekâ yeniden çeksin.</p>
         <button class="dugme vurgu buyuk" id="btnSec">Fotoğraf seç</button>
       </div>
       <h2 class="baslik">Neler yapabilirsiniz</h2>
@@ -54,7 +54,7 @@
   </section>
 
   <!-- ===== Sonuç görüntüleyici ===== -->
-  <section class="ekran koyu" id="ekranSonuc" hidden>
+  <section class="ekran" id="ekranSonuc" hidden>
     <header class="ust">
       <button class="ikon" id="btnSonucGeri" title="Geri">‹</button>
       <div class="ust-sag">
@@ -62,11 +62,17 @@
         <button class="dugme vurgu" id="btnSonucKaydet">Kaydet</button>
       </div>
     </header>
-    <main class="sahne"><img id="sonucBuyuk" alt=""></main>
+    <main class="sahne">
+      <div class="karsilastir">
+        <img id="sonucBuyuk" alt="">
+        <button class="orijinal" id="orijinalKutu"><img id="orijinalKucuk" alt=""><span>Orijinal</span></button>
+      </div>
+    </main>
+    <p class="sonuc-not">Orijinali büyük görmek için köşedeki resme basılı tutun</p>
   </section>
 
   <!-- ===== Elle düzenleyici ===== -->
-  <section class="ekran" id="ekranDuzenle" hidden>
+  <section class="ekran koyu" id="ekranDuzenle" hidden>
     <header class="ust">
       <button class="ikon" id="btnDuzenGeri" title="Geri">‹</button>
       <div class="ust-sag">

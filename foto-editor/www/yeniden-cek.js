@@ -118,8 +118,13 @@
 
   // ---------- Sonuç görüntüleyici ----------
   function sonucuAc(img) {
-    acikSonuc = img; $("#sonucBuyuk").src = img.src; ekranGoster("ekranSonuc");
+    acikSonuc = img; $("#sonucBuyuk").src = img.src; $("#orijinalKucuk").src = secilenFoto.src;
+    ekranGoster("ekranSonuc");
   }
+  const orijinalGoster = (e) => { e.preventDefault(); $("#sonucBuyuk").src = secilenFoto.src; };
+  const sonucaDon = () => { if (acikSonuc) $("#sonucBuyuk").src = acikSonuc.src; };
+  $("#orijinalKutu").addEventListener("pointerdown", orijinalGoster);
+  ["pointerup", "pointercancel", "pointerleave"].forEach((e) => $("#orijinalKutu").addEventListener(e, sonucaDon));
   $("#btnSonucGeri").onclick = () => ekranGoster("ekranAI");
   $("#btnSonucDuzenle").onclick = () => duzenleyiciyiAc(acikSonuc, "ekranSonuc");
   $("#btnSonucKaydet").onclick = async () => {
