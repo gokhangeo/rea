@@ -8,11 +8,16 @@ const DRAG_ICON = path.join(__dirname, 'renderer', 'assets', 'drag.png');
 const APP_ICON = path.join(__dirname, '..', 'build', 'icon.png');
 const SETTINGS_FILE = path.join(app.getPath('userData'), 'ayarlar.json');
 
-const WIN_W = 180;
-const WIN_H = 580;
+// Küçük ataç (kapalı) ve açık dik çubuk boyutları
+const COL_W = 66;
+const COL_H = 82;
+const EXP_W = 150;
+const EXP_H = 426;
 
 let win = null;
 let tray = null;
+let expanded = false;
+let anim = null;
 
 // ---- Ayarlar (kalıcı) ----
 function loadSettings() {
@@ -41,24 +46,25 @@ function applyAutostart(on) {
   }
 }
 
-function defaultPosition() {
+// Kapalı (küçük ataç) durumunun sağ-üst çapası
+function defaultAnchor() {
   const { workArea } = screen.getPrimaryDisplay();
   return {
-    x: workArea.x + workArea.width - WIN_W - 20,
-    y: workArea.y + Math.round((workArea.height - WIN_H) / 2),
+    right: workArea.x + workArea.width - 20,
+    top: workArea.y + Math.round((workArea.height - COL_H) / 2),
   };
 }
 
 function createWindow() {
-  const pos = settings.pos || defaultPosition();
+  const a = settings.anchor || defaultAnchor();
   win = new BrowserWindow({
-    width: WIN_W,
-    height: WIN_H,
-    x: pos.x,
-    y: pos.y,
+    width: COL_W,
+    height: COL_H,
+    x: a.right - COL_W,
+    y: a.top,
     frame: false,
     transparent: true,
-    resizable: false,
+    resizable: true,
     maximizable: false,
     minimizable: false,
     fullscreenable: false,
@@ -77,19 +83,49 @@ function createWindow() {
   win.setAlwaysOnTop(true, 'floating');
   win.loadFile(path.join(__dirname, 'renderer', 'index.html'));
 
-  // Konumu hatırla
+  // Çapayı (sağ-üst) hatırla
   const remember = () => {
     if (!win) return;
-    const [x, y] = win.getPosition();
-    settings.pos = { x, y };
+    const b = win.getBounds();
+    settings.anchor = { right: b.x + b.width, top: b.y };
     saveSettings(settings);
   };
   win.on('moved', remember);
   win.on('close', remember);
 
-  win.on('closed', () => {
-    win = null;
-  });
+  win.on('closed', () => { win = null; anim && clearInterval(anim); anim = null; });
+}
+
+// Pencereyi sağ kenar sabit kalacak şekilde yumuşakça yeniden boyutlandır
+function animateTo(targetW, targetH) {
+  if (!win) return;
+  const start = win.getBounds();
+  const right = start.x + start.width;
+  const wa = screen.getDisplayMatching(start).workArea;
+  let targetTop = start.y;
+  if (targetTop + targetH > wa.y + wa.height) targetTop = wa.y + wa.height - targetH;
+  if (targetTop < wa.y) targetTop = wa.y;
+  const startTop = start.y;
+  const steps = 11;
+  let i = 0;
+  if (anim) clearInterval(anim);
+  anim = setInterval(() => {
+    if (!win) { clearInterval(anim); anim = null; return; }
+    i++;
+    const t = i / steps;
+    const e = 1 - Math.pow(1 - t, 3);
+    const w = Math.round(start.width + (targetW - start.width) * e);
+    const h = Math.round(start.height + (targetH - start.height) * e);
+    const top = Math.round(startTop + (targetTop - startTop) * e);
+    win.setBounds({ x: right - w, y: top, width: w, height: h });
+    if (i >= steps) { clearInterval(anim); anim = null; }
+  }, 16);
+}
+
+function setExpanded(v) {
+  expanded = v;
+  if (win) win.webContents.send('atac:expanded', v);
+  animateTo(v ? EXP_W : COL_W, v ? EXP_H : COL_H);
 }
 
 function toggleWindow() {
@@ -189,6 +225,10 @@ ipcMain.on('atac:start-drag', (e, files) => {
 ipcMain.on('atac:hide', () => {
   if (win) win.hide();
 });
+
+ipcMain.on('atac:toggle', () => setExpanded(!expanded));
+ipcMain.on('atac:expand', () => { if (!expanded) setExpanded(true); });
+ipcMain.on('atac:collapse', () => { if (expanded) setExpanded(false); });
 
 ipcMain.on('atac:quit', () => app.quit());
 

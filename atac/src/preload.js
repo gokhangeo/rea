@@ -14,6 +14,10 @@ contextBridge.exposeInMainWorld('atac', {
   // Ataçtaki dosyaları dışarı (Gezgin/uygulama) sürükle
   startDrag: (files) => ipcRenderer.send('atac:start-drag', files),
   hide: () => ipcRenderer.send('atac:hide'),
+  toggle: () => ipcRenderer.send('atac:toggle'),
+  expand: () => ipcRenderer.send('atac:expand'),
+  collapse: () => ipcRenderer.send('atac:collapse'),
+  onExpanded: (cb) => ipcRenderer.on('atac:expanded', (_e, v) => cb(v)),
   quit: () => ipcRenderer.send('atac:quit'),
   openPath: (p) => ipcRenderer.invoke('atac:open-path', p),
   reveal: (p) => ipcRenderer.invoke('atac:reveal', p),

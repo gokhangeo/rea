@@ -12,6 +12,7 @@ const kapatBtn = document.getElementById('kapat');
 const temizle = document.getElementById('temizle');
 const tumunu = document.getElementById('tumunu');
 const sayacSatir = document.getElementById('sayacSatir');
+const klips = document.getElementById('klips');
 
 let ogeler = [];
 let sayacId = 0;
@@ -122,6 +123,7 @@ window.addEventListener('drop', async (e) => {
   e.preventDefault(); derinlik = 0; document.body.classList.remove('suruk');
   const yollar = [];
   for (const f of e.dataTransfer.files) { const p = window.atac.pathForFile(f); if (p) yollar.push(p); }
+  if (yollar.length) window.atac.expand();
   await yollariEkle(yollar);
 });
 
@@ -142,6 +144,12 @@ sayacSatir.addEventListener('click', () => serit.classList.toggle('kapali'));
 
 // Alt düğmeler
 temizle.addEventListener('click', () => { ogeler = []; liste.innerHTML = ''; guncelle(); });
-kapatBtn.addEventListener('click', () => window.atac.hide());
+kapatBtn.addEventListener('click', () => window.atac.collapse());
+
+// Ataça basınca dik çubuğu aç/kapat
+klips.addEventListener('click', (e) => { e.stopPropagation(); window.atac.toggle(); });
+
+// Ana süreçten gelen aç/kapa durumu
+window.atac.onExpanded((v) => { document.body.classList.toggle('expanded', v); });
 
 guncelle();
