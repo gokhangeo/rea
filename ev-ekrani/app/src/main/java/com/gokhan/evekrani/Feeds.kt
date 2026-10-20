@@ -39,7 +39,7 @@ class Feeds(context: Context) {
             for (suffix in listOf("", "?fixture=true")) {
                 val body = runCatching { get("$BASE/$league/teams/$teamId/schedule$suffix") }.getOrNull() ?: continue
                 val arr = JSONObject(body).optJSONArray("events") ?: continue
-                for (i in 0 until arr.length()) parse(arr.getJSONObject(i), name)?.let { events[it.getString("id")] = it }
+                for (i in 0 until arr.length()) parse(arr.getJSONObject(i), league, name)?.let { events[it.getString("id")] = it }
             }
         }
         if (events.isEmpty()) error("maç bulunamadı")
@@ -47,6 +47,8 @@ class Feeds(context: Context) {
         val now = System.currentTimeMillis()
         val upcoming = sorted.filter { !it.getBoolean("done") && it.getLong("t") > now - 3 * 3600_000L }.take(3)
         val past = sorted.filter { it.getBoolean("done") }.takeLast(2).reversed()
+        // Kartın arka yüzü için son maçın golleri; alınamazsa kart yalnızca skoru gösterir.
+        past.firstOrNull()?.let { m -> runCatching { m.put("goals", goals(m)) }.onFailure { Log.w(TAG, "goller alınamadı", it) } }
         prefs.edit().putString("matches", JSONObject().put("next", JSONArray(upcoming)).put("last", JSONArray(past)).put("updated", now).toString()).apply()
     }.onFailure { matchesAt = now() - 25 * 60_000L; Log.w(TAG, "maçlar alınamadı", it) }
 
@@ -62,7 +64,46 @@ class Feeds(context: Context) {
         error("Fenerbahçe bulunamadı")
     }
 
-    private fun parse(e: JSONObject, competition: String): JSONObject? {
+    /**
+     * Maçın golleri, dakika sırasıyla: {min: "23'", name, side: home|away, note: pen|kk|""}.
+     * ESPN'in maç özeti servisinden (header.competitions[0].details; yoksa keyEvents).
+     */
+    private fun goals(m: JSONObject): JSONArray {
+        val j = JSONObject(get("$BASE/${m.getString("league")}/summary?event=${m.getString("id")}"))
+        val comp = j.optJSONObject("header")?.optJSONArray("competitions")?.optJSONObject(0)
+        val homeId = m.optString("hid")
+        val out = JSONArray()
+        val details = comp?.optJSONArray("details")
+        if (details != null && details.length() > 0) {
+            for (i in 0 until details.length()) {
+                val d = details.getJSONObject(i)
+                if (!d.optBoolean("scoringPlay")) continue
+                val who = d.optJSONArray("athletesInvolved")?.optJSONObject(0)
+                val name = who?.optString("shortName")?.ifEmpty { null } ?: who?.optString("displayName").orEmpty()
+                out.put(goal(d.optJSONObject("clock")?.optString("displayValue").orEmpty(), name,
+                    d.optJSONObject("team")?.optString("id") == homeId,
+                    d.optBoolean("penaltyKick"), d.optBoolean("ownGoal")))
+            }
+            return out
+        }
+        val events = j.optJSONArray("keyEvents") ?: return out
+        for (i in 0 until events.length()) {
+            val e = events.getJSONObject(i)
+            if (!e.optBoolean("scoringPlay")) continue
+            val type = e.optJSONObject("type")?.optString("text").orEmpty()
+            val name = e.optJSONArray("participants")?.optJSONObject(0)?.optJSONObject("athlete")?.optString("displayName").orEmpty()
+            out.put(goal(e.optJSONObject("clock")?.optString("displayValue").orEmpty(), name,
+                e.optJSONObject("team")?.optString("id") == homeId,
+                type.contains("Penalty", true), type.contains("Own", true)))
+        }
+        return out
+    }
+
+    private fun goal(min: String, name: String, home: Boolean, pen: Boolean, own: Boolean) = JSONObject()
+        .put("min", min).put("name", name).put("side", if (home) "home" else "away")
+        .put("note", if (own) "kk" else if (pen) "pen" else "")
+
+    private fun parse(e: JSONObject, league: String, competition: String): JSONObject? {
         val comp = e.optJSONArray("competitions")?.optJSONObject(0) ?: return null
         val teams = comp.optJSONArray("competitors") ?: return null
         var home: JSONObject? = null
@@ -85,6 +126,8 @@ class Feeds(context: Context) {
             .put("done", done)
             .put("live", state?.optString("state") == "in")
             .put("comp", competition)
+            .put("league", league)
+            .put("hid", home.optJSONObject("team")?.optString("id").orEmpty())
             .put("venue", comp.optJSONObject("venue")?.optString("fullName").orEmpty())
     }
 
