@@ -33,6 +33,17 @@ Ortadaki boşluğa Ev Ekranı'nın kendi bölümü eklendi:
    Telefon aynı Wi-Fi'deyken tarayıcıda o adresi açın, kodu girin, *Fotoğraf ekle* ile seçin.
    İlk fotoğrafta 3D modeli (yaklaşık 100 MB) bir kez indirilir; sonra her fotoğrafın 3D hazırlığı kutuda bir iki dakika sürer.
 
+## Kendini güncelleme
+
+Ev Ekranı, ana ekran öne geldikçe (en fazla yarım saatte bir) GitHub'da yeni sürüm olup olmadığına bakar. Yeni
+sürüm varsa APK'yı arka planda indirir, bitince **Ev Ekranı güncellemesi hazır** penceresini gösterir. **Güncelle**,
+ardından Android'in açtığı pencerede **Yükle**: ana ekran birkaç saniye içinde yeni sürümle açılır. **Sonra** ya da
+**Geri** birkaç saat erteler.
+
+İlk güncellemede Android bir kez Ev Ekranı'nın uygulama yükleme iznini sorar (*Bilinmeyen uygulamaları yükle →
+Ev Ekranı → İzin ver*); izin verip **Geri** ile dönünce pencere yeniden gelir. Bu özellik, onu getiren sürümden itibaren var;
+ondan önceki bir sürümden bir kez elle güncellemek gerekir.
+
 ## Geri almak
 
 - Home tuşunu eski ana ekrana döndürmek: *Ayarlar → Cihaz Tercihleri → Erişilebilirlik → Ev Ekranı Home tuşu → Kapat*.

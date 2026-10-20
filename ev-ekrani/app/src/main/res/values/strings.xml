@@ -95,4 +95,12 @@
     <!-- Ev Ekranı -->
     <string name="home_service_label">Ev Ekranı Home tuşu</string>
     <string name="home_service_description">Kumandanın Home tuşuna basınca Ev Ekranı\'nı açar. Kapatırsanız Home tuşu eski ana ekrana döner.</string>
+    <!-- Ev Ekranı: kendini güncelleme (com.gokhan.evekrani.Updater). -->
+    <string name="update_title">Ev Ekranı güncellemesi hazır</string>
+    <string name="update_body">Yeni sürüm 0.2.%1$d indirildi. Güncelle\'ye, ardından açılan pencerede Yükle\'ye basın; ana ekran birkaç saniye içinde yeniden açılır.</string>
+    <string name="update_notes">Yenilikler: %1$s</string>
+    <string name="update_hint">Sonra derseniz birkaç saat sonra yeniden sorulur.</string>
+    <string name="update_current">Kurulu sürüm 0.2.%1$d</string>
+    <string name="update_later">Sonra</string>
+    <string name="update_now">Güncelle</string>
 </resources>
