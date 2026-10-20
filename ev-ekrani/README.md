@@ -8,9 +8,10 @@ Ortadaki boşluğa Ev Ekranı'nın kendi bölümü eklendi:
 - **Solda Fenerbahçe kartı:** sıradaki maç ve geri sayım, son maç sonucu (Süper Lig, Avrupa kupaları, Türkiye Kupası).
   Karta gelip **OK**'a basınca kart döner; arkasında son maçın skoru, golleri ve dakikaları, **Maç özetini izle**
   ve **FB TV** düğmeleri var. İkisi de YouTube'u açar. **Geri** kartı eski haline çevirir.
-- **Sağda günün menüleri:** her gün 5 menü (`app/src/main/assets/ui/yemekler.json`, 35 menü, haftalık döner)
-  resimleriyle kayarak değişir. Menüye gelip **OK**'a basınca kart döner, arkasında malzemeler ve yapılışı var;
-  **Yukarı/Aşağı** tarifi kaydırır, **Geri** karta döner. Resimler kutunun internetinden Vikipedi'den alınır.
+- **Sağda günün menüleri:** her gün 5 tarif internetten, [Vikikitap](https://tr.wikibooks.org) Yemek Kitabı'ndan
+  çekilir ve resimleriyle kayarak değişir. Menüye gelip **OK**'a basınca kart döner, arkasında malzemeler ve
+  yapılışı var; **Yukarı/Aşağı** tarifi kaydırır, **Geri** karta döner. Resim Vikikitap sayfasında yoksa Vikipedi'den
+  alınır. İnternet yokken kutudaki yedek liste (`app/src/main/assets/ui/yemekler.json`) gösterilir.
   Köşede Mersin hava durumu.
 
 ## Kumanda

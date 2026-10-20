@@ -77,8 +77,8 @@ html,body{margin:0;height:100%;background:transparent;color:var(--yazi);font-fam
 .dugme.secili{background:var(--sari);color:var(--lacivert);transform:scale(1.04)}
 
 /* ---------- Günün menüleri ----------
-   Her gün 5 menü (yemekler.json, haftalık döner). Kart resimle yavaşça yakınlaşır, menüler kayarak değişir;
-   OK'a basınca kart döner, arkasında tarif. Resimler kutunun internetinden Vikipedi'den gelir. */
+   Her gün 5 menü, Vikikitap Yemek Kitabı'ndan (tr.wikibooks.org) çekilir; internet yoksa yemekler.json yedeği.
+   Kart resimle yavaşça yakınlaşır, menüler kayarak değişir; OK'a basınca kart döner, arkasında tarif. */
 #sag{flex:1;height:100%;display:flex;justify-content:flex-end;min-width:0;perspective:1600px}
 #yemek{position:relative;height:100%;width:100%;max-width:38rem;transform-style:preserve-3d;transition:transform .9s cubic-bezier(.3,1.2,.45,1)}
 #yemek.don{transform:rotateY(180deg)}
@@ -229,10 +229,48 @@ let yemekler=[],gunun=[],ysira=0,ydegisim=Date.now();
 const resimler={};try{Object.assign(resimler,JSON.parse(localStorage.getItem('yemekResim')||'{}'))}catch(e){}
 function gunNo(){return Math.floor((Date.now()+3*3600e3)/864e5)}   // İstanbul saatine göre gün
 let sonGun=-1;
-function gununMenuleri(){const g=gunNo();if(g===sonGun||!yemekler.length)return;sonGun=g;const n=yemekler.length,bas=(g*5)%n;
-  gunun=[0,1,2,3,4].map(i=>yemekler[(bas+i)%n]);ysira=0;menuGoster(0,true)}
+/* Vikikitap: "Malzemeler" geçen sayfalar aday listesi (haftada bir yenilenir). Her gün bu listeden güne göre
+   karışık sırayla 5 tarif alınır; Malzemeler ve Hazırlanışı/Yapılışı bölümü olmayan sayfa atlanır. */
+const VK='https://tr.wikibooks.org/w/api.php?format=json&formatversion=2&origin=*&';
+const sakla=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
+const oku=k=>{try{return JSON.parse(localStorage.getItem(k)||'null')}catch(e){return null}};
+async function vkAdaylar(){const c=oku('vkAday');if(c&&c.t>Date.now()-7*864e5&&c.l.length)return c.l;
+  const r=await fetch(VK+'action=query&list=search&srnamespace=0&srlimit=500&srwhat=text&srsearch='+encodeURIComponent('Malzemeler'));
+  if(!r.ok)throw new Error(r.status);const l=((await r.json()).query||{}).search||[];
+  const t=l.map(x=>x.title);if(t.length)sakla('vkAday',{t:Date.now(),l:t});return t}
+const satirlar=m=>m.split('\n').map(x=>x.replace(/^[\s*•·#\-–]+/,'').replace(/^\d+[.)]\s*/,'').trim()).filter(x=>x.length>1);
+function tarifAyikla(baslik,metin,resim){const bol={};let ad='';
+  for(const p of ('\n== giriş ==\n'+metin).split(/^==+\s*(.*?)\s*==+\s*$/m).slice(1).reduce((a,x,i,arr)=>(i%2?a:a.concat([[x,arr[i+1]||'']])),[]))
+    {const h=p[0].toLocaleLowerCase('tr');
+     if(/malzeme/.test(h)&&!bol.m)bol.m=satirlar(p[1]);
+     else if(/hazırla|yapılı|yapımı|tarif|pişir|yöntem/.test(h)&&!bol.y)bol.y=satirlar(p[1])}
+  if(!bol.m||bol.m.length<2||!bol.y||!bol.y.length)return null;
+  let y=bol.y;if(y.length===1&&y[0].length>160)y=y[0].split(/(?<=\.)\s+/).filter(x=>x.length>1);
+  ad=baslik.split('/').pop().replace(/\s*\(.*?\)\s*$/,'');
+  return {ad,wiki:ad,malzeme:bol.m.slice(0,18),yapilis:y.slice(0,12),resim:resim||null,kaynak:'Vikikitap'}}
+async function vkTarif(baslik){
+  const r=await fetch(VK+'action=query&prop=extracts|pageimages&explaintext=1&exsectionformat=wiki&piprop=thumbnail&pithumbsize=1024&redirects=1&titles='+encodeURIComponent(baslik));
+  if(!r.ok)return null;const p=(((await r.json()).query||{}).pages||[])[0];if(!p||!p.extract)return null;
+  return tarifAyikla(p.title||baslik,p.extract,p.thumbnail&&p.thumbnail.source)}
+function karistir(l,tohum){const a=l.slice();let x=tohum*2654435761>>>0;
+  for(let i=a.length-1;i>0;i--){x=(x*1103515245+12345)>>>0;const j=x%(i+1);[a[i],a[j]]=[a[j],a[i]]}return a}
+async function vkGunun(g){const c=oku('vkGun');if(c&&c.g===g&&c.m.length===5)return c.m;
+  const aday=karistir(await vkAdaylar(),g),m=[];
+  for(let i=0;i<32&&m.length<5;i+=8){   // 8'er 8'er paralel; uygun olmayan sayfalar atlanır
+    const p=await Promise.all(aday.slice(i,i+8).map(b=>vkTarif(b).catch(()=>null)));for(const t of p)if(t&&m.length<5)m.push(t)}
+  if(m.length===5)sakla('vkGun',{g,m});return m}
+let yukleniyor=false,sonDeneme=0;
+async function gununMenuleri(){const g=gunNo();
+  if(g===sonGun||yukleniyor||(gunun.length&&Date.now()-sonDeneme<6e5))return;yukleniyor=true;sonDeneme=Date.now();
+  try{let m=[];try{m=await vkGunun(g)}catch(e){}
+    // Vikikitap'tan 5 tarif gelmezse eksikler kutudaki yedek listeden tamamlanır; 10 dakika sonra yeniden denenir.
+    if(m.length===5)sonGun=g;
+    else{if(!yemekler.length)return;const n=yemekler.length,bas=(g*5)%n;for(let i=0;m.length<5;i++)m.push(yemekler[(bas+i)%n])}
+    const ayni=gunun.length&&gunun.map(x=>x.ad).join()===m.map(x=>x.ad).join();
+    if(!ayni){gunun=m;ysira=0;menuGoster(0,!$('sahneler').children.length)}
+  }finally{yukleniyor=false}}
 /* Vikipedi özet servisi: yemeğin resmi (küçük boyutu büyütülerek). Bulunanlar kutuda saklanır. */
-async function resimBul(y){const k=y.wiki;if(k in resimler)return resimler[k];
+async function resimBul(y){const k=y.wiki;if(y.resim&&!(k in resimler))return y.resim;if(k in resimler)return resimler[k];
   for(const [dil,baslik] of [['tr',y.wiki],['en',y.en||y.wiki]]){
     try{const r=await fetch(`https://${dil}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(baslik.replace(/ /g,'_'))}`);if(!r.ok)continue;
       const j=await r.json();let u=j.thumbnail&&j.thumbnail.source;
@@ -246,13 +284,15 @@ async function resimKoy(el,y){const u=await resimBul(y);
 function menuGoster(i,ilk){if(!gunun.length)return;ysira=(i+gunun.length)%gunun.length;const y=gunun[ysira],kap=$('sahneler');
   const s=document.createElement('div');s.className='ysahne'+(ilk?'':' gir');
   s.innerHTML=`<div class="yresim yok"></div><div class="ygolge"></div><div class="yalt"><div class="yetiket">Günün menüsü · ${ysira+1}/5</div>
-    <div class="yad">${esc(y.ad)}</div><div class="ybilgi">Yanında: ${esc(y.yaninda)} · ${esc(y.sure)} · ${y.kisi} kişilik</div></div>`;
+    <div class="yad">${esc(y.ad)}</div><div class="ybilgi">${esc(bilgi(y))}</div></div>`;
   resimKoy(s.querySelector('.yresim'),y);
   for(const e of kap.children){e.classList.add('cik');setTimeout(()=>e.remove(),1100)}
   kap.appendChild(s);if(!ilk)requestAnimationFrame(()=>requestAnimationFrame(()=>s.classList.remove('gir')));
   $('nk').innerHTML=gunun.map((_,j)=>`<i class="${j===ysira?'on':''}"></i>`).join('');ydegisim=Date.now();tarifCiz()}
+function bilgi(y){const b=[];if(y.yaninda)b.push('Yanında: '+y.yaninda);if(y.sure)b.push(y.sure);if(y.kisi)b.push(y.kisi+' kişilik');
+  if(y.kaynak)b.push(y.kaynak);return b.join(' · ')||'Tarif için OK'}
 function tarifCiz(){const y=gunun[ysira];if(!y)return;
-  $('tbaslik').innerHTML=`<b>${esc(y.ad)}</b><span>${esc(y.sure)} · ${y.kisi} kişilik · Yanında: ${esc(y.yaninda)}</span>`;
+  $('tbaslik').innerHTML=`<b>${esc(y.ad)}</b><span>${esc(bilgi(y))}</span>`;
   const t=$('tresim');t.className='yresim yok';t.style.backgroundImage='';resimKoy(t,y);
   $('tic').innerHTML=`<div><h4>Malzemeler</h4><ul>${y.malzeme.map(m=>`<li>${esc(m)}</li>`).join('')}</ul></div>
     <div><h4>Yapılışı</h4><ol>${y.yapilis.map(m=>`<li>${esc(m)}</li>`).join('')}</ol></div>`;tKay=0;kaydir(0)}
