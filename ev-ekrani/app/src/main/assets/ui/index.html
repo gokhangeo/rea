@@ -97,8 +97,11 @@ html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font-family:
 <script>
 const $=id=>document.getElementById(id);
 const tv=$('tv');
-function olcek(){const s=Math.min(innerWidth/1920,innerHeight/1080);tv.style.transform=`translate(${(innerWidth-1920*s)/2}px,${(innerHeight-1080*s)/2}px) scale(${s})`}
-addEventListener('resize',olcek);olcek();
+// TV açılırken WebView ekran boyutunu geç ve bazen yanlış bildiriyor; bu yüzden ölçek düzenli aralıklarla yeniden hesaplanır.
+let sonOlcek='';
+function olcek(){const W=document.documentElement.clientWidth||innerWidth,H=document.documentElement.clientHeight||innerHeight;if(!W||!H)return;
+  const s=Math.min(W/1920,H/1080),t=`translate(${(W-1920*s)/2}px,${(H-1080*s)/2}px) scale(${s})`;if(t!==sonOlcek){tv.style.transform=t;sonOlcek=t}}
+addEventListener('resize',olcek);if(window.visualViewport)visualViewport.addEventListener('resize',olcek);setInterval(olcek,2000);olcek();
 
 async function api(yol,ops){const r=await fetch('/api/'+yol,ops);if(!r.ok)throw new Error(r.status);return r.json()}
 let durum={photos:[],dock:[],feeds:{}};
@@ -198,7 +201,7 @@ function listeCiz(){const bas=Math.max(0,Math.floor(listeSecili/5)-2)*5;
   $('liste').innerHTML=tumu.slice(bas,bas+15).map((a,j)=>`<div>${tile(a,bas+j===listeSecili?'secili':'')}<div class="ad2">${esc(a.label)}</div></div>`).join('')||'<div class="bos">Eklenecek başka uygulama yok.</div>'}
 function kapat(){$('menu').hidden=true;$('secici').hidden=true;odak='dock';seciliGoster()}
 window.geri=()=>{if(odak==='menu'||odak==='secici')kapat();else if(odak==='foto'){odak='dock';seciliGoster()}};
-window.gorundu=()=>{kapat();yenile()};
+window.gorundu=()=>{olcek();kapat();yenile()};
 
 let basildi=0,uzunOldu=false,uzunZaman=null;
 addEventListener('keydown',e=>{const k=e.key;
