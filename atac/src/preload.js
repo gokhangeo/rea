@@ -18,6 +18,8 @@ contextBridge.exposeInMainWorld('atac', {
   expand: () => ipcRenderer.send('atac:expand'),
   collapse: () => ipcRenderer.send('atac:collapse'),
   onExpanded: (cb) => ipcRenderer.on('atac:expanded', (_e, v) => cb(v)),
+  getPos: () => ipcRenderer.invoke('atac:get-pos'),
+  setPos: (x, y) => ipcRenderer.send('atac:set-pos', { x, y }),
   quit: () => ipcRenderer.send('atac:quit'),
   openPath: (p) => ipcRenderer.invoke('atac:open-path', p),
   reveal: (p) => ipcRenderer.invoke('atac:reveal', p),

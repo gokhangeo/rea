@@ -146,10 +146,41 @@ sayacSatir.addEventListener('click', () => serit.classList.toggle('kapali'));
 temizle.addEventListener('click', () => { ogeler = []; liste.innerHTML = ''; guncelle(); });
 kapatBtn.addEventListener('click', () => window.atac.collapse());
 
-// Ataça basınca dik çubuğu aç/kapat
-klips.addEventListener('click', (e) => { e.stopPropagation(); window.atac.toggle(); });
+// Ataçı sürükleyerek taşı; hareketsiz bırakınca tıklama = aç/kapat
+let suruyor = false, kaydi = false, basX = 0, basY = 0, pcX = 0, pcY = 0;
+klips.addEventListener('mousedown', async (e) => {
+  if (e.button !== 0) return;
+  e.preventDefault();
+  basX = e.screenX; basY = e.screenY; kaydi = false; suruyor = true;
+  const b = await window.atac.getPos();
+  pcX = b.x; pcY = b.y;
+});
+window.addEventListener('mousemove', (e) => {
+  if (!suruyor) return;
+  const dx = e.screenX - basX, dy = e.screenY - basY;
+  if (Math.abs(dx) + Math.abs(dy) > 3) kaydi = true;
+  if (kaydi) window.atac.setPos(pcX + dx, pcY + dy);
+});
+window.addEventListener('mouseup', () => {
+  if (!suruyor) return;
+  suruyor = false;
+  if (!kaydi) window.atac.toggle();
+});
 
 // Ana süreçten gelen aç/kapa durumu
-window.atac.onExpanded((v) => { document.body.classList.toggle('expanded', v); });
+window.atac.onExpanded((v) => { document.body.classList.toggle('expanded', v); uyandir(); });
+
+// ---- Hover'da parla, işlem yokken saydamlaş ----
+let uyanik = false, uykuZaman = null;
+function uyandir() {
+  document.body.classList.remove('uyku');
+  if (uykuZaman) clearTimeout(uykuZaman);
+  uykuZaman = setTimeout(() => { if (!uyanik) document.body.classList.add('uyku'); }, 2600);
+}
+document.body.addEventListener('mouseenter', () => { uyanik = true; document.body.classList.add('hover'); uyandir(); });
+document.body.addEventListener('mouseleave', () => { uyanik = false; document.body.classList.remove('hover'); uyandir(); });
+window.addEventListener('mousemove', uyandir);
+window.addEventListener('dragover', uyandir);
+uyandir();
 
 guncelle();

@@ -1,7 +1,7 @@
 {
   "name": "atac",
   "productName": "Ataç",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Windows için yüzen sürükle-bırak rafı: dosyaları/klasörleri geçici olarak topla, tek seferde başka yere bırak.",
   "author": "gokhangeo",
   "license": "MIT",
@@ -12,7 +12,11 @@
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",
-    "dist": "electron-builder --win --publish never"
+    "dist": "electron-builder --win --publish never",
+    "yayinla": "electron-builder --win --publish always"
+  },
+  "dependencies": {
+    "electron-updater": "6.3.9"
   },
   "devDependencies": {
     "electron": "33.2.1",
@@ -22,7 +26,7 @@
     "appId": "com.gokhan.atac",
     "productName": "Ataç",
     "publish": [
-      { "provider": "github", "owner": "gokhangeo", "repo": "rea" }
+      { "provider": "github", "owner": "gokhangeo", "repo": "rea", "releaseType": "release" }
     ],
     "artifactName": "${productName}-Kurulum-${version}.${ext}",
     "directories": {
