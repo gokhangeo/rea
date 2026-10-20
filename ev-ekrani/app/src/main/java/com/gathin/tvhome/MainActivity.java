@@ -157,6 +157,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     /** The grid has been laid out and focused since the last resume; the card prompt waits for this. */
     private boolean tilesReady;
     private Dialog cardPrompt;
+    /** Ev Ekranı: "Güncelleme hazır" penceresi (com.gokhan.evekrani.Updater). */
+    private Dialog updatePrompt;
     /** Set when a decision could not be saved: no more prompts until the next resume, instead of asking in a loop. */
     private boolean promptsPaused;
     /** Rebuild the tiles on resume: Home was fully hidden by an app, or Home was pressed. Not after a side panel such as Wi-Fi settings. */
@@ -587,6 +589,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         rebuildOnResume = false;
         updateGreeting();
         if (evWidget != null) evWidget.resume();
+        com.gokhan.evekrani.Updater.check(this, this::showUpdatePrompt);
         updateWifiLabel();
         updateInputsButton();
         if (showStats) startStats();
@@ -694,6 +697,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         cancelPendingFocusScroll();
         // Nothing of ours stays on screen over another app; an undecided prompt simply returns next time.
         if (cardPrompt != null) cardPrompt.dismiss();
+        if (updatePrompt != null) updatePrompt.dismiss();
         if (appLibrary != null) appLibrary.close();
         if (openPopup != null) openPopup.dismiss();
     }
@@ -711,6 +715,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (hasFocus) {
             if (libraryFocusPending && appLibrary == null) focusLibrary();
             showCardPrompt();
+            showUpdatePrompt();
         }
     }
 
@@ -2113,6 +2118,68 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         cardPrompt = dialog;
         dialog.show();
         keep.requestFocus();
+    }
+
+    /**
+     * Ev Ekranı: yeni sürüm indirildiyse sorar. Güncelle, Android'in kendi "Yükle" penceresini açar; Sonra ya da Geri
+     * birkaç saat erteler. Kart penceresiyle aynı görünüm (dialog_card_prompt).
+     */
+    private void showUpdatePrompt() {
+        if (updatePrompt != null || cardPrompt != null || reordering || !hasWindowFocus() || isFinishing()) return;
+        final com.gokhan.evekrani.Updater.Ready ready = com.gokhan.evekrani.Updater.ready(this);
+        if (ready == null) return;
+
+        View panel = getLayoutInflater().inflate(R.layout.dialog_card_prompt, root, false);
+        ((TextView) panel.findViewById(R.id.title)).setText(R.string.update_title);
+        ((TextView) panel.findViewById(R.id.body)).setText(getString(R.string.update_body, ready.version));
+        TextView notes = panel.findViewById(R.id.names);
+        String what = ready.notes.replaceFirst("^Ev Ekranı:\\s*", "").replaceFirst("\\s*\\(#\\d+\\)$", "");
+        if (what.isEmpty()) notes.setVisibility(View.GONE);
+        else notes.setText(getString(R.string.update_notes, what));
+        ((TextView) panel.findViewById(R.id.hint)).setText(R.string.update_hint);
+        ((TextView) panel.findViewById(R.id.identity)).setText(getString(R.string.update_current,
+                com.gokhan.evekrani.Updater.currentVersion(this)));
+        TextView later = panel.findViewById(R.id.btnKeep);
+        TextView update = panel.findViewById(R.id.btnShow);
+        later.setText(R.string.update_later);
+        update.setText(R.string.update_now);
+
+        final Dialog dialog = new Dialog(this);
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        dialog.setContentView(panel);
+        dialog.setCanceledOnTouchOutside(false);
+        Window w = dialog.getWindow();
+        if (w != null) {
+            w.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            w.setLayout((int) (460 * density), ViewGroup.LayoutParams.WRAP_CONTENT);
+            w.setDimAmount(0.6f);
+        }
+        final boolean[] decided = {false};
+        View.OnClickListener choose = v -> {
+            if (decided[0]) return;
+            decided[0] = true;
+            updatePrompt = null;
+            dialog.dismiss();
+            if (v.getId() == R.id.btnShow) com.gokhan.evekrani.Updater.install(this, ready);
+            else com.gokhan.evekrani.Updater.snooze(this);
+        };
+        later.setOnClickListener(choose);
+        update.setOnClickListener(choose);
+        dialog.setOnCancelListener(d -> choose.onClick(later));
+        dialog.setOnDismissListener(d -> {
+            if (updatePrompt == dialog) updatePrompt = null;
+        });
+        View.OnKeyListener keys = (v, keyCode, event) -> {
+            if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
+            if (keyCode == KeyEvent.KEYCODE_DPAD_UP || keyCode == KeyEvent.KEYCODE_DPAD_DOWN) return true;
+            if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) return v.getId() == R.id.btnKeep;
+            return keyCode == KeyEvent.KEYCODE_DPAD_RIGHT && v.getId() == R.id.btnShow;
+        };
+        later.setOnKeyListener(keys);
+        update.setOnKeyListener(keys);
+        updatePrompt = dialog;
+        dialog.show();
+        update.requestFocus();
     }
 
     /** Writes the owner's decision and rebuilds the tiles; focus is left where it is. */

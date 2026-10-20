@@ -6,12 +6,26 @@ on:
       - "ev-ekrani/**"
       - ".github/workflows/ev-ekrani.yml"
   workflow_dispatch:
+  # İmza anahtarı Actions önbelleğinde durur ve 7 gün dokunulmazsa silinir; silinirse yeni APK eskisinin
+  # üstüne kurulamaz. Bu zamanlanmış çalışma yalnızca önbelleği okuyup canlı tutar.
+  schedule:
+    - cron: "17 3 */4 * *"
 
 permissions:
   contents: write
 
 jobs:
+  anahtari-canli-tut:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/cache/restore@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: ev-ekrani-debug-keystore
+
   derle:
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -40,6 +54,12 @@ jobs:
         run: ./gradlew --no-daemon assembleRelease
       - name: APK adını düzenle
         run: cp app/build/outputs/apk/release/app-release.apk "EvEkrani-0.2.${GITHUB_RUN_NUMBER}.apk"
+      # Sürüm notunun ilk satırı kutudaki "Güncelleme hazır" penceresinde "Yenilikler" olarak görünür.
+      - name: Sürüm notu
+        run: |
+          git log -1 --format=%s > notlar.txt
+          echo "" >> notlar.txt
+          echo "Xiaomi TV kutusu için Ev Ekranı. Kurulum için depodaki ev-ekrani/README.md dosyasına bakın." >> notlar.txt
       - uses: actions/upload-artifact@v4
         with:
           name: EvEkrani-apk
@@ -51,4 +71,4 @@ jobs:
           tag_name: ev-ekrani-v0.2.${{ github.run_number }}
           name: Ev Ekranı 0.2.${{ github.run_number }}
           files: ev-ekrani/EvEkrani-*.apk
-          body: Xiaomi TV kutusu için Ev Ekranı. Kurulum için depodaki ev-ekrani/README.md dosyasına bakın.
+          body_path: ev-ekrani/notlar.txt

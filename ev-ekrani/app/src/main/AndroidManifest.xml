@@ -13,6 +13,8 @@
     <!-- Home tuşu servisini TV kapattığında yeniden açar (ADB ile verilir, README'ye bakın). -->
     <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS" tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- Ev Ekranı: GitHub'dan inen yeni sürümü Android'in onay penceresiyle kurar (Updater). -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <!-- Needed since Android 10 to read the Wi-Fi network name for the network pill. Never requested at
          runtime: build-and-install grants it with pm grant, so lint's Android 12 "ask for COARSE with
@@ -145,6 +147,9 @@
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
         </receiver>
+        <receiver
+            android:name="com.gokhan.evekrani.UpdateReceiver"
+            android:exported="false" />
         <service
             android:name="com.gokhan.evekrani.HomeButtonService"
             android:exported="true"
