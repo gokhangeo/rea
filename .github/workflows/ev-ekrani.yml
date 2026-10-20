@@ -1,0 +1,54 @@
+name: Ev Ekranı APK
+
+on:
+  push:
+    paths:
+      - "ev-ekrani/**"
+      - ".github/workflows/ev-ekrani.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  derle:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ev-ekrani
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+      # İmza anahtarı: gizli değer tanımlıysa o, değilse önbellekte saklanan hata ayıklama anahtarı.
+      # İkisi de her derlemede aynı anahtarı verir; böylece yeni APK eskisinin üstüne kurulur.
+      - name: İmza anahtarını hazırla
+        env:
+          EV_KEYSTORE_B64: ${{ secrets.EV_KEYSTORE_B64 }}
+        run: |
+          if [ -n "$EV_KEYSTORE_B64" ]; then echo "$EV_KEYSTORE_B64" | base64 -d > ev-ekrani.jks; fi
+      - uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: ev-ekrani-debug-keystore
+      - name: APK derle
+        env:
+          EV_KEYSTORE_PASS: ${{ secrets.EV_KEYSTORE_PASS }}
+        run: ./gradlew --no-daemon assembleRelease
+      - name: APK adını düzenle
+        run: cp app/build/outputs/apk/release/app-release.apk "EvEkrani-0.1.${GITHUB_RUN_NUMBER}.apk"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: EvEkrani-apk
+          path: ev-ekrani/EvEkrani-*.apk
+      - name: Sürüm yayınla (yalnızca main)
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ev-ekrani-v0.1.${{ github.run_number }}
+          name: Ev Ekranı 0.1.${{ github.run_number }}
+          files: ev-ekrani/EvEkrani-*.apk
+          body: Xiaomi TV kutusu için Ev Ekranı. Kurulum için depodaki ev-ekrani/README.md dosyasına bakın.
