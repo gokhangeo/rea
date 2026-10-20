@@ -1,5 +1,5 @@
 # ios-uygulama/ klasöründeki uygulamayı bulutta (macOS) derleyip imzasız .ipa üretir.
-# .ipa, Actions sayfasındaki "Artifacts" bölümünden indirilir ve Windows'ta Sideloadly ile imzalanıp iPhone'a kurulur.
+# .ipa, Actions sayfasındaki "Artifacts" bölümünden indirilir ve iPhone'da SideStore ile kurulur.
 name: iOS .ipa derle
 
 on:
