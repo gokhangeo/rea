@@ -7,48 +7,43 @@
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <div id="kart" class="kart">
-      <header class="baslik" id="suruk">
-        <div class="logo">
-          <span class="logo-kutu"><i class="l1"></i><i class="l2"></i><i class="l3"></i></span>
-          <div class="baslik-metin">
-            <strong>Ataç</strong>
-            <small id="sayac">Boş</small>
-          </div>
-        </div>
-        <div class="baslik-dugmeler">
-          <button id="ekleBtn" class="ikon-btn" title="Ekle">+</button>
-          <button id="gizleBtn" class="ikon-btn" title="Gizle">—</button>
-        </div>
-      </header>
-
-      <!-- + açılır menü -->
-      <div id="ekleMenu" class="ekle-menu gizli">
-        <button data-mode="folder"><span class="e-ikon">📁</span> Klasör ekle</button>
-        <button data-mode="file"><span class="e-ikon">📄</span> Dosya ekle</button>
+    <div id="serit" class="serit">
+      <div class="ust" id="suruk">
+        <button id="kapat" class="yuvar" title="Gizle">×</button>
+        <button id="ekle" class="yuvar" title="Ekle">+</button>
       </div>
 
-      <main id="raf" class="raf">
-        <ul id="liste" class="liste"></ul>
+      <div id="ekleMenu" class="ekle-menu gizli">
+        <button data-mode="folder"><span>📁</span> Klasör ekle</button>
+        <button data-mode="file"><span>📄</span> Dosya ekle</button>
+      </div>
 
+      <div class="amblem">
+        <img src="assets/atac-clip.png" alt="Ataç" draggable="false" />
+      </div>
+
+      <button id="sayacSatir" class="sayac-satir" title="Listeyi aç/kapat">
+        <span id="chevron" class="chevron">⌃</span>
+        <span id="sayac">0 Öğe</span>
+      </button>
+
+      <div class="ayrac"></div>
+
+      <div class="kaydir" id="kaydir">
+        <ul id="liste" class="liste"></ul>
         <div id="bos" class="bos">
           <div class="bos-daire">+</div>
-          <p>Dosya ya da klasörü<br />buraya sürükle</p>
-          <span class="bos-ipucu">ya da <b>+</b> ile ekle</span>
+          <p>Sürükle<br />ya da + ile ekle</p>
         </div>
-      </main>
+      </div>
 
-      <footer class="alt gizli" id="alt">
-        <div id="tumunuSuruk" class="tumunu" draggable="true" title="Hepsini birden sürükle">
-          <span class="tumunu-ikon">⇪</span>
-          <span id="tumunuMetin">Tümünü sürükle</span>
-        </div>
-        <button id="temizle" class="temizle" title="Hepsini kaldır">Temizle</button>
-      </footer>
+      <div id="alt" class="alt gizli">
+        <div id="tumunu" class="tumunu" draggable="true" title="Hepsini birden sürükle">⇪ Tümü</div>
+        <button id="temizle" class="temizle" title="Hepsini kaldır">🗑</button>
+      </div>
 
       <div id="atilan" class="atilan"></div>
     </div>
-
     <script src="renderer.js"></script>
   </body>
 </html>

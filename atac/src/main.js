@@ -8,8 +8,8 @@ const DRAG_ICON = path.join(__dirname, 'renderer', 'assets', 'drag.png');
 const APP_ICON = path.join(__dirname, '..', 'build', 'icon.png');
 const SETTINGS_FILE = path.join(app.getPath('userData'), 'ayarlar.json');
 
-const WIN_W = 300;
-const WIN_H = 440;
+const WIN_W = 180;
+const WIN_H = 580;
 
 let win = null;
 let tray = null;
@@ -44,8 +44,8 @@ function applyAutostart(on) {
 function defaultPosition() {
   const { workArea } = screen.getPrimaryDisplay();
   return {
-    x: workArea.x + workArea.width - WIN_W - 24,
-    y: workArea.y + 48,
+    x: workArea.x + workArea.width - WIN_W - 20,
+    y: workArea.y + Math.round((workArea.height - WIN_H) / 2),
   };
 }
 
