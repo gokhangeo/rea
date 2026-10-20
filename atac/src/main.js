@@ -306,7 +306,11 @@ ipcMain.on('atac:collapse', () => { if (expanded) setExpanded(false); });
 // Ataçı masaüstünde sürükleyerek taşıma
 ipcMain.handle('atac:get-pos', () => (win ? win.getBounds() : { x: 0, y: 0 }));
 ipcMain.on('atac:set-pos', (e, p) => {
-  if (win && p) win.setPosition(Math.round(p.x), Math.round(p.y));
+  // Taşırken boyutu KİLİTLE: yalnızca konum değişsin, pencere asla büyümesin
+  if (win && p) {
+    const b = win.getBounds();
+    win.setBounds({ x: Math.round(p.x), y: Math.round(p.y), width: b.width, height: b.height });
+  }
 });
 
 ipcMain.on('atac:quit', () => app.quit());
