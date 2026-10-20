@@ -175,12 +175,19 @@ body.suruk .bos-daire { transform: scale(1.15); }
 .atilan.goster { opacity: 1; transform: translateX(-50%) translateY(0); }
 
 /* ===== Kapalı (küçük ataç) ve açık (dik çubuk) durumları ===== */
-/* Kapalı: yalnızca küçük, kibar ataç görünür */
+/* Kapalı: SADECE ataç görünür — hiçbir zemin, kenar, gölge ya da buzlu cam YOK */
 body:not(.expanded) .serit {
-  border-radius: 20px;
+  border-radius: 0;
   padding: 0;
+  margin: 0;
+  height: 100vh;
   justify-content: center;
-  background: linear-gradient(180deg, rgba(255, 220, 185, 0.34), rgba(255, 170, 150, 0.30));
+  background: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  animation: none;
 }
 body:not(.expanded) .ust,
 body:not(.expanded) .sayac-satir,
@@ -189,7 +196,7 @@ body:not(.expanded) .kaydir,
 body:not(.expanded) .alt,
 body:not(.expanded) .ekle-menu { display: none !important; }
 body:not(.expanded) .amblem { margin: 0; }
-body:not(.expanded) .amblem img { width: 42px; }
+body:not(.expanded) .amblem img { width: 52px; }
 
 /* Açık durumda amblem biraz küçük ve üstte */
 body.expanded .amblem img { width: 54px; }
@@ -206,12 +213,14 @@ body.expanded .ad { font-size: 11px; max-width: 92px; }
 /* İşlem yokken (boşta) saydamlaşır */
 body.uyku .serit { opacity: 0.4; }
 
-/* Üzerine gelince tam görünür ve hafifçe parlar */
-body.hover .serit {
+/* Üzerine gelince tam görünür ve hafifçe parlar (yalnızca AÇIK çubukta zemin parlar) */
+body.hover.expanded .serit {
   opacity: 1;
   border-color: rgba(255, 255, 255, 0.78);
   box-shadow: 0 22px 56px rgba(80, 40, 40, 0.5);
 }
+/* Kapalı durumda hover yalnızca ataçı hafifçe parlatır, zemin getirmez */
 body.hover .amblem img {
-  filter: drop-shadow(0 9px 17px rgba(80, 40, 30, 0.5)) brightness(1.1);
+  filter: drop-shadow(0 9px 17px rgba(80, 40, 30, 0.5)) brightness(1.08);
 }
+body:not(.expanded).hover .serit { box-shadow: none !important; border: none !important; }
