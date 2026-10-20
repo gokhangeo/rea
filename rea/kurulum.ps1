@@ -41,4 +41,22 @@ if (-not (Test-Path $calisma)) {
 }
 
 npm ls -g rea-agents --depth=0
-Write-Host "Rea kurulumu tamamlandı." -ForegroundColor Green
+
+# Claude Code ve Claude masaüstüne yerel (stdio) MCP olarak kaydet
+# Açık Claude masaüstü ayar dosyasını yeniden yazabileceği için önce tamamen kapatılmalı
+Read-Host "Claude masaüstünü tamamen kapatın (sistem tepsisinden de), sonra Enter tuşuna basın"
+Write-Host "Rea, Claude Code ve Claude masaüstüne kaydediliyor..."
+rea setup --client claude_code --client claude_desktop --yes
+if ($LASTEXITCODE -ne 0) {
+  Write-Host "Kayıt başarısız oldu. Elle denemek için: rea setup" -ForegroundColor Red
+  exit $LASTEXITCODE
+}
+
+# Doğrulama
+rea mcp doctor
+if ($LASTEXITCODE -ne 0) {
+  Write-Host "Rea doğrulaması başarısız oldu." -ForegroundColor Red
+  exit $LASTEXITCODE
+}
+
+Write-Host "Rea kurulumu tamamlandı. Claude Code ve Claude masaüstünü tamamen kapatıp yeniden açın." -ForegroundColor Green
