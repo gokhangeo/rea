@@ -8,82 +8,141 @@
   <link rel="stylesheet" href="stil.css">
 </head>
 <body>
-  <header class="ust">
-    <button id="btnAc" class="dugme">Fotoğraf aç</button>
-    <div class="ust-sag">
-      <button id="btnGeri" class="ikon" title="Geri al" disabled>↶</button>
-      <button id="btnSifirla" class="ikon" title="Sıfırla" disabled>⟲</button>
-      <button id="btnKaydet" class="dugme vurgu" disabled>Kaydet</button>
-    </div>
-  </header>
-
-  <main class="sahne" id="sahne">
-    <div class="bos" id="bos">
-      <div class="bos-ikon">◐</div>
-      <p>Düzenlemek için bir fotoğraf seçin</p>
-      <button id="btnAc2" class="dugme vurgu">Galeriden seç</button>
-    </div>
-    <canvas id="tuval" hidden></canvas>
-    <div class="ipucu" id="ipucu" hidden>Orijinali görmek için basılı tutun</div>
-  </main>
-
-  <section class="panel" id="panel" hidden>
-    <div class="sekme-icerik" data-sekme="filtre">
-      <div class="seritler" id="filtreler"></div>
-      <label class="kaydirici"><span>Yoğunluk</span><input type="range" id="filtreYogunluk" min="0" max="100" value="100"><output></output></label>
-    </div>
-
-    <div class="sekme-icerik" data-sekme="ayar" hidden>
-      <label class="kaydirici"><span>Parlaklık</span><input type="range" data-p="parlaklik" min="-100" max="100" value="0"><output></output></label>
-      <label class="kaydirici"><span>Kontrast</span><input type="range" data-p="kontrast" min="-100" max="100" value="0"><output></output></label>
-      <label class="kaydirici"><span>Doygunluk</span><input type="range" data-p="doygunluk" min="-100" max="100" value="0"><output></output></label>
-      <label class="kaydirici"><span>Sıcaklık</span><input type="range" data-p="sicaklik" min="-100" max="100" value="0"><output></output></label>
-      <label class="kaydirici"><span>Ton</span><input type="range" data-p="ton" min="-100" max="100" value="0"><output></output></label>
-      <label class="kaydirici"><span>Gölgeler</span><input type="range" data-p="golge" min="-100" max="100" value="0"><output></output></label>
-      <label class="kaydirici"><span>Vurgular</span><input type="range" data-p="vurgu" min="-100" max="100" value="0"><output></output></label>
-      <label class="kaydirici"><span>Netlik</span><input type="range" data-p="netlik" min="0" max="100" value="0"><output></output></label>
-    </div>
-
-    <div class="sekme-icerik" data-sekme="rotus" hidden>
-      <label class="kaydirici"><span>Cilt yumuşatma</span><input type="range" data-p="yumusatma" min="0" max="100" value="0"><output></output></label>
-      <label class="kaydirici"><span>Cilt ışıltısı</span><input type="range" data-p="isilti" min="0" max="100" value="0"><output></output></label>
-      <label class="kaydirici"><span>Yüz aydınlatma</span><input type="range" data-p="aydinlat" min="0" max="100" value="0"><output></output></label>
-      <p class="not">Rötuş, fotoğraftaki ten renklerini otomatik bulur; arka plan etkilenmez.</p>
-    </div>
-
-    <div class="sekme-icerik" data-sekme="kirp" hidden>
-      <div class="seritler" id="oranlar"></div>
-      <div class="satir">
-        <button class="dugme" id="btnDondur">Döndür ⟳</button>
-        <button class="dugme" id="btnCevir">Yatay çevir ⇋</button>
+  <!-- ===== Ana ekran ===== -->
+  <section class="ekran" id="ekranAna">
+    <header class="ust">
+      <div class="logo">Foto<b>Rea</b></div>
+      <button class="ikon" id="btnAyarlar" title="Ayarlar">⚙</button>
+    </header>
+    <div class="ana-icerik">
+      <div class="kahraman">
+        <div class="kahraman-kolaj">
+          <span style="--a:-8deg">✦</span><span style="--a:4deg">☺</span><span style="--a:-3deg">✧</span>
+        </div>
+        <h1>Tek fotoğraf,<br>sayısız yeni çekim</h1>
+        <p>Gözler kapalı mı çıktı, gülüş olmadı mı? Fotoğrafınızı seçin, yapay zekâ sizin için yeniden çeksin.</p>
+        <button class="dugme vurgu buyuk" id="btnSec">Fotoğraf seç</button>
+      </div>
+      <h2 class="baslik">Neler yapabilirsiniz</h2>
+      <div class="ozellikler">
+        <div class="ozellik"><b>Yeniden çek</b><small>Gülüş, açık gözler, doğal ışık, yeni poz</small></div>
+        <div class="ozellik"><b>AI stiller</b><small>Stüdyo, profesyonel, sinematik, anime, yağlı boya</small></div>
+        <div class="ozellik"><b>Akıllı düzenle</b><small>Arka plan değiştir, nesne sil, kalite artır</small></div>
+        <div class="ozellik"><b>Elle düzenle</b><small>Filtre, rötuş, kırpma ve efektler (internetsiz)</small></div>
       </div>
     </div>
-
-    <div class="sekme-icerik" data-sekme="efekt" hidden>
-      <label class="kaydirici"><span>Vinyet</span><input type="range" data-p="vinyet" min="0" max="100" value="0"><output></output></label>
-      <label class="kaydirici"><span>Film greni</span><input type="range" data-p="gren" min="0" max="100" value="0"><output></output></label>
-      <label class="kaydirici"><span>Soluklaştır</span><input type="range" data-p="soluk" min="0" max="100" value="0"><output></output></label>
-      <label class="kaydirici"><span>Rüya (parlama)</span><input type="range" data-p="parlama" min="0" max="100" value="0"><output></output></label>
-    </div>
-
-    <div class="sekme-icerik" data-sekme="ai" hidden>
-      <div class="ai-liste">
-        <button class="ai-kart" data-ai="arkaplan"><b>Arka planı sil / değiştir</b><small>Yapay zekâ servisi bağlanınca açılır</small></button>
-        <button class="ai-kart" data-ai="kalite"><b>Kalite artır (netleştir, büyüt)</b><small>Yapay zekâ servisi bağlanınca açılır</small></button>
-        <button class="ai-kart" data-ai="portre"><b>AI portre stilleri</b><small>Yapay zekâ servisi bağlanınca açılır</small></button>
-        <button class="ai-kart" data-ai="sil"><b>Nesne silme</b><small>Yapay zekâ servisi bağlanınca açılır</small></button>
-      </div>
-    </div>
-
-    <nav class="sekmeler" id="sekmeler">
-      <button data-sekme="filtre" class="secili">Filtre</button>
-      <button data-sekme="ayar">Ayarla</button>
-      <button data-sekme="rotus">Rötuş</button>
-      <button data-sekme="kirp">Kırp</button>
-      <button data-sekme="efekt">Efekt</button>
-      <button data-sekme="ai">AI</button>
-    </nav>
   </section>
+
+  <!-- ===== Yapay zekâ ekranı ===== -->
+  <section class="ekran" id="ekranAI" hidden>
+    <header class="ust">
+      <button class="ikon" id="btnAIGeri" title="Geri">‹</button>
+      <div class="logo kucuk-logo">Foto<b>Rea</b></div>
+      <button class="dugme" id="btnElle">Elle düzenle</button>
+    </header>
+    <div class="ai-icerik">
+      <div class="secilen"><img id="secilenFoto" alt=""></div>
+      <div class="cipler" id="kategoriler"></div>
+      <div class="kartlar" id="istemler"></div>
+      <div class="ozel-istem" id="ozelIstem" hidden>
+        <input type="text" id="ozelMetin" placeholder="Ne değişsin? Örn. arkadaki kişiyi sil">
+        <button class="dugme vurgu" id="btnOzel">Uygula</button>
+      </div>
+      <h2 class="baslik" id="sonucBaslik" hidden>Sonuçlar</h2>
+      <div class="sonuclar" id="sonuclar"></div>
+    </div>
+  </section>
+
+  <!-- ===== Sonuç görüntüleyici ===== -->
+  <section class="ekran koyu" id="ekranSonuc" hidden>
+    <header class="ust">
+      <button class="ikon" id="btnSonucGeri" title="Geri">‹</button>
+      <div class="ust-sag">
+        <button class="dugme" id="btnSonucDuzenle">Düzenle</button>
+        <button class="dugme vurgu" id="btnSonucKaydet">Kaydet</button>
+      </div>
+    </header>
+    <main class="sahne"><img id="sonucBuyuk" alt=""></main>
+  </section>
+
+  <!-- ===== Elle düzenleyici ===== -->
+  <section class="ekran" id="ekranDuzenle" hidden>
+    <header class="ust">
+      <button class="ikon" id="btnDuzenGeri" title="Geri">‹</button>
+      <div class="ust-sag">
+        <button id="btnGeri" class="ikon" title="Geri al" disabled>↶</button>
+        <button id="btnSifirla" class="ikon" title="Sıfırla" disabled>⟲</button>
+        <button id="btnKaydet" class="dugme vurgu" disabled>Kaydet</button>
+      </div>
+    </header>
+
+    <main class="sahne" id="sahne">
+      <canvas id="tuval"></canvas>
+      <div class="ipucu" id="ipucu" hidden>Orijinali görmek için basılı tutun</div>
+    </main>
+
+    <section class="panel" id="panel">
+      <div class="sekme-icerik" data-sekme="filtre">
+        <div class="seritler" id="filtreler"></div>
+        <label class="kaydirici"><span>Yoğunluk</span><input type="range" id="filtreYogunluk" min="0" max="100" value="100"><output></output></label>
+      </div>
+
+      <div class="sekme-icerik" data-sekme="ayar" hidden>
+        <label class="kaydirici"><span>Parlaklık</span><input type="range" data-p="parlaklik" min="-100" max="100" value="0"><output></output></label>
+        <label class="kaydirici"><span>Kontrast</span><input type="range" data-p="kontrast" min="-100" max="100" value="0"><output></output></label>
+        <label class="kaydirici"><span>Doygunluk</span><input type="range" data-p="doygunluk" min="-100" max="100" value="0"><output></output></label>
+        <label class="kaydirici"><span>Sıcaklık</span><input type="range" data-p="sicaklik" min="-100" max="100" value="0"><output></output></label>
+        <label class="kaydirici"><span>Ton</span><input type="range" data-p="ton" min="-100" max="100" value="0"><output></output></label>
+        <label class="kaydirici"><span>Gölgeler</span><input type="range" data-p="golge" min="-100" max="100" value="0"><output></output></label>
+        <label class="kaydirici"><span>Vurgular</span><input type="range" data-p="vurgu" min="-100" max="100" value="0"><output></output></label>
+        <label class="kaydirici"><span>Netlik</span><input type="range" data-p="netlik" min="0" max="100" value="0"><output></output></label>
+      </div>
+
+      <div class="sekme-icerik" data-sekme="rotus" hidden>
+        <label class="kaydirici"><span>Cilt yumuşatma</span><input type="range" data-p="yumusatma" min="0" max="100" value="0"><output></output></label>
+        <label class="kaydirici"><span>Cilt ışıltısı</span><input type="range" data-p="isilti" min="0" max="100" value="0"><output></output></label>
+        <label class="kaydirici"><span>Yüz aydınlatma</span><input type="range" data-p="aydinlat" min="0" max="100" value="0"><output></output></label>
+        <p class="not">Rötuş, fotoğraftaki ten renklerini otomatik bulur; arka plan etkilenmez.</p>
+      </div>
+
+      <div class="sekme-icerik" data-sekme="kirp" hidden>
+        <div class="seritler" id="oranlar"></div>
+        <div class="satir">
+          <button class="dugme" id="btnDondur">Döndür ⟳</button>
+          <button class="dugme" id="btnCevir">Yatay çevir ⇋</button>
+        </div>
+      </div>
+
+      <div class="sekme-icerik" data-sekme="efekt" hidden>
+        <label class="kaydirici"><span>Vinyet</span><input type="range" data-p="vinyet" min="0" max="100" value="0"><output></output></label>
+        <label class="kaydirici"><span>Film greni</span><input type="range" data-p="gren" min="0" max="100" value="0"><output></output></label>
+        <label class="kaydirici"><span>Soluklaştır</span><input type="range" data-p="soluk" min="0" max="100" value="0"><output></output></label>
+        <label class="kaydirici"><span>Rüya (parlama)</span><input type="range" data-p="parlama" min="0" max="100" value="0"><output></output></label>
+      </div>
+
+      <nav class="sekmeler" id="sekmeler">
+        <button data-sekme="filtre" class="secili">Filtre</button>
+        <button data-sekme="ayar">Ayarla</button>
+        <button data-sekme="rotus">Rötuş</button>
+        <button data-sekme="kirp">Kırp</button>
+        <button data-sekme="efekt">Efekt</button>
+      </nav>
+    </section>
+  </section>
+
+  <!-- ===== Ayarlar ===== -->
+  <div class="perde" id="ayarPerde" hidden>
+    <div class="pencere">
+      <h2>Yapay zekâ bağlantısı</h2>
+      <p class="not">Kurulum rehberindeki ara sunucunun adresini ve uygulama anahtarını girin.</p>
+      <label class="alan"><span>Servis adresi</span><input type="url" id="ayarAdres" placeholder="https://fotorea-ai.adiniz.workers.dev"></label>
+      <label class="alan"><span>Uygulama anahtarı</span><input type="text" id="ayarAnahtar" placeholder="Ara sunucuda belirlediğiniz parola"></label>
+      <div class="satir">
+        <button class="dugme" id="btnAyarKapat">Vazgeç</button>
+        <button class="dugme vurgu" id="btnAyarKaydet">Kaydet</button>
+      </div>
+    </div>
+  </div>
 
   <input type="file" id="dosya" accept="image/*" hidden>
   <div class="bildirim" id="bildirim" hidden></div>
@@ -91,5 +150,6 @@
   <script src="islem.js"></script>
   <script src="ai.js"></script>
   <script src="uygulama.js"></script>
+  <script src="yeniden-cek.js"></script>
 </body>
 </html>

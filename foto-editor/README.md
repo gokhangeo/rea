@@ -2,19 +2,21 @@
 
 Telefonda çalışan, internetsiz foto düzenleme uygulaması. Tek kod tabanından (Capacitor) hem Android `.apk` hem iOS `.ipa` üretilir.
 
-## Bu sürümde hazır olanlar (cihaz üzerinde, çevrimdışı)
+## Akış
 
-- **Filtre:** 11 hazır filtre (Canlı, Sinema, Altın saat, Soğuk, Pastel, Vintage, Retro, Dramatik, Siyah-beyaz, Noir, Sepya) ve yoğunluk ayarı
-- **Ayarla:** parlaklık, kontrast, doygunluk, sıcaklık, ton, gölgeler, vurgular, netlik
-- **Rötuş:** cilt yumuşatma, cilt ışıltısı, yüz aydınlatma (ten rengi otomatik bulunur, arka plan etkilenmez)
-- **Kırp:** Orijinal, Kare, 4:5, 3:4, 9:16, 16:9, 3:2; döndürme ve yatay çevirme
-- **Efekt:** vinyet, film greni, soluklaştırma, rüya parlaması
-- Önce/sonra (fotoğrafa basılı tutunca orijinal görünür), geri al, sıfırla
-- **Kaydet:** tam çözünürlükte (uzun kenar en çok 4000 px) JPG; telefonda paylaşım ekranından "Görüntüyü Kaydet" / Galeri seçilir
+1. **Ana ekran:** "Fotoğraf seç".
+2. **Yapay zekâ ekranı:** üç grup kart.
+   - *Yeniden çek:* Gülümse, Gözleri aç, Doğal ışık, Yeni poz, Daha iyi açı, Kusursuz cilt
+   - *Stiller:* Stüdyo portre, Profesyonel, Sinematik, Vintage film, Anime, Yağlı boya
+   - *Akıllı düzenle:* Arka planı sil, Sahil, Şehir gece, Kalite artır ve serbest metinle istek
+   Sonuçlar altta ızgara olarak çıkar; dokununca büyür, kaydedilir veya elle düzenlemeye gönderilir.
+3. **Elle düzenle (internetsiz):** 11 filtre, ışık/renk ayarları, rötuş (cilt yumuşatma, ışıltı, yüz aydınlatma), kırpma, döndürme, efektler, önce/sonra, geri al.
 
-## Yapay zekâ servisi bağlanınca gelecekler
+## Yapay zekâ bağlantısı
 
-Arka plan silme/değiştirme, kalite artırma, AI portre stilleri, nesne silme. Arayüzde yerleri hazır; servis adresi `www/ai.js` içindeki `servisAdresi` alanına yazılınca açılır.
+Uygulama fotoğrafı `ai-sunucu/worker.js` ara sunucusuna (Cloudflare Worker) gönderir; o da Replicate'teki
+`black-forest-labs/flux-kontext-pro` modelini çalıştırır. Replicate anahtarı yalnızca ara sunucuda durur.
+Servis adresi ve uygulama anahtarı uygulamadaki ⚙ Ayarlar'dan girilir; yeniden derleme gerekmez.
 
 ## Derleme ve kurulum
 

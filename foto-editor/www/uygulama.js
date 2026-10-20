@@ -71,25 +71,20 @@
     $$("#oranlar .kucuk").forEach((el, i) => el.classList.toggle("secili", ORANLAR[i].oran === durum.oran));
   }
 
-  // ---------- Fotoğraf açma ----------
-  function dosyaSec() { $("#dosya").value = ""; $("#dosya").click(); }
-  $("#btnAc").onclick = dosyaSec;
-  $("#btnAc2").onclick = dosyaSec;
-  $("#dosya").onchange = (e) => {
-    const dosya = e.target.files && e.target.files[0];
-    if (!dosya) return;
-    const url = URL.createObjectURL(dosya);
-    const img = new Image();
-    img.onload = () => {
-      gorsel = img; durum = bosDurum(); gecmis = []; onbellek = {};
-      $("#bos").hidden = true; tuval.hidden = false; $("#panel").hidden = false;
-      const ipucu = $("#ipucu"); ipucu.hidden = false; ipucu.style.opacity = 1;
-      setTimeout(() => (ipucu.style.opacity = 0), 3000);
-      kucukResimleriYap(); arayuzuDurumaGetir(); kaydetGecmis(); ciz();
-    };
-    img.onerror = () => bildir("Bu dosya açılamadı. Lütfen JPG veya PNG seçin.");
-    img.src = url;
-  };
+  // ---------- Ekranlar ----------
+  function ekranGoster(id) { $$(".ekran").forEach((e) => (e.hidden = e.id !== id)); }
+
+  // ---------- Düzenleyiciyi aç ----------
+  let oncekiEkran = "ekranAna";
+  function duzenleyiciyiAc(img, geriEkran) {
+    gorsel = img; durum = bosDurum(); gecmis = []; onbellek = {};
+    oncekiEkran = geriEkran || "ekranAna";
+    ekranGoster("ekranDuzenle");
+    const ipucu = $("#ipucu"); ipucu.hidden = false; ipucu.style.opacity = 1;
+    setTimeout(() => (ipucu.style.opacity = 0), 3000);
+    kucukResimleriYap(); arayuzuDurumaGetir(); kaydetGecmis(); ciz();
+  }
+  $("#btnDuzenGeri").onclick = () => ekranGoster(oncekiEkran);
 
   // ---------- Filtre ve oran şeritleri ----------
   function kucukResimleriYap() {
@@ -149,14 +144,6 @@
   tuval.addEventListener("pointerdown", basla);
   ["pointerup", "pointercancel", "pointerleave"].forEach((e) => tuval.addEventListener(e, bitir));
 
-  // ---------- AI araçları ----------
-  $$(".ai-kart").forEach((btn) => {
-    btn.onclick = () => {
-      if (!window.FotoAI.acikMi()) bildir("Bu araç bir yapay zekâ servisi bağlandığında açılacak.");
-      else bildir("AI aracı hazırlanıyor…");
-    };
-  });
-
   // ---------- Kaydetme ----------
   $("#btnKaydet").onclick = async () => {
     if (!gorsel) return;
@@ -196,4 +183,5 @@
   }
 
   dugmeleriGuncelle();
+  window.FotoUygulama = { ekranGoster, duzenleyiciyiAc, paylas, bildir };
 })();
