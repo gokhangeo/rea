@@ -1,0 +1,56 @@
+{
+  "name": "atac",
+  "productName": "Ataç",
+  "version": "0.1.0",
+  "description": "Windows için yüzen sürükle-bırak rafı: dosyaları/klasörleri geçici olarak topla, tek seferde başka yere bırak.",
+  "author": "gokhangeo",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gokhangeo/rea.git"
+  },
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win --publish never"
+  },
+  "devDependencies": {
+    "electron": "33.2.1",
+    "electron-builder": "25.1.8"
+  },
+  "build": {
+    "appId": "com.gokhan.atac",
+    "productName": "Ataç",
+    "publish": [
+      { "provider": "github", "owner": "gokhangeo", "repo": "rea" }
+    ],
+    "artifactName": "${productName}-Kurulum-${version}.${ext}",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        { "target": "nsis", "arch": ["x64"] },
+        { "target": "portable", "arch": ["x64"] }
+      ]
+    },
+    "portable": {
+      "artifactName": "${productName}-Tasinabilir-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowElevation": false,
+      "allowToChangeInstallationDirectory": true,
+      "runAfterFinish": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Ataç"
+    }
+  }
+}

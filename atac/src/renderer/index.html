@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Ataç</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div id="kart" class="kart">
+      <header class="baslik" id="suruk">
+        <div class="logo">
+          <span class="logo-kutu"><i class="l1"></i><i class="l2"></i><i class="l3"></i></span>
+          <div class="baslik-metin">
+            <strong>Ataç</strong>
+            <small id="sayac">Boş</small>
+          </div>
+        </div>
+        <div class="baslik-dugmeler">
+          <button id="ekleBtn" class="ikon-btn" title="Ekle">+</button>
+          <button id="gizleBtn" class="ikon-btn" title="Gizle">—</button>
+        </div>
+      </header>
+
+      <!-- + açılır menü -->
+      <div id="ekleMenu" class="ekle-menu gizli">
+        <button data-mode="folder"><span class="e-ikon">📁</span> Klasör ekle</button>
+        <button data-mode="file"><span class="e-ikon">📄</span> Dosya ekle</button>
+      </div>
+
+      <main id="raf" class="raf">
+        <ul id="liste" class="liste"></ul>
+
+        <div id="bos" class="bos">
+          <div class="bos-daire">+</div>
+          <p>Dosya ya da klasörü<br />buraya sürükle</p>
+          <span class="bos-ipucu">ya da <b>+</b> ile ekle</span>
+        </div>
+      </main>
+
+      <footer class="alt gizli" id="alt">
+        <div id="tumunuSuruk" class="tumunu" draggable="true" title="Hepsini birden sürükle">
+          <span class="tumunu-ikon">⇪</span>
+          <span id="tumunuMetin">Tümünü sürükle</span>
+        </div>
+        <button id="temizle" class="temizle" title="Hepsini kaldır">Temizle</button>
+      </footer>
+
+      <div id="atilan" class="atilan"></div>
+    </div>
+
+    <script src="renderer.js"></script>
+  </body>
+</html>
