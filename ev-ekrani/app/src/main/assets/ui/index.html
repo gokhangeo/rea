@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ev Ekranı</title>
+<style>
+/* 1920x1080 sahne ekrana göre ölçeklenir: solda cam FB köşesi, ortada derinlikli fotoğraf, sağ üstte saat, altta uygulamalar.
+   Yazı tipleri kutuda yüklü olanlardan seçilir; internet olmasa da ekran açılır. */
+:root{
+  --bg:#05070c; --fb-navy:#0b1f4d; --fb-yellow:#ffd200; --fg:#f2f5fa; --muted:#a9b6cc;
+  --glass:rgba(16,32,72,.5); --line:rgba(255,255,255,.14);
+  --f-num:"sans-serif-condensed","Roboto Condensed","Arial Narrow",sans-serif; --f-body:"Roboto",sans-serif;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font-family:var(--f-body);overflow:hidden}
+#tv{width:1920px;height:1080px;position:absolute;left:0;top:0;transform-origin:0 0;overflow:hidden;
+  background:radial-gradient(120% 90% at 80% 20%,#1f4fa8 0%,#123276 40%,#081a42 100%)}
+#fon{position:absolute;inset:-80px;background-size:cover;background-position:center;filter:blur(50px) brightness(.35);opacity:.55}
+.cizgi{position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 120px,rgba(255,210,0,.035) 120px 240px)}
+/* Sol panel */
+.fb{position:absolute;left:90px;top:90px;width:700px;min-height:560px;background:var(--glass);
+  border:1px solid var(--line);border-radius:44px;padding:44px 46px;display:flex;flex-direction:column;gap:26px;
+  transform:perspective(1600px) rotateY(9deg);transform-origin:left center;box-shadow:30px 40px 90px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.18)}
+.fb-bas{display:flex;align-items:center;gap:18px}
+.serit{width:54px;height:54px;border-radius:14px;background:repeating-linear-gradient(90deg,var(--fb-yellow) 0 9px,var(--fb-navy) 9px 18px);box-shadow:0 0 0 2px var(--fb-yellow);flex:none}
+.fb-bas h2{margin:0;font:700 40px/1 var(--f-body)}
+.fb-bas small{display:block;font-size:20px;color:var(--muted);margin-top:6px}
+.sonraki{background:linear-gradient(135deg,rgba(255,210,0,.16),rgba(255,210,0,.04));border:1px solid rgba(255,210,0,.35);border-radius:30px;padding:26px 30px;display:flex;flex-direction:column;gap:14px}
+.etiket{font-size:17px;letter-spacing:.14em;text-transform:uppercase;color:var(--fb-yellow);font-weight:700}
+.eslesme{display:flex;align-items:center;justify-content:space-between;gap:16px;font:700 34px/1.1 var(--f-body)}
+.eslesme .vs{font:700 30px var(--f-num);color:var(--muted)}
+.biz{color:var(--fb-yellow)}
+.meta{font-size:20px;color:var(--muted)}
+.sayac{display:flex;gap:14px}
+.sayac div{flex:1;background:rgba(5,12,30,.45);border-radius:18px;padding:12px 0;text-align:center}
+.sayac b{display:block;font:700 52px/1 var(--f-num)}
+.sayac span{font-size:15px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+.canli{display:inline-block;background:#e0262b;color:#fff;border-radius:8px;padding:2px 10px;margin-left:10px;font-size:16px;letter-spacing:.08em}
+.satirlar{display:flex;flex-direction:column;gap:12px}
+.satir{display:flex;align-items:center;gap:18px;padding:16px 20px;border-radius:22px;background:rgba(255,255,255,.06)}
+.rozet{width:76px;text-align:center;font:700 28px var(--f-num);border-radius:12px;padding:6px 0;flex:none;background:rgba(255,255,255,.12)}
+.rozet.g{background:#1f9d55}.rozet.b{background:#8a8f99}.rozet.m{background:#c0392b}
+.satir .ad{font-size:23px;font-weight:600;flex:1;min-width:0}
+.satir .ad small{display:block;font-size:17px;color:var(--muted);font-weight:400;margin-top:3px}
+.bos{font-size:22px;color:var(--muted);line-height:1.5}
+/* Fotoğraf */
+.foto{position:absolute;left:1010px;top:70px;width:405px;height:720px;border-radius:34px;overflow:hidden;background:#0a1630;
+  box-shadow:0 40px 90px rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.15);transform:perspective(1600px) rotateY(-7deg);transition:opacity .7s,box-shadow .2s}
+.foto.odak{box-shadow:0 0 0 6px var(--fb-yellow),0 40px 90px rgba(0,0,0,.55)}
+#cv{width:100%;height:100%;display:block}
+#fotoBos{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;gap:18px;padding:40px;font-size:24px;line-height:1.45;text-align:center;color:var(--muted)}
+#fotoBos b{color:var(--fg);font-size:30px}
+.alti{position:absolute;left:1212px;top:808px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:10px;white-space:nowrap}
+.nk{display:flex;gap:10px}
+.nk i{width:11px;height:11px;border-radius:50%;background:rgba(255,255,255,.3)}.nk i.on{background:var(--fb-yellow)}
+#ekle{font-size:17px;color:var(--muted)}
+.ust{position:absolute;right:90px;top:70px;text-align:right;text-shadow:0 2px 16px rgba(0,0,0,.4)}
+#saat{font:700 120px/.9 var(--f-num)}
+#tarih{font-size:26px;color:var(--muted);margin-top:8px}
+#hava{font-size:26px;margin-top:6px}
+/* Uygulama çubuğu */
+.dock{position:absolute;left:90px;right:90px;bottom:24px;height:170px;overflow:hidden}
+#dockIc{display:flex;gap:26px;padding:20px 10px;transition:transform .25s}
+.app{flex:none;width:240px;height:135px;border-radius:24px;background:#1b2436 center/cover no-repeat;position:relative;transition:transform .2s,box-shadow .2s}
+.app span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:10px;text-align:center;font-size:24px;font-weight:600;color:var(--fg)}
+.app img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:24px}
+.app.secili{transform:translateY(-8px) scale(1.07);box-shadow:0 0 0 5px var(--fb-yellow),0 24px 50px rgba(0,0,0,.5)}
+.app.arti{display:flex;align-items:center;justify-content:center;font-size:64px;color:var(--muted);background:rgba(255,255,255,.08);border:2px dashed rgba(255,255,255,.25)}
+/* Katmanlar: uzun basış menüsü ve uygulama seçici */
+.katman{position:absolute;inset:0;background:rgba(3,8,20,.78);display:flex;align-items:center;justify-content:center}
+.kutu{background:#101c38;border:1px solid var(--line);border-radius:30px;padding:36px 40px;min-width:520px;max-width:1500px}
+.kutu h3{margin:0 0 22px;font-size:32px}
+.secenek{font-size:26px;padding:16px 24px;border-radius:16px;margin:6px 0;background:rgba(255,255,255,.05)}
+.secenek.secili{background:var(--fb-yellow);color:var(--fb-navy);font-weight:700}
+#liste{display:grid;grid-template-columns:repeat(5,240px);gap:22px;max-height:640px;overflow:hidden}
+#liste .app{height:135px}
+#liste .ad2{font-size:17px;color:var(--muted);text-align:center;margin-top:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ipucu{margin-top:20px;font-size:19px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div id="tv">
+  <div id="fon"></div><div class="cizgi"></div>
+  <section class="fb">
+    <div class="fb-bas"><div class="serit"></div><div><h2>Fenerbahçe</h2><small id="fbAlt">Maç bilgileri yükleniyor</small></div></div>
+    <div id="fbIcerik"></div>
+  </section>
+  <div class="foto" id="foto"><canvas id="cv" width="630" height="1120"></canvas><div id="fotoBos" hidden></div></div>
+  <div class="alti"><div class="nk" id="nk"></div><div id="ekle"></div></div>
+  <div class="ust"><div id="saat">--:--</div><div id="tarih"></div><div id="hava"></div></div>
+  <nav class="dock"><div id="dockIc"></div></nav>
+  <div class="katman" id="menu" hidden><div class="kutu"><h3 id="menuBaslik"></h3><div id="menuSec"></div></div></div>
+  <div class="katman" id="secici" hidden><div class="kutu"><h3>Uygulama ekle</h3><div id="liste"></div><div class="ipucu">OK ile ekleyin, Geri ile kapatın.</div></div></div>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+const tv=$('tv');
+function olcek(){const s=Math.min(innerWidth/1920,innerHeight/1080);tv.style.transform=`translate(${(innerWidth-1920*s)/2}px,${(innerHeight-1080*s)/2}px) scale(${s})`}
+addEventListener('resize',olcek);olcek();
+
+async function api(yol,ops){const r=await fetch('/api/'+yol,ops);if(!r.ok)throw new Error(r.status);return r.json()}
+let durum={photos:[],dock:[],feeds:{}};
+
+/* ---------- Saat ve hava ---------- */
+const HAVA={0:'Açık',1:'Az bulutlu',2:'Parçalı bulutlu',3:'Bulutlu',45:'Sisli',48:'Sisli',51:'Çisenti',53:'Çisenti',55:'Çisenti',61:'Hafif yağmur',63:'Yağmurlu',65:'Kuvvetli yağmur',71:'Kar',73:'Kar',75:'Yoğun kar',80:'Sağanak',81:'Sağanak',82:'Kuvvetli sağanak',95:'Gök gürültülü',96:'Dolu',99:'Dolu'};
+function saat(){const d=new Date(),tz={timeZone:'Europe/Istanbul'};
+  $('saat').textContent=d.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit',...tz});
+  $('tarih').textContent=d.toLocaleDateString('tr-TR',{weekday:'long',day:'numeric',month:'long',...tz});
+  const w=durum.feeds&&durum.feeds.weather;$('hava').textContent=w?`Mersin · ${Math.round(w.temp)}° ${HAVA[w.code]||''}`:'Mersin';
+  sayacGuncelle()}
+setInterval(saat,10000);
+
+/* ---------- Fenerbahçe köşesi ---------- */
+const fb=n=>/Fenerbah/i.test(n);
+const takim=n=>fb(n)?`<span class="biz">${esc(n)}</span>`:esc(n);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const gun=t=>new Date(t).toLocaleDateString('tr-TR',{day:'numeric',month:'long',weekday:'long',timeZone:'Europe/Istanbul'});
+const sa=t=>new Date(t).toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Istanbul'});
+const kisa=t=>new Date(t).toLocaleDateString('tr-TR',{day:'2-digit',month:'2-digit',timeZone:'Europe/Istanbul'});
+let macSaati=0;
+function fbCiz(){const m=durum.feeds&&durum.feeds.matches,el=$('fbIcerik');
+  if(!m){$('fbAlt').textContent='Maç bilgileri yükleniyor';el.innerHTML='<div class="bos">İnternetten maç bilgisi bekleniyor.</div>';return}
+  $('fbAlt').textContent='Maçlar ve sonuçlar';
+  const n=m.next||[],l=m.last||[];let h='';
+  if(n[0]){const x=n[0];macSaati=x.live?0:x.t;
+    h+=`<div class="sonraki"><div class="etiket">${x.live?'Şu an oynanıyor':'Sıradaki maç'} · ${esc(x.comp)}${x.live?'<span class="canli">CANLI</span>':''}</div>
+      <div class="eslesme"><span>${takim(x.home)}</span><span class="vs">${x.live?esc(x.hs+' - '+x.as):'VS'}</span><span>${takim(x.away)}</span></div>
+      <div class="meta">${gun(x.t)} · ${sa(x.t)}${x.venue?' · '+esc(x.venue):''}</div>
+      ${x.live?'':'<div class="sayac" id="sayac"><div><b>-</b><span>Gün</span></div><div><b>-</b><span>Saat</span></div><div><b>-</b><span>Dakika</span></div></div>'}</div>`}
+  else{macSaati=0;h+='<div class="bos">Yaklaşan maç bulunamadı.</div>'}
+  h+='<div class="satirlar">';
+  for(const x of l.slice(0,1)){const biz=fb(x.home)?+x.hs:+x.as,onlar=fb(x.home)?+x.as:+x.hs,k=biz>onlar?'g':biz<onlar?'m':'b';
+    h+=`<div class="satir"><div class="rozet ${k}">${esc(x.hs)}-${esc(x.as)}</div><div class="ad">${esc(x.home)} - ${esc(x.away)}<small>Son maç · ${gun(x.t)} · ${esc(x.comp)}</small></div></div>`}
+  for(const x of n.slice(1,3))h+=`<div class="satir"><div class="rozet">${kisa(x.t)}</div><div class="ad">${esc(x.home)} - ${esc(x.away)}<small>${sa(x.t)} · ${esc(x.comp)}</small></div></div>`;
+  el.innerHTML=h+'</div>';sayacGuncelle()}
+function sayacGuncelle(){const b=document.querySelectorAll('#sayac b');if(!b.length||!macSaati)return;const f=Math.max(0,macSaati-Date.now());
+  b[0].textContent=Math.floor(f/864e5);b[1].textContent=String(Math.floor(f/36e5)%24).padStart(2,'0');b[2].textContent=String(Math.floor(f/6e4)%60).padStart(2,'0')}
+
+/* ---------- 3D fotoğraf ---------- */
+const cv=$('cv'),gl=cv.getContext('webgl');
+let prog,U;
+if(gl){
+  const vs='attribute vec2 p;varying vec2 v;void main(){v=vec2(p.x*.5+.5,.5-p.y*.5);gl_Position=vec4(p,0,1);}';
+  const fs='precision mediump float;varying vec2 v;uniform sampler2D img,dep;uniform vec2 cam;uniform float k,zoom;'+
+    'void main(){vec2 c=(v-.5)/zoom+.5;vec2 s=c;for(int i=0;i<6;i++){float d=texture2D(dep,s).r;s=c-cam*k*(d-.45);}gl_FragColor=texture2D(img,clamp(s,.001,.999));}';
+  const sh=(t,src)=>{const s=gl.createShader(t);gl.shaderSource(s,src);gl.compileShader(s);return s};
+  prog=gl.createProgram();gl.attachShader(prog,sh(gl.VERTEX_SHADER,vs));gl.attachShader(prog,sh(gl.FRAGMENT_SHADER,fs));gl.linkProgram(prog);gl.useProgram(prog);
+  gl.bindBuffer(gl.ARRAY_BUFFER,gl.createBuffer());gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);
+  const pl=gl.getAttribLocation(prog,'p');gl.enableVertexAttribArray(pl);gl.vertexAttribPointer(pl,2,gl.FLOAT,false,0,0);
+  U=n=>gl.getUniformLocation(prog,n);gl.uniform1i(U('img'),0);gl.uniform1i(U('dep'),1);gl.viewport(0,0,cv.width,cv.height);
+}
+const bosDerinlik=(()=>{const c=document.createElement('canvas');c.width=c.height=2;const x=c.getContext('2d');x.fillStyle='#737373';x.fillRect(0,0,2,2);return c})();
+function doku(unit,src,eski){gl.activeTexture(gl.TEXTURE0+unit);if(eski)gl.deleteTexture(eski);const t=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,t);
+  for(const [a,b] of [[gl.TEXTURE_MIN_FILTER,gl.LINEAR],[gl.TEXTURE_MAG_FILTER,gl.LINEAR],[gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE],[gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE]])gl.texParameteri(gl.TEXTURE_2D,a,b);
+  gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,src);return t}
+const resim=src=>new Promise((ok,hata)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=hata;i.src=src});
+let sira=0,ti=null,td=null,derin=false,degisim=performance.now(),yukleniyor=false;
+async function fotoGoster(i){const p=durum.photos;if(!p.length||!gl||yukleniyor)return;yukleniyor=true;
+  sira=(i+p.length)%p.length;const f=p[sira];
+  try{const img=await resim(`/photos/${f.id}.jpg`);const d=f.depth?await resim(`/photos/${f.id}.depth.png`).catch(()=>null):null;
+    $('foto').style.opacity=0;await bekle(600);
+    ti=doku(0,img,ti);td=doku(1,d||bosDerinlik,td);derin=!!d;
+    $('fon').style.backgroundImage=`url(/photos/${f.id}.jpg)`;$('foto').style.opacity=1}
+  catch(e){}
+  yukleniyor=false;degisim=performance.now();noktalar()}
+const bekle=ms=>new Promise(r=>setTimeout(r,ms));
+function noktalar(){const p=durum.photos,nk=$('nk');nk.innerHTML=p.slice(0,12).map((_,j)=>`<i class="${j===sira?'on':''}"></i>`).join('')}
+function ciz(t){if(gl&&ti){gl.uniform2f(U('cam'),Math.sin(t/1700),Math.cos(t/2300)*.55);gl.uniform1f(U('k'),derin?.03:0);gl.uniform1f(U('zoom'),derin?1.03:1);gl.drawArrays(gl.TRIANGLE_STRIP,0,4)}
+  if(durum.photos.length>1&&t-degisim>12000)fotoGoster(sira+1);requestAnimationFrame(ciz)}
+requestAnimationFrame(ciz);
+function fotoBilgi(){const a=durum.address,k=durum.code,bos=!durum.photos.length;
+  $('ekle').textContent=a?`Fotoğraf eklemek için telefondan: ${a} · Kod ${k}`:'Fotoğraf eklemek için kutuyu evdeki ağa bağlayın';
+  $('fotoBos').hidden=!bos;cv.style.visibility=bos?'hidden':'visible';
+  if(bos)$('fotoBos').innerHTML=`<b>Henüz fotoğraf yok</b><div>Telefonunuz aynı Wi-Fi'deyken tarayıcıda şu adresi açın:</div><b>${esc(a||'-')}</b><div>Kod: <b>${esc(k)}</b></div><div>${esc(durum.status||'')}</div>`}
+
+/* ---------- Uygulama çubuğu ve kumanda ---------- */
+let odak='dock',secili=0,menuSecili=0,menuIslemler=[],listeSecili=0,tumu=[];
+// Afiş yüklenemezse altındaki uygulama adı görünür.
+const tile=(a,c='')=>`<div class="app ${c}"><span>${esc(a.label)}</span><img src="/icon/${encodeURIComponent(a.pkg)}.png" alt="" onerror="this.remove()"></div>`;
+function dockCiz(){const d=durum.dock;$('dockIc').innerHTML=d.map((a,j)=>tile(a)).join('')+`<div class="app arti" data-i="${d.length}">+</div>`;
+  secili=Math.min(secili,d.length);seciliGoster()}
+function seciliGoster(){document.querySelectorAll('#dockIc .app').forEach((e,j)=>e.classList.toggle('secili',odak==='dock'&&j===secili));
+  $('foto').classList.toggle('odak',odak==='foto');
+  const kayma=Math.max(0,(secili-5)*266);$('dockIc').style.transform=`translateX(${-kayma}px)`}
+async function dockKaydet(pkgs){await api('dock',{method:'POST',body:JSON.stringify(pkgs)});await yenile()}
+function ac(){const d=durum.dock;if(secili<d.length)fetch('/api/launch?pkg='+encodeURIComponent(d[secili].pkg));else seciciAc()}
+function menuAc(){const d=durum.dock;if(secili>=d.length)return;const a=d[secili],pk=d.map(x=>x.pkg);
+  menuIslemler=[['Aç',ac],['Sola taşı',()=>{if(secili>0){[pk[secili-1],pk[secili]]=[pk[secili],pk[secili-1]];secili--;dockKaydet(pk)}}],
+    ['Sağa taşı',()=>{if(secili<pk.length-1){[pk[secili+1],pk[secili]]=[pk[secili],pk[secili+1]];secili++;dockKaydet(pk)}}],
+    ['Çubuktan kaldır',()=>{pk.splice(secili,1);dockKaydet(pk)}],['Vazgeç',()=>{}]];
+  menuSecili=0;$('menuBaslik').textContent=a.label;$('menu').hidden=false;odak='menu';menuCiz()}
+function menuCiz(){$('menuSec').innerHTML=menuIslemler.map((m,j)=>`<div class="secenek ${j===menuSecili?'secili':''}">${m[0]}</div>`).join('')}
+async function seciciAc(){try{tumu=(await api('apps')).apps.filter(a=>!durum.dock.some(d=>d.pkg===a.pkg))}catch(e){tumu=[]}
+  listeSecili=0;$('secici').hidden=false;odak='secici';listeCiz()}
+function listeCiz(){const bas=Math.max(0,Math.floor(listeSecili/5)-2)*5;
+  $('liste').innerHTML=tumu.slice(bas,bas+15).map((a,j)=>`<div>${tile(a,bas+j===listeSecili?'secili':'')}<div class="ad2">${esc(a.label)}</div></div>`).join('')||'<div class="bos">Eklenecek başka uygulama yok.</div>'}
+function kapat(){$('menu').hidden=true;$('secici').hidden=true;odak='dock';seciliGoster()}
+window.geri=()=>{if(odak==='menu'||odak==='secici')kapat();else if(odak==='foto'){odak='dock';seciliGoster()}};
+window.gorundu=()=>{kapat();yenile()};
+
+let basildi=0,uzunOldu=false,uzunZaman=null;
+addEventListener('keydown',e=>{const k=e.key;
+  if(k==='Enter'||k===' '){e.preventDefault();if(e.repeat)return;basildi=Date.now();uzunOldu=false;
+    if(odak==='dock')uzunZaman=setTimeout(()=>{uzunOldu=true;menuAc()},650);return}
+  if(!k.startsWith('Arrow'))return;e.preventDefault();
+  if(odak==='dock'){const n=durum.dock.length+1;
+    if(k==='ArrowRight')secili=Math.min(n-1,secili+1);if(k==='ArrowLeft')secili=Math.max(0,secili-1);if(k==='ArrowUp'&&durum.photos.length)odak='foto';seciliGoster()}
+  else if(odak==='foto'){if(k==='ArrowRight')fotoGoster(sira+1);if(k==='ArrowLeft')fotoGoster(sira-1);if(k==='ArrowDown'){odak='dock';seciliGoster()}}
+  else if(odak==='menu'){if(k==='ArrowDown')menuSecili=Math.min(menuIslemler.length-1,menuSecili+1);if(k==='ArrowUp')menuSecili=Math.max(0,menuSecili-1);menuCiz()}
+  else if(odak==='secici'){const d={ArrowRight:1,ArrowLeft:-1,ArrowDown:5,ArrowUp:-5}[k];listeSecili=Math.max(0,Math.min(tumu.length-1,listeSecili+d));listeCiz()}});
+addEventListener('keyup',e=>{if(e.key!=='Enter'&&e.key!==' ')return;clearTimeout(uzunZaman);if(uzunOldu)return;
+  if(odak==='dock')ac();
+  else if(odak==='menu'){const m=menuIslemler[menuSecili];kapat();m[1]()}
+  else if(odak==='secici'){const a=tumu[listeSecili];kapat();if(a){secili=durum.dock.length;dockKaydet(durum.dock.map(x=>x.pkg).concat(a.pkg))}}
+  else if(odak==='foto')fotoGoster(sira+1)});
+
+/* ---------- Veri yenileme ---------- */
+async function yenile(){try{const s=await api('state');const eskiFoto=durum.photos.map(p=>p.id+p.depth).join(),eskiDock=JSON.stringify(durum.dock);durum=s;
+  if(JSON.stringify(s.dock)!==eskiDock)dockCiz();
+  const yeniFoto=s.photos.map(p=>p.id+p.depth).join();if(yeniFoto!==eskiFoto){noktalar();if(!ti||!s.photos[sira]||(s.photos[sira]&&eskiFoto.indexOf(s.photos[sira].id)<0))fotoGoster(0);else fotoGoster(sira)}
+  fotoBilgi();fbCiz();saat()}catch(e){}}
+yenile();setInterval(yenile,20000);saat();dockCiz();
+</script>
+</body>
+</html>

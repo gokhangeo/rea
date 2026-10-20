@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Ev Ekranı</string>
+    <string name="home_service_label">Ev Ekranı Home tuşu</string>
+    <string name="home_service_description">Kumandanın Home tuşuna basınca Ev Ekranı\'nı açar. Kapatırsanız Home tuşu eski ana ekrana döner.</string>
+</resources>
