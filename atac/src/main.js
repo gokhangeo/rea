@@ -4,6 +4,26 @@ const { app, BrowserWindow, Tray, Menu, globalShortcut, ipcMain, screen, nativeI
 const path = require('path');
 const fs = require('fs');
 
+// Otomatik güncelleme (yalnızca paketlenmiş uygulamada)
+let autoUpdater = null;
+try {
+  ({ autoUpdater } = require('electron-updater'));
+} catch {}
+
+function setupUpdater() {
+  if (!autoUpdater || !app.isPackaged) return;
+  try {
+    autoUpdater.autoDownload = true;
+    autoUpdater.autoInstallOnAppQuit = true;
+    autoUpdater.on('update-downloaded', () => {
+      if (win) win.webContents.send('atac:update-ready');
+    });
+    autoUpdater.checkForUpdates().catch(() => {});
+    // 6 saatte bir denetle
+    setInterval(() => autoUpdater.checkForUpdates().catch(() => {}), 6 * 60 * 60 * 1000);
+  } catch {}
+}
+
 const DRAG_ICON = path.join(__dirname, 'renderer', 'assets', 'drag.png');
 const APP_ICON = path.join(__dirname, '..', 'build', 'icon.png');
 const SETTINGS_FILE = path.join(app.getPath('userData'), 'ayarlar.json');
@@ -71,6 +91,8 @@ function createWindow() {
     skipTaskbar: true,
     alwaysOnTop: true,
     hasShadow: false,
+    focusable: false,
+    acceptFirstMouse: true,
     icon: APP_ICON,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -83,12 +105,14 @@ function createWindow() {
   win.setAlwaysOnTop(true, 'floating');
   win.loadFile(path.join(__dirname, 'renderer', 'index.html'));
 
-  // Çapayı (sağ-üst) hatırla
+  // Çapayı (sağ-üst) hatırla — sık taşımada yazmayı geciktir
+  let kayitZaman = null;
   const remember = () => {
     if (!win) return;
     const b = win.getBounds();
     settings.anchor = { right: b.x + b.width, top: b.y };
-    saveSettings(settings);
+    if (kayitZaman) clearTimeout(kayitZaman);
+    kayitZaman = setTimeout(() => saveSettings(settings), 400);
   };
   win.on('moved', remember);
   win.on('close', remember);
@@ -155,6 +179,10 @@ function buildTray() {
       checked: settings.autostart !== false,
       click: (mi) => applyAutostart(mi.checked),
     },
+    {
+      label: 'Güncellemeleri denetle',
+      click: () => { if (autoUpdater) autoUpdater.checkForUpdates().catch(() => {}); },
+    },
     { type: 'separator' },
     { label: 'Çıkış', click: () => app.quit() },
   ]);
@@ -183,6 +211,7 @@ if (!gotLock) {
 
     createWindow();
     buildTray();
+    setupUpdater();
 
     // Genel kısayol: aç/gizle
     globalShortcut.register('CommandOrControl+Shift+Space', toggleWindow);
@@ -230,6 +259,12 @@ ipcMain.on('atac:toggle', () => setExpanded(!expanded));
 ipcMain.on('atac:expand', () => { if (!expanded) setExpanded(true); });
 ipcMain.on('atac:collapse', () => { if (expanded) setExpanded(false); });
 
+// Ataçı masaüstünde sürükleyerek taşıma
+ipcMain.handle('atac:get-pos', () => (win ? win.getBounds() : { x: 0, y: 0 }));
+ipcMain.on('atac:set-pos', (e, p) => {
+  if (win && p) win.setPosition(Math.round(p.x), Math.round(p.y));
+});
+
 ipcMain.on('atac:quit', () => app.quit());
 
 ipcMain.handle('atac:open-path', async (e, p) => {
@@ -266,7 +301,7 @@ ipcMain.handle('atac:pick', async (e, mode) => {
     mode === 'folder'
       ? ['openDirectory', 'multiSelections']
       : ['openFile', 'multiSelections'];
-  const res = await dialog.showOpenDialog(win, {
+  const res = await dialog.showOpenDialog({
     title: mode === 'folder' ? 'Klasör ekle' : 'Dosya ekle',
     buttonLabel: 'Ataça ekle',
     properties: props,
