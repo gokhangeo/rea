@@ -127,7 +127,7 @@ final class EvWidget {
      * Bölümü saat satırının altından dock'un hemen üstüne yerleştirir. Sol taraftaki Fenerbahçe kartı dock
      * başlığının üstünde biter (shelf), sağdaki fotoğraf dock'a kadar iner.
      */
-    void layout(View header, RecyclerView grid, View heroName, boolean heroShown) {
+    void layout(View header, RecyclerView grid, View heroName, boolean heroShown, View dockCard) {
         if (web == null) return;
         int[] rootLoc = new int[2], loc = new int[2];
         root.getLocationInWindow(rootLoc);
@@ -135,7 +135,13 @@ final class EvWidget {
         int top = loc[1] - rootLoc[1] + header.getHeight() + (int) (16 * density);
         grid.getLocationInWindow(loc);
         int dockTop = loc[1] - rootLoc[1] + grid.getPaddingTop();
-        int bottom = dockTop - (int) (18 * density);
+        // Dock şeridi kutuların 14dp dışından çizilir (DockDecoration); ilk kutu ekrandaysa onun yerinden hesapla.
+        if (dockCard != null && dockCard.isLaidOut() && dockCard.getHeight() > 0) {
+            dockCard.getLocationInWindow(loc);
+            int cardTop = loc[1] - rootLoc[1];
+            if (cardTop > top) dockTop = Math.min(dockTop, cardTop - (int) (14 * density));
+        }
+        int bottom = dockTop - (int) (14 * density);
         int heroH = heroName.getHeight() > 0 ? heroName.getHeight() : (int) (56 * density);
         int shelf = heroShown ? dockTop - (int) (40 * density) - heroH - (int) (12 * density) : bottom;
         int height = Math.max(0, bottom - top);

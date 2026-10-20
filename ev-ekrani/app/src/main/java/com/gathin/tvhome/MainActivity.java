@@ -408,6 +408,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // Keep the glass glued to its tile while the grid scrolls.
         grid.addOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override
+            public void onScrollStateChanged(@NonNull RecyclerView rv, int state) {
+                if (state == RecyclerView.SCROLL_STATE_IDLE) layoutEvWidget();
+            }
+
+            @Override
             public void onScrolled(@NonNull RecyclerView rv, int dx, int dy) {
                 if (evWidget != null) evWidget.onGridScrolled(rv);
                 if (!glassShown) return;
@@ -527,7 +532,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private void layoutEvWidget() {
         if (evWidget == null) return;
         View header = (View) findViewById(R.id.leftBlock).getParent();
-        evWidget.layout(header, grid, heroName, dockRow && heroName.getVisibility() != View.GONE);
+        View dockCard = null;
+        RecyclerView.ViewHolder first = grid.findViewHolderForAdapterPosition(0);
+        if (dockRow && first != null && grid.computeVerticalScrollOffset() == 0) dockCard = first.itemView.findViewById(R.id.card);
+        evWidget.layout(header, grid, heroName, dockRow && heroName.getVisibility() != View.GONE, dockCard);
     }
 
     private boolean openLauncherSettingsIfAsked(Intent intent) {
