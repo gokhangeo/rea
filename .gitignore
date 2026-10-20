@@ -1,0 +1,27 @@
+# Bağımlılıklar
+node_modules/
+
+# Derleme ve sürüm çıktıları (exe, zip depoya konmaz)
+dist/
+release/
+out/
+build/output/
+*.exe
+*.zip
+*.msi
+*.blockmap
+latest*.yml
+
+# Gizli bilgiler
+.env
+.env.*
+*.pem
+*.key
+*.pfx
+*.p12
+
+# Günlük ve sistem dosyaları
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
