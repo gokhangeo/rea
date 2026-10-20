@@ -10,18 +10,60 @@ try {
   ({ autoUpdater } = require('electron-updater'));
 } catch {}
 
+let elleDenetim = false; // kullanıcı "Güncellemeleri denetle" ile mi başlattı
+
+function bilgi(opts) {
+  try { dialog.showMessageBox(Object.assign({ type: 'info', title: 'Ataç' }, opts)); } catch {}
+}
+
 function setupUpdater() {
-  if (!autoUpdater || !app.isPackaged) return;
+  if (!autoUpdater) return;
   try {
     autoUpdater.autoDownload = true;
     autoUpdater.autoInstallOnAppQuit = true;
-    autoUpdater.on('update-downloaded', () => {
-      if (win) win.webContents.send('atac:update-ready');
+
+    autoUpdater.on('update-available', () => {
+      if (elleDenetim) { elleDenetim = false; bilgi({ message: 'Yeni sürüm bulundu.', detail: 'Arka planda indiriliyor; bittiğinde haber vereceğim.' }); }
     });
-    autoUpdater.checkForUpdates().catch(() => {});
-    // 6 saatte bir denetle
-    setInterval(() => autoUpdater.checkForUpdates().catch(() => {}), 6 * 60 * 60 * 1000);
+    autoUpdater.on('update-not-available', () => {
+      if (elleDenetim) { elleDenetim = false; bilgi({ message: 'Ataç güncel.', detail: 'Zaten en son sürümü kullanıyorsun (' + app.getVersion() + ').' }); }
+    });
+    autoUpdater.on('error', (e) => {
+      if (elleDenetim) { elleDenetim = false; bilgi({ type: 'error', message: 'Güncelleme denetlenemedi.', detail: String((e && e.message) || e) }); }
+    });
+    autoUpdater.on('update-downloaded', (info) => {
+      if (win) win.webContents.send('atac:update-ready');
+      try {
+        dialog.showMessageBox({
+          type: 'info', title: 'Ataç',
+          message: 'Güncelleme indirildi' + (info && info.version ? ' (' + info.version + ')' : '') + '.',
+          detail: 'Uygulamayı kapatıp açtığında yeni sürüm uygulanır.',
+          buttons: ['Sonra', 'Şimdi yeniden başlat'], defaultId: 1, cancelId: 0,
+        }).then((r) => { if (r.response === 1) autoUpdater.quitAndInstall(); }).catch(() => {});
+      } catch {}
+    });
+
+    if (app.isPackaged) {
+      autoUpdater.checkForUpdates().catch(() => {});
+      // 6 saatte bir denetle
+      setInterval(() => autoUpdater.checkForUpdates().catch(() => {}), 6 * 60 * 60 * 1000);
+    }
   } catch {}
+}
+
+// Tepsiden elle güncelleme denetimi (net geri bildirimli)
+function guncellemeDenetle() {
+  if (!autoUpdater || !app.isPackaged) {
+    bilgi({
+      message: 'Otomatik güncelleme yalnızca kurulan sürümde çalışır.',
+      detail: 'Taşınabilir exe kullanıyorsan, sürüm sayfasından "atac-setup" kurulumunu bir kez indir; sonrası kendini günceller.\n\nhttps://github.com/gokhangeo/rea/releases/latest',
+    });
+    return;
+  }
+  elleDenetim = true;
+  autoUpdater.checkForUpdates().catch((e) => {
+    if (elleDenetim) { elleDenetim = false; bilgi({ type: 'error', message: 'Güncelleme denetlenemedi.', detail: String((e && e.message) || e) }); }
+  });
 }
 
 const DRAG_ICON = path.join(__dirname, 'renderer', 'assets', 'drag.png');
@@ -170,6 +212,8 @@ function buildTray() {
   tray = new Tray(img.isEmpty() ? nativeImage.createEmpty() : img);
   tray.setToolTip('Ataç — sürükle-bırak rafı');
   const menu = Menu.buildFromTemplate([
+    { label: 'Ataç — sürüm ' + app.getVersion(), enabled: false },
+    { type: 'separator' },
     { label: 'Ataç\'ı göster / gizle', click: toggleWindow },
     { type: 'separator' },
     {
@@ -180,7 +224,8 @@ function buildTray() {
     },
     {
       label: 'Güncellemeleri denetle',
-      click: () => { if (autoUpdater) autoUpdater.checkForUpdates().catch(() => {}); },
+      enabled: true,
+      click: guncellemeDenetle,
     },
     { type: 'separator' },
     { label: 'Çıkış', click: () => app.quit() },
