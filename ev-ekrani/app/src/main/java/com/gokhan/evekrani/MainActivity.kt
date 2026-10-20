@@ -39,6 +39,10 @@ class MainActivity : Activity() {
             settings.javaScriptEnabled = true
             settings.domStorageEnabled = true
             settings.mediaPlaybackRequiresUserGesture = false
+            // Sahne JS ile ekrana sığdırılır; WebView'ın kendi yakınlaştırması ve yazı büyütmesi devre dışı.
+            settings.useWideViewPort = false
+            settings.loadWithOverviewMode = false
+            settings.textZoom = 100
             setLayerType(View.LAYER_TYPE_HARDWARE, null)
             isFocusable = true
             isFocusableInTouchMode = true
