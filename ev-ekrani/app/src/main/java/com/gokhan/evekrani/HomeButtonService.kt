@@ -4,6 +4,7 @@ import android.accessibilityservice.AccessibilityService
 import android.content.Intent
 import android.view.KeyEvent
 import android.view.accessibility.AccessibilityEvent
+import com.gathin.tvhome.MainActivity
 
 /**
  * Android TV, seçilen ana ekran uygulamasını yok sayar; hazır ana ekran kurulu kalır ve bu servis devralır:

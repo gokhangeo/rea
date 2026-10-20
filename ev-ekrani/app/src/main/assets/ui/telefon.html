@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Ev Ekranı Ayarları</title>
+<title>Ev Ekranı Fotoğrafları</title>
 <style>
 :root{--bg:#0b1630;--kart:#13224a;--fg:#f2f5fa;--muted:#a9b6cc;--sari:#ffd200;--kirmizi:#e5484d;--cizgi:rgba(255,255,255,.12)}
 *{box-sizing:border-box}
@@ -21,12 +21,6 @@ input[type=text],input[inputmode]{font-size:24px;letter-spacing:.3em;text-align:
 .foto{position:relative;aspect-ratio:9/16;border-radius:12px;background:#000 center/cover;overflow:hidden}
 .foto span{position:absolute;left:6px;bottom:6px;font-size:12px;background:rgba(0,0,0,.6);padding:2px 6px;border-radius:6px}
 .foto button{position:absolute;right:4px;top:4px;background:rgba(0,0,0,.6);color:#fff;border-radius:50%;width:30px;height:30px;padding:0}
-ul{list-style:none;margin:0;padding:0}
-li{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--cizgi)}
-li img{width:80px;height:45px;border-radius:8px;object-fit:cover;background:#000;flex:none}
-li .ad{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-li button{padding:8px 10px}
-select{font-size:16px;padding:10px;border-radius:12px;width:100%;margin-top:12px;background:#0b1630;color:var(--fg);border:1px solid var(--cizgi)}
 #ilerleme{margin-top:10px;color:var(--sari)}
 [hidden]{display:none!important}
 </style>
@@ -37,7 +31,7 @@ select{font-size:16px;padding:10px;border-radius:12px;width:100%;margin-top:12px
 
 <section id="giris" hidden>
   <h2>TV'deki kodu yazın</h2>
-  <p>Kod, TV ekranında fotoğrafın altında yazıyor.</p>
+  <p>Kod, TV'de fotoğrafın üzerinde yazıyor (fotoğrafa gelince görünür).</p>
   <div style="display:flex;gap:10px;margin-top:14px;align-items:center">
     <input id="kod" inputmode="numeric" maxlength="4" autocomplete="off" aria-label="Kod">
     <button id="girBtn">Devam</button>
@@ -53,38 +47,27 @@ select{font-size:16px;padding:10px;border-radius:12px;width:100%;margin-top:12px
     <div class="izgara" id="fotolar"></div>
   </section>
   <section>
-    <h2>Uygulama çubuğu</h2>
-    <p>TV'nin altındaki uygulamalar, bu sırayla.</p>
-    <ul id="dock" style="margin-top:12px"></ul>
-    <select id="ekleApp" aria-label="Uygulama ekle"><option value="">+ Uygulama ekle…</option></select>
+    <h2>Uygulamalar</h2>
+    <p>Alttaki uygulama sırasını TV'den değiştirin: ekranın sağ üstündeki Ayarlar düğmesine uzun basıp "Uygulamaları sırala"yı seçin.</p>
   </section>
 </div>
 
 <script>
 const $=id=>document.getElementById(id);
 let kod='';try{kod=localStorage.getItem('kod')||''}catch(e){}
-let durum=null,uygulamalar=[];
+let durum=null;
 async function api(yol,ops={}){ops.headers=Object.assign({'X-Kod':kod},ops.headers||{});const r=await fetch('/api/'+yol,ops);
   if(r.status===401){girisGoster();throw new Error('kod')}if(!r.ok)throw new Error(await r.text());return r.json()}
 function girisGoster(){$('giris').hidden=false;$('ana').hidden=true;$('durum').textContent='TV\'deki 4 haneli kodu girin.'}
 $('girBtn').onclick=async()=>{kod=$('kod').value.trim();try{localStorage.setItem('kod',kod)}catch(e){}
   try{await api('check');$('giris').hidden=true;$('ana').hidden=false;yukle()}catch(e){$('durum').textContent='Kod yanlış, TV\'deki kodu kontrol edin.'}};
 async function yukle(){try{durum=await api('state');$('ana').hidden=false;$('giris').hidden=true;
-  $('durum').textContent='Bağlı · '+(durum.status||'Hazır');ciz();
-  if(!uygulamalar.length){uygulamalar=(await api('apps')).apps;ciz()}}catch(e){if(e.message!=='kod')$('durum').textContent='Kutuya ulaşılamadı. Telefon ve kutu aynı Wi-Fi\'de mi?'}}
+  $('durum').textContent='Bağlı · '+(durum.status||'Hazır');ciz()}catch(e){if(e.message!=='kod')$('durum').textContent='Kutuya ulaşılamadı. Telefon ve kutu aynı Wi-Fi\'de mi?'}}
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function ciz(){
-  $('fotolar').innerHTML=durum.photos.map(p=>`<div class="foto" style="background-image:url(/photos/${p.id}.jpg)"><span>${p.depth?'3D hazır':'3D hazırlanıyor'}</span><button data-sil="${p.id}" aria-label="Sil">✕</button></div>`).join('')||'<p>Henüz fotoğraf yok.</p>';
-  const d=durum.dock;$('dock').innerHTML=d.map((a,i)=>`<li><img src="/icon/${encodeURIComponent(a.pkg)}.png" alt="" onerror="this.style.visibility='hidden'"><span class="ad">${esc(a.label)}</span>
-    <button class="ikincil" data-yukari="${i}" aria-label="Yukarı" ${i?'':'disabled'}>↑</button><button class="ikincil" data-asagi="${i}" aria-label="Aşağı" ${i<d.length-1?'':'disabled'}>↓</button><button class="sil" data-kaldir="${i}">Kaldır</button></li>`).join('')||'<li>Çubuk boş.</li>';
-  $('ekleApp').innerHTML='<option value="">+ Uygulama ekle…</option>'+uygulamalar.filter(a=>!d.some(x=>x.pkg===a.pkg)).map(a=>`<option value="${esc(a.pkg)}">${esc(a.label)}</option>`).join('')}
-document.addEventListener('click',async e=>{const b=e.target.closest('button');if(!b||!durum)return;const pk=durum.dock.map(a=>a.pkg);
-  if(b.dataset.sil){await api('photos/delete?id='+b.dataset.sil,{method:'POST'});return yukle()}
-  let i;if((i=b.dataset.yukari)!==undefined){i=+i;[pk[i-1],pk[i]]=[pk[i],pk[i-1]]}
-  else if((i=b.dataset.asagi)!==undefined){i=+i;[pk[i+1],pk[i]]=[pk[i],pk[i+1]]}
-  else if((i=b.dataset.kaldir)!==undefined)pk.splice(+i,1);else return;
-  await api('dock',{method:'POST',body:JSON.stringify(pk)});yukle()});
-$('ekleApp').onchange=async e=>{if(!e.target.value)return;await api('dock',{method:'POST',body:JSON.stringify(durum.dock.map(a=>a.pkg).concat(e.target.value))});yukle()};
+  $('fotolar').innerHTML=durum.photos.map(p=>`<div class="foto" style="background-image:url(/photos/${p.id}.jpg)"><span>${p.depth?'3D hazır':'3D hazırlanıyor'}</span><button data-sil="${p.id}" aria-label="Sil">✕</button></div>`).join('')||'<p>Henüz fotoğraf yok.</p>';}
+document.addEventListener('click',async e=>{const b=e.target.closest('button');if(!b||!durum)return;
+  if(b.dataset.sil){await api('photos/delete?id='+b.dataset.sil,{method:'POST'});yukle()}});
 // Yüklemeden önce telefonda küçült: daha hızlı gider, kutuyu yormaz.
 function kucult(f){return new Promise((ok,hata)=>{const u=URL.createObjectURL(f),i=new Image();i.onload=()=>{const s=Math.min(1,2000/Math.max(i.naturalWidth,i.naturalHeight)),c=document.createElement('canvas');
   c.width=Math.round(i.naturalWidth*s);c.height=Math.round(i.naturalHeight*s);c.getContext('2d').drawImage(i,0,0,c.width,c.height);URL.revokeObjectURL(u);c.toBlob(b=>b?ok(b):hata(),'image/jpeg',.9)};i.onerror=()=>{URL.revokeObjectURL(u);ok(f)};i.src=u})}

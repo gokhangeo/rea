@@ -1,0 +1,65 @@
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+}
+
+def runNumber = System.getenv('GITHUB_RUN_NUMBER') ?: '1'
+
+android {
+    // Java kodu cleanyourtv'den geldiği gibi com.gathin.tvhome paketinde durur; uygulama kimliği Ev Ekranı'nınki,
+    // böylece yeni sürüm eskisinin üstüne kurulur ve yüklenen fotoğraflar kaybolmaz.
+    namespace 'com.gathin.tvhome'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'com.gokhan.evekrani'
+        minSdk 26
+        targetSdk 34
+        versionCode runNumber.toInteger()
+        versionName "0.2.${runNumber}"
+        ndk { abiFilters 'armeabi-v7a', 'arm64-v8a' }
+    }
+
+    // Her sürüm aynı anahtarla imzalanmalı ki yeni APK eskisinin üstüne kurulabilsin. Anahtar depoda tutulmaz:
+    // GitHub'da EV_KEYSTORE_B64 ve EV_KEYSTORE_PASS gizli değerleri varsa onlar, yoksa derleme makinesinin
+    // önbellekte saklanan hata ayıklama anahtarı kullanılır (bkz. .github/workflows/ev-ekrani.yml).
+    def keystore = rootProject.file('ev-ekrani.jks')
+    def keystorePass = System.getenv('EV_KEYSTORE_PASS')
+    if (keystore.exists() && keystorePass) {
+        signingConfigs {
+            ev {
+                storeFile keystore
+                storePassword keystorePass
+                keyAlias System.getenv('EV_KEY_ALIAS') ?: 'evekrani'
+                keyPassword keystorePass
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            // R8 strips and optimises the code (AndroidX included): smaller APK, faster start on a slow TV CPU.
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.findByName('ev') ?: signingConfigs.debug
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+kotlin {
+    jvmToolchain 17
+}
+
+dependencies {
+    implementation 'androidx.recyclerview:recyclerview:1.3.2'
+    implementation 'androidx.dynamicanimation:dynamicanimation:1.0.0'
+    // Ev Ekranı eklentileri: fotoğrafların derinlik haritası ve telefondan yönetim sunucusu.
+    implementation 'com.microsoft.onnxruntime:onnxruntime-android:1.29.0'
+    implementation 'org.nanohttpd:nanohttpd:2.3.1'
+}
