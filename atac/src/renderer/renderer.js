@@ -151,9 +151,11 @@ let suruyor = false, kaydi = false, basX = 0, basY = 0, pcX = 0, pcY = 0;
 klips.addEventListener('mousedown', async (e) => {
   if (e.button !== 0) return;
   e.preventDefault();
-  basX = e.screenX; basY = e.screenY; kaydi = false; suruyor = true;
+  basX = e.screenX; basY = e.screenY; kaydi = false;
   const b = await window.atac.getPos();
   pcX = b.x; pcY = b.y;
+  // Konum öğrenildikten sonra sürüklemeyi başlat (sıçramayı önler)
+  suruyor = true;
 });
 window.addEventListener('mousemove', (e) => {
   if (!suruyor) return;
