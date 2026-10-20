@@ -8,13 +8,15 @@ Ortadaki boşluğa Ev Ekranı'nın kendi bölümü eklendi:
 - **Solda Fenerbahçe kartı:** sıradaki maç ve geri sayım, son maç sonucu (Süper Lig, Avrupa kupaları, Türkiye Kupası).
   Karta gelip **OK**'a basınca kart döner; arkasında son maçın skoru, golleri ve dakikaları, **Maç özetini izle**
   ve **FB TV** düğmeleri var. İkisi de YouTube'u açar. **Geri** kartı eski haline çevirir.
-- **Sağda 3D aile fotoğrafları:** telefondan gönderilen fotoğrafların derinliği kutunun kendisinde yapay zekâyla
-  çıkarılır, fotoğraf yavaşça kayarken derinlik kazanır. Fotoğraflar internete gönderilmez. Köşede Mersin hava durumu.
+- **Sağda günün menüleri:** her gün 5 menü (`app/src/main/assets/ui/yemekler.json`, 35 menü, haftalık döner)
+  resimleriyle kayarak değişir. Menüye gelip **OK**'a basınca kart döner, arkasında malzemeler ve yapılışı var;
+  **Yukarı/Aşağı** tarifi kaydırır, **Geri** karta döner. Resimler kutunun internetinden Vikipedi'den alınır.
+  Köşede Mersin hava durumu.
 
 ## Kumanda
 
 - Uygulama çubuğundan **Yukarı**: Fenerbahçe kartına geçer. Bir daha **Yukarı**: üstteki düğmeler.
-- Kartta **Sağ**: fotoğrafa geçer; fotoğrafta **Sağ** ya da **OK** sonraki fotoğrafı gösterir.
+- Kartta **Sağ**: günün menüsüne geçer; menüde **Sağ** sonraki menüyü, **OK** tarifi gösterir.
 - Bölümde **Aşağı** ya da **Geri**: uygulama çubuğuna döner.
 - Uygulamaların yerini değiştirmek: uygulamanın üstünde **OK**'a basılı tutun, oklarla taşıyın, **OK** ile bırakın, bitince **Geri**. Üst çubuktaki iki oklu düğme de sıralamayı açar.
 

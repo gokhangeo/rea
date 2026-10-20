@@ -75,6 +75,7 @@ class LocalServer(private val context: Context, private val photos: PhotoStore, 
             path.endsWith(".css") -> "text/css"
             path.endsWith(".png") -> "image/png"
             path.endsWith(".ttf") -> "font/ttf"
+            path.endsWith(".json") -> "application/json; charset=utf-8"
             else -> "application/octet-stream"
         }
         return runCatching {
