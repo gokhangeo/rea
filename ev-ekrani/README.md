@@ -16,7 +16,7 @@ Ortadaki boşluğa Ev Ekranı'nın kendi bölümü eklendi:
 - Uygulama çubuğundan **Yukarı**: Fenerbahçe kartına geçer. Bir daha **Yukarı**: üstteki düğmeler.
 - Kartta **Sağ**: fotoğrafa geçer; fotoğrafta **Sağ** ya da **OK** sonraki fotoğrafı gösterir.
 - Bölümde **Aşağı** ya da **Geri**: uygulama çubuğuna döner.
-- Uygulamaların sırası: sağ üstteki **Ayarlar** düğmesine basılı tutun → *Uygulamaları sırala*.
+- Uygulamaların yerini değiştirmek: uygulamanın üstünde **OK**'a basılı tutun, oklarla taşıyın, **OK** ile bırakın, bitince **Geri**. Üst çubuktaki iki oklu düğme de sıralamayı açar.
 
 ## Kurulum ve güncelleme
 

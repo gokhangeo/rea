@@ -29,7 +29,8 @@ html,body{margin:0;height:100%;background:transparent;color:var(--yazi);font-fam
 .arka{transform:rotateY(180deg)}
 .bas,.etiket,.mac,.meta,.sayac,.son,.skor,.dugmeler{flex-shrink:0}
 /* Kart kısayken (odakta değil) geri sayım sığmazsa gizlenir. */
-.dar #sol:not(.odak) .sayac{display:none}
+/* Kart kısayken içerik sığmazsa sırayla geri sayım, tarih satırı ve lig etiketi gizlenir (sigdir). */
+#sol.s1 .sayac,#sol.s2 .on .meta,#sol.s3 .on .etiket{display:none}
 /* Dönerken yüzeyden geçen ışık */
 .yuz::after{content:"";position:absolute;inset:-40%;background:linear-gradient(105deg,transparent 40%,rgba(255,255,255,.22) 50%,transparent 60%);
   transform:translateX(-100%);pointer-events:none}
@@ -80,7 +81,9 @@ html,body{margin:0;height:100%;background:transparent;color:var(--yazi);font-fam
 #foto{position:relative;height:100%;width:100%;max-width:38rem;border-radius:1.4rem;overflow:hidden;background:rgba(10,22,48,.55);
   box-shadow:0 1.2rem 2.6rem rgba(0,0,0,.4),0 0 0 1px rgba(255,255,255,.14);transition:box-shadow .2s}
 #foto.odak{box-shadow:0 0 0 .19rem rgba(255,255,255,.92),0 1.2rem 2.6rem rgba(0,0,0,.45)}
-#cv{width:100%;height:100%;display:block;transition:opacity .6s}
+#cv{position:relative;width:100%;height:100%;display:block;transition:opacity .6s}
+/* Fotoğraf kesilmeden sığdırılır; boş kalan kenarlarda aynı fotoğrafın bulanık hali durur. */
+#bulanik{position:absolute;inset:-2rem;background:center/cover no-repeat;filter:blur(1.4rem) brightness(.55);transition:opacity .6s}
 #fotoBos{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;gap:.4rem;padding:1rem 1.4rem;font-size:.9rem;line-height:1.4;text-align:center;color:var(--soluk)}
 #fotoBos b{color:var(--yazi);font-weight:500}
 .alt{position:absolute;left:0;right:0;bottom:0;display:flex;align-items:flex-end;justify-content:space-between;gap:1rem;padding:1.6rem .9rem .6rem;
@@ -112,7 +115,7 @@ html,body{margin:0;height:100%;background:transparent;color:var(--yazi);font-fam
   </div>
   <div id="sag">
     <div id="foto">
-      <canvas id="cv"></canvas><div id="fotoBos" hidden></div>
+      <div id="bulanik"></div><canvas id="cv"></canvas><div id="fotoBos" hidden></div>
       <div class="nk" id="nk"></div>
       <div class="alt"><div id="hava"></div><div id="ekle"></div></div>
     </div>
@@ -131,7 +134,7 @@ window.yerlesim=r=>{raf=r;const H=innerHeight||r;const k=Math.max(110,Math.min(r
   // Yazı boyu: tam boy kartta (bölüm yüksekliği) 15 satır, kısa kartta geri sayımsız içerik sığacak kadar.
   const f=Math.max(10.5,Math.min(17,H/15,k/11.6));
   document.documentElement.style.fontSize=f+'px';
-  document.body.classList.toggle('dar',k<f*15);boyut()};
+  boyut();sigdir()};
 addEventListener('resize',()=>yerlesim(raf));
 
 /* ---------- Hava ---------- */
@@ -158,7 +161,12 @@ function kartCiz(){const m=durum.feeds&&durum.feeds.matches,on=$('onIcerik');
       ${x.live?'':'<div class="sayac" id="sayac"><div><b>-</b><span>Gün</span></div><div><b>-</b><span>Saat</span></div><div><b>-</b><span>Dakika</span></div></div>'}`}
   else{macSaati=0;h+='<div class="bos">Yaklaşan maç bulunamadı.</div>'}
   if(sonMac){const x=sonMac;h+=`<div class="son"><div class="rozet ${sonuc(x)}">${esc(x.hs)}-${esc(x.as)}</div><div class="ad">${esc(x.home)} - ${esc(x.away)} <small>· Son maç</small></div></div>`}
-  on.innerHTML=h;$('okIpucu').textContent=sonMac?'OK · Maç özeti':'';sayacGuncelle();arkaCiz()}
+  on.innerHTML=h;$('okIpucu').textContent=sonMac?'OK · Maç özeti':'';sayacGuncelle();arkaCiz();sigdir()}
+function sigdir(){const sol=$('sol'),on=document.querySelector('.on');if(!on)return;
+  // Ölçüm için geçişsiz: kartın varacağı yükseklikte dene.
+  const t=sol.style.transition;sol.style.transition='none';sol.classList.remove('s1','s2','s3');
+  for(const c of ['s1','s2','s3']){if(on.scrollHeight<=on.clientHeight+1)break;sol.classList.add(c)}
+  void sol.offsetHeight;sol.style.transition=t}
 function arkaCiz(){const x=sonMac,el=$('arkaIcerik');
   if(!x){el.innerHTML='<div class="bas"><div class="serit"></div><h2>Son maç</h2></div><div class="bos">Son maç bilgisi henüz yok.</div>';return}
   const g=x.goals||[],ev=g.filter(a=>a.side==='home'),dep=g.filter(a=>a.side==='away');
@@ -182,7 +190,7 @@ if(gl){
   const vs='attribute vec2 p;varying vec2 v;void main(){v=vec2(p.x*.5+.5,.5-p.y*.5);gl_Position=vec4(p,0,1);}';
   // Fotoğraf çerçeveyi kaplar (cover): sc ve of en-boy oranını düzeltir.
   const fs='precision mediump float;varying vec2 v;uniform sampler2D img,dep;uniform vec2 cam,sc,of;uniform float k,zoom;'+
-    'void main(){vec2 c=((v-.5)/zoom+.5)*sc+of;vec2 s=c;for(int i=0;i<6;i++){float d=texture2D(dep,s).r;s=c-cam*k*(d-.45);}gl_FragColor=texture2D(img,clamp(s,.001,.999));}';
+    'void main(){vec2 c=((v-.5)/zoom+.5)*sc+of;vec2 s=c;for(int i=0;i<6;i++){float d=texture2D(dep,s).r;s=c-cam*k*(d-.45);}if(c.x<0.||c.x>1.||c.y<0.||c.y>1.){gl_FragColor=vec4(0.);return;}gl_FragColor=texture2D(img,clamp(s,.001,.999));}';
   const sh=(t,src)=>{const s=gl.createShader(t);gl.shaderSource(s,src);gl.compileShader(s);return s};
   const prog=gl.createProgram();gl.attachShader(prog,sh(gl.VERTEX_SHADER,vs));gl.attachShader(prog,sh(gl.FRAGMENT_SHADER,fs));gl.linkProgram(prog);gl.useProgram(prog);
   gl.bindBuffer(gl.ARRAY_BUFFER,gl.createBuffer());gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);
@@ -192,7 +200,7 @@ if(gl){
 let iw=1,ih=1;
 function boyut(){const r=cv.getBoundingClientRect(),d=Math.min(2,devicePixelRatio||1);const w=Math.max(2,Math.round(r.width*d)),h=Math.max(2,Math.round(r.height*d));
   if(cv.width!==w||cv.height!==h){cv.width=w;cv.height=h}if(gl){gl.viewport(0,0,w,h);oran()}}
-function oran(){if(!gl)return;const ca=cv.width/cv.height,ia=iw/ih;let sx=1,sy=1;if(ia>ca)sx=ca/ia;else sy=ia/ca;
+function oran(){if(!gl)return;const ca=cv.width/cv.height,ia=iw/ih;let sx=1,sy=1;if(ia>ca)sy=ia/ca;else sx=ca/ia;
   gl.uniform2f(U('sc'),sx,sy);gl.uniform2f(U('of'),(1-sx)/2,(1-sy)/2)}
 const bosDerinlik=(()=>{const c=document.createElement('canvas');c.width=c.height=2;const x=c.getContext('2d');x.fillStyle='#737373';x.fillRect(0,0,2,2);return c})();
 function doku(unit,src,eski){gl.activeTexture(gl.TEXTURE0+unit);if(eski)gl.deleteTexture(eski);const t=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,t);
@@ -204,8 +212,9 @@ let sira=0,ti=null,td=null,derin=false,degisim=performance.now(),yukleniyor=fals
 async function fotoGoster(i){const p=durum.photos;if(!p.length||!gl||yukleniyor)return;yukleniyor=true;
   sira=(i+p.length)%p.length;const f=p[sira];
   try{const img=await resim(`/photos/${f.id}.jpg`);const d=f.depth?await resim(`/photos/${f.id}.depth.png`).catch(()=>null):null;
-    cv.style.opacity=0;await bekle(600);
-    ti=doku(0,img,ti);td=doku(1,d||bosDerinlik,td);derin=!!d;iw=img.width;ih=img.height;oran();cv.style.opacity=1}
+    cv.style.opacity=0;$('bulanik').style.opacity=0;await bekle(600);
+    ti=doku(0,img,ti);td=doku(1,d||bosDerinlik,td);derin=!!d;iw=img.width;ih=img.height;oran();
+    $('bulanik').style.backgroundImage=`url(/photos/${f.id}.jpg)`;$('bulanik').style.opacity=1;cv.style.opacity=1}
   catch(e){}
   yukleniyor=false;degisim=performance.now();noktalar()}
 function noktalar(){const p=durum.photos;$('nk').innerHTML=p.length>1?p.slice(0,12).map((_,j)=>`<i class="${j===sira?'on':''}"></i>`).join(''):''}
@@ -220,12 +229,13 @@ function fotoBilgi(){const a=durum.address,k=durum.code,bos=!durum.photos.length
 /* ---------- Kumanda ----------
    Odak sırası: kart (ön yüz) ya da kartın arkasındaki iki düğme, sonra fotoğraf. Yukarı üst çubuğa, Aşağı dock'a gider. */
 let odak=null,donuk=false,donusZamani=null;
-function goster(){$('sol').classList.toggle('odak',odak==='kart'||odak==='b0'||odak==='b1');$('foto').classList.toggle('odak',odak==='foto');
+function goster(){const o=$('sol').classList.contains('odak');$('sol').classList.toggle('odak',odak==='kart'||odak==='b0'||odak==='b1');
+  if(o!==$('sol').classList.contains('odak'))setTimeout(sigdir,400);$('foto').classList.toggle('odak',odak==='foto');
   $('b0').classList.toggle('secili',odak==='b0');$('b1').classList.toggle('secili',odak==='b1')}
 function cevir(d){if(donuk===d)return;donuk=d;const k=$('kart');k.classList.toggle('don',d);k.classList.remove('parla');void k.offsetWidth;k.classList.add('parla');
   clearTimeout(donusZamani);if(d)donusZamani=setTimeout(()=>{if(!odak)cevir(false)},90000)}
 window.odaklan=()=>{odak=donuk?'b0':'kart';goster()};
-window.birak=()=>{odak=null;goster();clearTimeout(donusZamani);if(donuk)donusZamani=setTimeout(()=>{if(!odak)cevir(false)},8000)};
+window.birak=()=>{odak=null;cevir(false);goster()};
 window.geri=()=>{if(donuk){cevir(false);odak='kart';goster()}else{odak=null;goster();Tv.dock()}};
 window.gorundu=()=>yenile();
 addEventListener('keydown',e=>{if(!odak)return;const k=e.key;
