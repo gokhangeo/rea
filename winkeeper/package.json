@@ -1,0 +1,65 @@
+{
+  "name": "winkeeper",
+  "productName": "WinKeeper",
+  "version": "0.3.0",
+  "author": "WinKeeper",
+  "description": "Windows bakım aracı: temizle, kaldır, optimize et, analiz et, durum",
+  "main": "electron/main.js",
+  "private": true,
+  "scripts": {
+    "build": "vite build",
+    "start": "vite build && electron .",
+    "dist": "vite build && electron-builder --win"
+  },
+  "build": {
+    "appId": "local.winkeeper",
+    "productName": "WinKeeper",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "dist/**",
+      "electron/**",
+      "build/icon.png",
+      "package.json"
+    ],
+    "win": {
+      "icon": "build/icon.png",
+      "target": [
+        "nsis",
+        "portable",
+        "zip"
+      ],
+      "signAndEditExecutable": true,
+      "requestedExecutionLevel": "asInvoker"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "WinKeeper",
+      "installerLanguages": [
+        "tr_TR"
+      ],
+      "language": "1055",
+      "artifactName": "WinKeeper-Kurulum-${version}.${ext}",
+      "perMachine": false,
+      "deleteAppDataOnUninstall": false
+    },
+    "portable": {
+      "artifactName": "WinKeeper-Tasinabilir-${version}.${ext}"
+    }
+  },
+  "dependencies": {
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "systeminformation": "^5.33.16"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^6.1.2",
+    "electron": "^44.9.0",
+    "electron-builder": "^26.15.3",
+    "vite": "^8.3.4"
+  }
+}
