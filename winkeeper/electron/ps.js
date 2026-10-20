@@ -13,7 +13,7 @@ function runPS(command, timeout = 10 * 60 * 1000) {
 function runElevated(command) {
   const enc = Buffer.from(command, 'utf16le').toString('base64');
   return runPS(
-    `$p = Start-Process powershell.exe -Verb RunAs -WindowStyle Hidden -Wait -PassThru ` +
+    `$p = Start-Process powershell.exe -Verb RunAs -Wait -PassThru ` +
     `-ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-EncodedCommand','${enc}'; exit $p.ExitCode`
   );
 }
