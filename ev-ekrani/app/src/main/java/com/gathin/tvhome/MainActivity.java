@@ -165,6 +165,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private PopupWindow openPopup;
     /** Reorder mode is on (top-bar button). */
     private boolean reordering;
+    /** OK'a basılı tutup taşımaya başlayınca, bırakılan OK kutuyu hemen yere koymasın. */
+    private boolean swallowOkUp;
     /** Key of the tile being carried in reorder mode, or null. */
     private String movingKey;
     /** Tile order when reorder mode started, to save only when something moved. */
@@ -759,6 +761,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         boolean ok = code == KeyEvent.KEYCODE_DPAD_CENTER || code == KeyEvent.KEYCODE_ENTER
                 || code == KeyEvent.KEYCODE_NUMPAD_ENTER;
         boolean back = code == KeyEvent.KEYCODE_BACK || code == KeyEvent.KEYCODE_ESCAPE;
+        if (ok && swallowOkUp) {
+            if (!down) swallowOkUp = false;
+            return true;
+        }
         if (movingKey != null) {
             switch (code) {
                 case KeyEvent.KEYCODE_DPAD_LEFT:
@@ -803,6 +809,18 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (!beginReorder()) return;
         focusTile(Math.max(0, Math.min(lastFocused, adapter.movableCount() - 1)));
         Toast.makeText(this, R.string.reorder_hint, Toast.LENGTH_LONG).show();
+    }
+
+    /** Ev Ekranı: OK'a basılı tutulan kutu sıralama modunda alınır; oklar taşır, OK bırakır, Geri bitirir. */
+    @Override
+    public boolean onTileLongPress(int position) {
+        if (reordering) return true;
+        if (!beginReorder()) return false;
+        if (position >= adapter.movableCount()) return true;
+        pickUp(position);
+        swallowOkUp = true;
+        Toast.makeText(this, R.string.reorder_carry_hint, Toast.LENGTH_LONG).show();
+        return true;
     }
 
     /** The start shared by reorder and edit-dock mode. False when there is nothing to move. */
@@ -916,6 +934,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     /** Ends the mode and saves the order if it changed since the mode started. */
     private void endReorder() {
         if (!reordering) return;
+        swallowOkUp = false;
         dockEditing = false;
         dockEditSlot = -1;
         drop();
@@ -1449,7 +1468,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
             // dock row: Ev Ekranı bölümüne, o görünmüyorsa üst çubuğa
-            if (position < COLUMNS) return dockRow && evWidget != null && evWidget.focus();
+            if (position < COLUMNS) return dockRow && !reordering && evWidget != null && evWidget.focus();
             target = position - COLUMNS;
         } else {
             int lastRowStart = ((count - 1) / COLUMNS) * COLUMNS;
