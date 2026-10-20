@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Ev Ekranı bölümü</title>
 <style>
-/* Ana ekranın ortasındaki saydam bölüm (EvWidget): solda Fenerbahçe kartı, sağda 3D aile fotoğrafı ve hava durumu.
+/* Ana ekranın ortasındaki saydam bölüm (EvWidget): solda Fenerbahçe kartı, sağda günün menüleri ve hava durumu.
    Yükseklik ekrana göre değişir; yazılar rem ile, rem de kartın yüksekliğiyle ölçeklenir (yerlesim). */
 @font-face{font-family:Outfit;src:url(outfit.ttf);font-weight:100 900}
 :root{--sari:#ffd200;--lacivert:#0b1f4d;--yazi:#fff;--soluk:rgba(255,255,255,.62);--cam:rgba(255,255,255,.08);--cizgi:rgba(255,255,255,.14);
@@ -76,24 +76,57 @@ html,body{margin:0;height:100%;background:transparent;color:var(--yazi);font-fam
 .dugme svg{width:1rem;height:1rem;flex:none}
 .dugme.secili{background:var(--sari);color:var(--lacivert);transform:scale(1.04)}
 
-/* ---------- Fotoğraf ---------- */
-#sag{flex:1;height:100%;display:flex;justify-content:flex-end;min-width:0}
-#foto{position:relative;height:100%;width:100%;max-width:38rem;border-radius:1.4rem;overflow:hidden;background:rgba(10,22,48,.55);
-  box-shadow:0 1.2rem 2.6rem rgba(0,0,0,.4),0 0 0 1px rgba(255,255,255,.14);transition:box-shadow .2s}
-#foto.odak{box-shadow:0 0 0 .19rem rgba(255,255,255,.92),0 1.2rem 2.6rem rgba(0,0,0,.45)}
-#cv{position:relative;width:100%;height:100%;display:block;transition:opacity .6s}
-/* Fotoğraf kesilmeden sığdırılır; boş kalan kenarlarda aynı fotoğrafın bulanık hali durur. */
-#bulanik{position:absolute;inset:-2rem;background:center/cover no-repeat;filter:blur(1.4rem) brightness(.55);transition:opacity .6s}
-#fotoBos{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;gap:.4rem;padding:1rem 1.4rem;font-size:.9rem;line-height:1.4;text-align:center;color:var(--soluk)}
-#fotoBos b{color:var(--yazi);font-weight:500}
-.alt{position:absolute;left:0;right:0;bottom:0;display:flex;align-items:flex-end;justify-content:space-between;gap:1rem;padding:1.6rem .9rem .6rem;
-  background:linear-gradient(transparent,rgba(0,0,0,.55));pointer-events:none}
-#hava{font-size:1rem;font-weight:500;white-space:nowrap;text-shadow:0 1px 6px rgba(0,0,0,.5)}
+/* ---------- Günün menüleri ----------
+   Her gün 5 menü (yemekler.json, haftalık döner). Kart resimle yavaşça yakınlaşır, menüler kayarak değişir;
+   OK'a basınca kart döner, arkasında tarif. Resimler kutunun internetinden Vikipedi'den gelir. */
+#sag{flex:1;height:100%;display:flex;justify-content:flex-end;min-width:0;perspective:1600px}
+#yemek{position:relative;height:100%;width:100%;max-width:38rem;transform-style:preserve-3d;transition:transform .9s cubic-bezier(.3,1.2,.45,1)}
+#yemek.don{transform:rotateY(180deg)}
+.ykart{position:absolute;inset:0;border-radius:1.4rem;overflow:hidden;backface-visibility:hidden;-webkit-backface-visibility:hidden;
+  background:#1a1410;box-shadow:0 1.2rem 2.6rem rgba(0,0,0,.4),0 0 0 1px rgba(255,255,255,.14);transition:box-shadow .2s}
+#yemek.odak .ykart{box-shadow:0 0 0 .19rem rgba(255,255,255,.92),0 0 2.4rem rgba(255,170,60,.3),0 1.2rem 2.6rem rgba(0,0,0,.45)}
+.ytarif{transform:rotateY(180deg);background:linear-gradient(160deg,#2b1d12,#160e08)}
+/* Menü sahneleri: biri görünürken diğeri yandan kayarak gelir. */
+.ysahne{position:absolute;inset:0;transition:transform 1s cubic-bezier(.2,.8,.2,1),opacity 1s ease,filter 1s ease}
+.ysahne.gir{transform:translateX(18%) scale(1.06);opacity:0;filter:blur(6px)}
+.ysahne.cik{transform:translateX(-14%) scale(.94);opacity:0;filter:blur(6px)}
+.yresim{position:absolute;inset:0;background:center/cover no-repeat;animation:yakin 14s ease-in-out infinite alternate}
+@keyframes yakin{from{transform:scale(1.04) translate(0,0)}to{transform:scale(1.16) translate(-2%,-2%)}}
+.yresim.yok{animation:none;background:radial-gradient(120% 100% at 30% 20%,#e0832f 0%,#8f3d14 45%,#2a1209 100%)}
+.yresim.yok::after{content:"🍽";position:absolute;right:8%;top:12%;font-size:5rem;opacity:.35}
+.ygolge{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.25) 0%,transparent 30%,transparent 45%,rgba(0,0,0,.82) 100%)}
+.yalt{position:absolute;left:0;right:0;bottom:0;padding:1rem 1.2rem .9rem}
+.yetiket{font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;color:#ffc56b;font-weight:600}
+.yad{font-size:1.9rem;font-weight:600;line-height:1.05;margin:.2rem 0 .3rem;text-shadow:0 2px 12px rgba(0,0,0,.5)}
+.ybilgi{font-size:.85rem;color:rgba(255,255,255,.82);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.yipucu{position:absolute;right:1.2rem;bottom:1rem;font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.7);
+  background:rgba(0,0,0,.35);border-radius:.5rem;padding:.2rem .5rem;opacity:0;transition:opacity .25s}
+#yemek.odak .yipucu{opacity:1}
+#hava{position:absolute;left:1rem;top:.8rem;font-size:.95rem;font-weight:500;white-space:nowrap;padding:.25rem .6rem;border-radius:.7rem;
+  background:rgba(0,0,0,.35);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
 #hava small{color:var(--soluk);font-weight:400}
-#ekle{font-size:.7rem;color:var(--soluk);text-align:right;opacity:0;transition:opacity .2s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#foto.odak #ekle{opacity:1}
-.nk{position:absolute;top:.6rem;right:.8rem;display:flex;gap:.3rem}
-.nk i{width:.38rem;height:.38rem;border-radius:50%;background:rgba(255,255,255,.35)}.nk i.on{background:var(--sari)}
+.nk{position:absolute;top:1.05rem;right:1rem;display:flex;gap:.35rem}
+.nk i{width:.42rem;height:.42rem;border-radius:50%;background:rgba(255,255,255,.4);transition:width .3s,background .3s}
+.nk i.on{background:#ffc56b;width:1.2rem;border-radius:.3rem}
+/* Tarif yüzü */
+.tbas{position:relative;height:5.2rem;flex:none;overflow:hidden}
+.tbas .yresim{animation:none;filter:brightness(.55)}
+.tbas div.tbaslik{position:absolute;left:1.2rem;bottom:.6rem;right:1.2rem}
+.tbaslik b{display:block;font-size:1.45rem;font-weight:600;line-height:1.1}
+.tbaslik span{font-size:.75rem;color:rgba(255,255,255,.75)}
+.ytarif{display:flex;flex-direction:column}
+.tgovde{position:relative;flex:1;min-height:0;overflow:hidden;padding:.7rem 1.2rem 0}
+#tic{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);gap:1.2rem;transition:transform .35s ease}
+.tgovde h4{margin:0 0 .35rem;font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;color:#ffc56b;font-weight:600}
+.tgovde ul,.tgovde ol{margin:0;padding:0;list-style:none;font-size:.82rem;line-height:1.35}
+.tgovde ul li{padding:.12rem 0 .12rem .8rem;position:relative}
+.tgovde ul li::before{content:"";position:absolute;left:0;top:.6em;width:.3rem;height:.3rem;border-radius:50%;background:#ffc56b}
+.tgovde ol{counter-reset:a}
+.tgovde ol li{counter-increment:a;padding:.15rem 0 .3rem 1.5rem;position:relative}
+.tgovde ol li::before{content:counter(a);position:absolute;left:0;top:.15rem;width:1.1rem;height:1.1rem;border-radius:50%;background:rgba(255,197,107,.18);
+  color:#ffc56b;font-size:.65rem;font-weight:600;display:flex;align-items:center;justify-content:center}
+.tsis{position:absolute;left:0;right:0;bottom:0;height:2.2rem;background:linear-gradient(transparent,#170f09);pointer-events:none}
+.tipucu{flex:none;font-size:.68rem;color:rgba(255,255,255,.55);padding:.35rem 1.2rem .6rem;text-align:right}
 </style>
 </head>
 <body>
@@ -114,10 +147,18 @@ html,body{margin:0;height:100%;background:transparent;color:var(--yazi);font-fam
     </div>
   </div>
   <div id="sag">
-    <div id="foto">
-      <div id="bulanik"></div><canvas id="cv"></canvas><div id="fotoBos" hidden></div>
-      <div class="nk" id="nk"></div>
-      <div class="alt"><div id="hava"></div><div id="ekle"></div></div>
+    <div id="yemek">
+      <section class="ykart yon">
+        <div id="sahneler"></div>
+        <div id="hava"></div>
+        <div class="nk" id="nk"></div>
+        <div class="yipucu">OK · Tarif</div>
+      </section>
+      <section class="ykart ytarif">
+        <div class="tbas"><div class="yresim" id="tresim"></div><div class="tbaslik" id="tbaslik"></div></div>
+        <div class="tgovde"><div id="tic"></div><div class="tsis"></div></div>
+        <div class="tipucu">Yukarı / Aşağı kaydırır · Geri döner</div>
+      </section>
     </div>
   </div>
 </div>
@@ -125,7 +166,7 @@ html,body{margin:0;height:100%;background:transparent;color:var(--yazi);font-fam
 const $=id=>document.getElementById(id);
 const Tv=window.Tv||{ust(){},dock(){},ac(u){console.log('ac',u)}};
 async function api(yol){const r=await fetch('/api/'+yol);if(!r.ok)throw new Error(r.status);return r.json()}
-let durum={photos:[],feeds:{}};
+let durum={feeds:{}};
 
 /* ---------- Yerleşim: kartın yüksekliği (raf) Java'dan gelir ---------- */
 let raf=0;
@@ -183,82 +224,80 @@ setInterval(sayacGuncelle,10000);
 const yt=q=>'https://www.youtube.com/results?search_query='+encodeURIComponent(q);
 function ozetAdresi(){const x=sonMac;return yt(x?`${x.home} ${x.away} maç özeti`:'Fenerbahçe maç özeti')}
 
-/* ---------- 3D fotoğraf ---------- */
-const cv=$('cv'),gl=cv.getContext('webgl',{premultipliedAlpha:false});
-let U;
-if(gl){
-  const vs='attribute vec2 p;varying vec2 v;void main(){v=vec2(p.x*.5+.5,.5-p.y*.5);gl_Position=vec4(p,0,1);}';
-  // Fotoğraf çerçeveyi kaplar (cover): sc ve of en-boy oranını düzeltir.
-  const fs='precision mediump float;varying vec2 v;uniform sampler2D img,dep;uniform vec2 cam,sc,of;uniform float k,zoom;'+
-    'void main(){vec2 c=((v-.5)/zoom+.5)*sc+of;vec2 s=c;for(int i=0;i<6;i++){float d=texture2D(dep,s).r;s=c-cam*k*(d-.45);}if(c.x<0.||c.x>1.||c.y<0.||c.y>1.){gl_FragColor=vec4(0.);return;}gl_FragColor=texture2D(img,clamp(s,.001,.999));}';
-  const sh=(t,src)=>{const s=gl.createShader(t);gl.shaderSource(s,src);gl.compileShader(s);return s};
-  const prog=gl.createProgram();gl.attachShader(prog,sh(gl.VERTEX_SHADER,vs));gl.attachShader(prog,sh(gl.FRAGMENT_SHADER,fs));gl.linkProgram(prog);gl.useProgram(prog);
-  gl.bindBuffer(gl.ARRAY_BUFFER,gl.createBuffer());gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);
-  const pl=gl.getAttribLocation(prog,'p');gl.enableVertexAttribArray(pl);gl.vertexAttribPointer(pl,2,gl.FLOAT,false,0,0);
-  U=n=>gl.getUniformLocation(prog,n);gl.uniform1i(U('img'),0);gl.uniform1i(U('dep'),1);
-}
-let iw=1,ih=1;
-function boyut(){const r=cv.getBoundingClientRect(),d=Math.min(2,devicePixelRatio||1);const w=Math.max(2,Math.round(r.width*d)),h=Math.max(2,Math.round(r.height*d));
-  if(cv.width!==w||cv.height!==h){cv.width=w;cv.height=h}if(gl){gl.viewport(0,0,w,h);oran()}}
-function oran(){if(!gl)return;const ca=cv.width/cv.height,ia=iw/ih;let sx=1,sy=1;if(ia>ca)sy=ia/ca;else sx=ca/ia;
-  gl.uniform2f(U('sc'),sx,sy);gl.uniform2f(U('of'),(1-sx)/2,(1-sy)/2)}
-const bosDerinlik=(()=>{const c=document.createElement('canvas');c.width=c.height=2;const x=c.getContext('2d');x.fillStyle='#737373';x.fillRect(0,0,2,2);return c})();
-function doku(unit,src,eski){gl.activeTexture(gl.TEXTURE0+unit);if(eski)gl.deleteTexture(eski);const t=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,t);
-  for(const [a,b] of [[gl.TEXTURE_MIN_FILTER,gl.LINEAR],[gl.TEXTURE_MAG_FILTER,gl.LINEAR],[gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE],[gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE]])gl.texParameteri(gl.TEXTURE_2D,a,b);
-  gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,src);return t}
-const resim=src=>new Promise((ok,hata)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=hata;i.src=src});
-const bekle=ms=>new Promise(r=>setTimeout(r,ms));
-let sira=0,ti=null,td=null,derin=false,degisim=performance.now(),yukleniyor=false;
-async function fotoGoster(i){const p=durum.photos;if(!p.length||!gl||yukleniyor)return;yukleniyor=true;
-  sira=(i+p.length)%p.length;const f=p[sira];
-  try{const img=await resim(`/photos/${f.id}.jpg`);const d=f.depth?await resim(`/photos/${f.id}.depth.png`).catch(()=>null):null;
-    cv.style.opacity=0;$('bulanik').style.opacity=0;await bekle(600);
-    ti=doku(0,img,ti);td=doku(1,d||bosDerinlik,td);derin=!!d;iw=img.width;ih=img.height;oran();
-    $('bulanik').style.backgroundImage=`url(/photos/${f.id}.jpg)`;$('bulanik').style.opacity=1;cv.style.opacity=1}
-  catch(e){}
-  yukleniyor=false;degisim=performance.now();noktalar()}
-function noktalar(){const p=durum.photos;$('nk').innerHTML=p.length>1?p.slice(0,12).map((_,j)=>`<i class="${j===sira?'on':''}"></i>`).join(''):''}
-function ciz(t){if(gl&&ti){gl.uniform2f(U('cam'),Math.sin(t/1700),Math.cos(t/2300)*.55);gl.uniform1f(U('k'),derin?.03:0);gl.uniform1f(U('zoom'),derin?1.04:1);gl.drawArrays(gl.TRIANGLE_STRIP,0,4)}
-  if(durum.photos.length>1&&t-degisim>12000)fotoGoster(sira+1);requestAnimationFrame(ciz)}
-requestAnimationFrame(ciz);
-function fotoBilgi(){const a=durum.address,k=durum.code,bos=!durum.photos.length;
-  $('ekle').textContent=a?`Telefondan fotoğraf: ${a} · Kod ${k}`:'';
-  $('fotoBos').hidden=!bos;cv.style.visibility=bos?'hidden':'visible';
-  if(bos)$('fotoBos').innerHTML=`<b>Henüz fotoğraf yok</b><div>Telefon aynı Wi-Fi'deyken tarayıcıda açın:</div><b>${esc(a||'-')}</b><div>Kod: <b>${esc(k)}</b></div><div>${esc(durum.status||'')}</div>`}
+/* ---------- Günün menüleri ---------- */
+let yemekler=[],gunun=[],ysira=0,ydegisim=Date.now();
+const resimler={};try{Object.assign(resimler,JSON.parse(localStorage.getItem('yemekResim')||'{}'))}catch(e){}
+function gunNo(){return Math.floor((Date.now()+3*3600e3)/864e5)}   // İstanbul saatine göre gün
+let sonGun=-1;
+function gununMenuleri(){const g=gunNo();if(g===sonGun||!yemekler.length)return;sonGun=g;const n=yemekler.length,bas=(g*5)%n;
+  gunun=[0,1,2,3,4].map(i=>yemekler[(bas+i)%n]);ysira=0;menuGoster(0,true)}
+/* Vikipedi özet servisi: yemeğin resmi (küçük boyutu büyütülerek). Bulunanlar kutuda saklanır. */
+async function resimBul(y){const k=y.wiki;if(k in resimler)return resimler[k];
+  for(const [dil,baslik] of [['tr',y.wiki],['en',y.en||y.wiki]]){
+    try{const r=await fetch(`https://${dil}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(baslik.replace(/ /g,'_'))}`);if(!r.ok)continue;
+      const j=await r.json();let u=j.thumbnail&&j.thumbnail.source;
+      if(u)u=u.replace(/\/(\d+)px-/,'/1024px-');else if(j.originalimage)u=j.originalimage.source;
+      if(u){resimler[k]=u;try{localStorage.setItem('yemekResim',JSON.stringify(resimler))}catch(e){}return u}}catch(e){}}
+  return null}
+const yuklu=src=>new Promise(ok=>{const i=new Image();i.onload=()=>ok(true);i.onerror=()=>ok(false);i.src=src});
+async function resimKoy(el,y){const u=await resimBul(y);
+  if(u&&await yuklu(u)){el.style.backgroundImage=`url("${u}")`;el.classList.remove('yok')}
+  else if(u&&u.includes('/1024px-')){const o=u.replace('/1024px-','/640px-');if(await yuklu(o)){el.style.backgroundImage=`url("${o}")`;el.classList.remove('yok');resimler[y.wiki]=o}}}
+function menuGoster(i,ilk){if(!gunun.length)return;ysira=(i+gunun.length)%gunun.length;const y=gunun[ysira],kap=$('sahneler');
+  const s=document.createElement('div');s.className='ysahne'+(ilk?'':' gir');
+  s.innerHTML=`<div class="yresim yok"></div><div class="ygolge"></div><div class="yalt"><div class="yetiket">Günün menüsü · ${ysira+1}/5</div>
+    <div class="yad">${esc(y.ad)}</div><div class="ybilgi">Yanında: ${esc(y.yaninda)} · ${esc(y.sure)} · ${y.kisi} kişilik</div></div>`;
+  resimKoy(s.querySelector('.yresim'),y);
+  for(const e of kap.children){e.classList.add('cik');setTimeout(()=>e.remove(),1100)}
+  kap.appendChild(s);if(!ilk)requestAnimationFrame(()=>requestAnimationFrame(()=>s.classList.remove('gir')));
+  $('nk').innerHTML=gunun.map((_,j)=>`<i class="${j===ysira?'on':''}"></i>`).join('');ydegisim=Date.now();tarifCiz()}
+function tarifCiz(){const y=gunun[ysira];if(!y)return;
+  $('tbaslik').innerHTML=`<b>${esc(y.ad)}</b><span>${esc(y.sure)} · ${y.kisi} kişilik · Yanında: ${esc(y.yaninda)}</span>`;
+  const t=$('tresim');t.className='yresim yok';t.style.backgroundImage='';resimKoy(t,y);
+  $('tic').innerHTML=`<div><h4>Malzemeler</h4><ul>${y.malzeme.map(m=>`<li>${esc(m)}</li>`).join('')}</ul></div>
+    <div><h4>Yapılışı</h4><ol>${y.yapilis.map(m=>`<li>${esc(m)}</li>`).join('')}</ol></div>`;tKay=0;kaydir(0)}
+let tKay=0;
+function kaydir(d){const ic=$('tic'),kap=ic.parentElement;const en=Math.max(0,ic.scrollHeight-kap.clientHeight+24);
+  tKay=Math.max(0,Math.min(en,tKay+d));ic.style.transform=`translateY(${-tKay}px)`}
+let ydonuk=false;
+function yemekCevir(d){if(ydonuk===d)return;ydonuk=d;$('yemek').classList.toggle('don',d);if(d){tKay=0;kaydir(0)}ydegisim=Date.now()}
+setInterval(()=>{gununMenuleri();if(!ydonuk&&gunun.length&&Date.now()-ydegisim>9000)menuGoster(ysira+1)},1000);
+fetch('yemekler.json').then(r=>r.json()).then(j=>{yemekler=j;gununMenuleri()}).catch(()=>{});
+function boyut(){}
 
 /* ---------- Kumanda ----------
-   Odak sırası: kart (ön yüz) ya da kartın arkasındaki iki düğme, sonra fotoğraf. Yukarı üst çubuğa, Aşağı dock'a gider. */
+   Odak sırası: Fenerbahçe kartı (ya da arkasındaki iki düğme), sonra günün menüsü. Yukarı üst çubuğa, Aşağı dock'a gider.
+   Menüde Sağ sonraki menü, OK tarif; tarifte Yukarı/Aşağı kaydırır, OK ya da Geri karta döner. */
 let odak=null,donuk=false,donusZamani=null;
 function goster(){const o=$('sol').classList.contains('odak');$('sol').classList.toggle('odak',odak==='kart'||odak==='b0'||odak==='b1');
-  if(o!==$('sol').classList.contains('odak'))setTimeout(sigdir,400);$('foto').classList.toggle('odak',odak==='foto');
+  if(o!==$('sol').classList.contains('odak'))setTimeout(sigdir,400);$('yemek').classList.toggle('odak',odak==='yemek');
   $('b0').classList.toggle('secili',odak==='b0');$('b1').classList.toggle('secili',odak==='b1')}
 function cevir(d){if(donuk===d)return;donuk=d;const k=$('kart');k.classList.toggle('don',d);k.classList.remove('parla');void k.offsetWidth;k.classList.add('parla');
   clearTimeout(donusZamani);if(d)donusZamani=setTimeout(()=>{if(!odak)cevir(false)},90000)}
 window.odaklan=()=>{odak=donuk?'b0':'kart';goster()};
-window.birak=()=>{odak=null;cevir(false);goster()};
-window.geri=()=>{if(donuk){cevir(false);odak='kart';goster()}else{odak=null;goster();Tv.dock()}};
-window.gorundu=()=>yenile();
+window.birak=()=>{odak=null;cevir(false);yemekCevir(false);goster()};
+window.geri=()=>{if(ydonuk){yemekCevir(false);odak='yemek';goster()}else if(donuk){cevir(false);odak='kart';goster()}else{odak=null;goster();Tv.dock()}};
+window.gorundu=()=>{yenile();gununMenuleri()};
 addEventListener('keydown',e=>{if(!odak)return;const k=e.key;
   if(k==='Enter'||k===' '){e.preventDefault();if(e.repeat)return;
     if(odak==='kart'){cevir(true);odak='b0'}
     else if(odak==='b0')Tv.ac(ozetAdresi());
     else if(odak==='b1')Tv.ac(yt('FB TV Fenerbahçe'));
-    else if(odak==='foto')fotoGoster(sira+1);
+    else if(odak==='yemek')yemekCevir(!ydonuk);
     goster();return}
   if(!k.startsWith('Arrow'))return;e.preventDefault();
+  if(odak==='yemek'&&ydonuk){if(k==='ArrowDown')kaydir(60);else if(k==='ArrowUp')kaydir(-60);else{yemekCevir(false);if(k==='ArrowLeft'){odak=donuk?'b1':'kart'}goster()}return}
   if(k==='ArrowUp'){odak=null;goster();Tv.ust();return}
   if(k==='ArrowDown'){odak=null;goster();Tv.dock();return}
   const sag=k==='ArrowRight';
-  if(odak==='kart'){if(sag)odak='foto'}
+  if(odak==='kart'){if(sag)odak='yemek'}
   else if(odak==='b0'){odak=sag?'b1':'b0'}
-  else if(odak==='b1'){odak=sag?'foto':'b0'}
-  else if(odak==='foto'){if(sag)fotoGoster(sira+1);else odak=donuk?'b1':'kart'}
+  else if(odak==='b1'){odak=sag?'yemek':'b0'}
+  else if(odak==='yemek'){if(sag)menuGoster(ysira+1);else odak=donuk?'b1':'kart'}
   goster()});
 
 /* ---------- Veri ---------- */
-async function yenile(){try{const s=await api('state');const eski=durum.photos.map(p=>p.id+p.depth).join();durum=s;
-  const yeni=s.photos.map(p=>p.id+p.depth).join();if(yeni!==eski){noktalar();if(!ti||!s.photos[sira]||eski.indexOf(s.photos[sira].id)<0)fotoGoster(0);else fotoGoster(sira)}
-  fotoBilgi();kartCiz();havaCiz()}catch(e){}}
+async function yenile(){try{durum=await api('state');kartCiz();havaCiz()}catch(e){}}
 yerlesim(innerHeight);yenile();setInterval(yenile,20000);
 </script>
 </body>
