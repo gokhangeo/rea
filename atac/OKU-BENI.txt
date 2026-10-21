@@ -1,0 +1,19 @@
+ATAÇ — Evde Kullanım Kılavuzu
+================================
+
+1) İLK KURULUM
+   - Bilgisayarında Node.js yoksa: nodejs.org adresinden "LTS" sürümünü bir kez kur.
+   - "calistir.bat" dosyasına çift tıkla.
+   - İlk açılışta gerekli dosyalar iner (birkaç dakika), sonra Ataç açılır.
+   - Sonraki açılışlar hızlıdır.
+
+2) HER WINDOWS AÇILIŞINDA OTOMATİK BAŞLASIN (isteğe bağlı)
+   - Önce yukarıdaki ilk kurulumu bir kez yap (calistir.bat çalışsın).
+   - Sonra "baslangica-ekle.bat" dosyasına çift tıkla.
+   - Artık bilgisayarı her açtığında Ataç kendiliğinden, sessizce gelir.
+   - Vazgeçersen: "baslangictan-cikar.bat" dosyasına çift tıkla.
+
+NOTLAR
+   - Bu klasörü silme veya taşıma; Ataç buradan çalışır.
+   - Klasörü başka yere taşırsan "baslangica-ekle.bat" dosyasını bir kez daha çalıştır.
+   - Bu yöntem tamamen exe'siz çalışır; her şeyi Node.js üzerinden başlatır.
