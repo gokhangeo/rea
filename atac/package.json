@@ -25,6 +25,8 @@
   "build": {
     "appId": "com.gokhan.atac",
     "productName": "Ataç",
+    "copyright": "Copyright © 2026 gokhangeo",
+    "compression": "normal",
     "publish": [
       { "provider": "github", "owner": "gokhangeo", "repo": "rea", "releaseType": "release" }
     ],
@@ -41,7 +43,9 @@
       "target": [
         { "target": "nsis", "arch": ["x64"] },
         { "target": "portable", "arch": ["x64"] }
-      ]
+      ],
+      "legalTrademarks": "Ataç",
+      "verifyUpdateCodeSignature": false
     },
     "portable": {
       "artifactName": "${productName}-Tasinabilir-${version}.${ext}"
@@ -54,7 +58,8 @@
       "runAfterFinish": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Ataç"
+      "shortcutName": "Ataç",
+      "guid": "cdeb922a-cfd8-46fa-b638-4e4404164d27"
     }
   }
 }
