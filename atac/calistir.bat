@@ -17,6 +17,9 @@ if errorlevel 1 (
   exit /b 1
 )
 
+REM GitHub'dan en son surumu denetle ve guncelle (internet varsa)
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0guncelle.ps1"
+
 if not exist "node_modules" (
   echo   Ilk calistirma: gerekli dosyalar indiriliyor...
   echo   Bu islem birkac dakika surebilir, lutfen bekleyin.
