@@ -25,3 +25,6 @@ latest*.yml
 npm-debug.log*
 .DS_Store
 Thumbs.db
+
+# Kullanici makinesinde uretilen sertifika paketi
+atac/win-ca.pem
