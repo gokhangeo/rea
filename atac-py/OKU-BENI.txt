@@ -1,0 +1,32 @@
+ATAÇ (Python sürümü) — Kullanım
+================================
+
+Bu sürüm Electron içermez; antivirüsün Electron'a taktığı yanlış alarmlara
+takılmaz. Tek dosyadır, kurulum gerekmez.
+
+1) ÇALIŞTIRMA
+   - Sürüm sayfasından "Atac.exe" dosyasını indir.
+   - Çift tıkla. Ekranın sağ kenarında küçük bir ataç belirir.
+
+2) KULLANIM
+   - Ataça TIKLA: buzlu cam raf açılır/kapanır.
+   - Dosya/klasör SÜRÜKLEYİP rafa bırak: rafa eklenir.
+   - "+" ile dosya seçerek ekle.
+   - Bir öğeye ÇİFT TIKLA: dosyayı açar.
+   - Bir öğeye tek tıkla ya da "⇪ Tümü": dosyaları panoya kopyalar;
+     hedef klasörde Ctrl+V ile yapıştır.
+   - Ataçı tutup sürükleyerek taşı; konumu hatırlanır.
+   - Ctrl+Shift+Boşluk: göster/gizle.
+
+3) TEPSİ SİMGESİ (saat yanı)
+   - Göster/gizle, Windows açılışında başlat, Güncellemeleri denetle, Çıkış.
+
+4) OTOMATİK GÜNCELLEME
+   - Açılışta GitHub'dan yeni sürüm denetlenir; varsa kendini günceller.
+
+SORUN OLURSA
+   - %APPDATA%\Atac\atac.log dosyasını bana gönder; ne olduğunu oradan görürüm.
+
+NOT
+   - Dosyayı dışarı doğrudan sürükleme bir sonraki sürümde gelecek; şimdilik
+     "panoya kopyala + yapıştır" yöntemiyle taşıyabilirsin.
