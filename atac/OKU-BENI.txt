@@ -1,0 +1,30 @@
+ATAÇ — Evde Kullanım Kılavuzu
+================================
+
+1) İLK KURULUM
+   - Bilgisayarında Node.js yoksa: nodejs.org adresinden "LTS" sürümünü bir kez kur.
+   - "calistir.bat" dosyasına çift tıkla.
+   - İlk açılışta gerekli dosyalar iner (birkaç dakika), sonra Ataç açılır.
+   - Sonraki açılışlar hızlıdır.
+
+2) HER WINDOWS AÇILIŞINDA OTOMATİK BAŞLASIN (isteğe bağlı)
+   - Önce yukarıdaki ilk kurulumu bir kez yap (calistir.bat çalışsın).
+   - Sonra "baslangica-ekle.bat" dosyasına çift tıkla.
+   - Artık bilgisayarı her açtığında Ataç kendiliğinden, sessizce gelir.
+   - Vazgeçersen: "baslangictan-cikar.bat" dosyasına çift tıkla.
+
+3) OTOMATİK GÜNCELLEME
+   - calistir.bat her açılışta GitHub'dan en son sürümü denetler.
+   - Yeni sürüm varsa indirip kendini günceller; internet yoksa mevcut sürümle devam eder.
+
+SORUN GİDERME
+   - "SELF_SIGNED_CERT_IN_CHAIN" hatası: Ağında/bilgisayarında bir güvenlik yazılımı
+     (antivirüs HTTPS taraması gibi) internet trafiğini denetliyor demektir.
+     calistir.bat bunu, bilgisayarın güvendiği sertifikaları kullanarak aşmaya çalışır.
+     Yine de sürerse: antivirüsünün "HTTPS taraması / SSL taraması" ayarını geçici kapatıp
+     calistir.bat'ı tekrar çalıştır; kurulum bitince taramayı geri açabilirsin.
+
+NOTLAR
+   - Bu klasörü silme veya taşıma; Ataç buradan çalışır.
+   - Klasörü başka yere taşırsan "baslangica-ekle.bat" dosyasını bir kez daha çalıştır.
+   - Bu yöntem tamamen exe'siz çalışır; her şeyi Node.js üzerinden başlatır.
