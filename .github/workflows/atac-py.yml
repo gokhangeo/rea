@@ -1,9 +1,10 @@
-# Atac (Python surumu) Windows'ta derlenir.
-# - atac-py-v* etiketi gonderilince: exe'yi o etiketin GitHub Release'ine yukler.
-# - Elle calistirinca (workflow_dispatch) "surum" verilirse: o surumle derler,
-#   etiketi+release'i runner uzerinde olusturur (yerel etiket push'u gerekmez).
-#   "surum" bos ise yalnizca derler (artifact).
-# - PR'da: sadece derler (birlestirme oncesi dogrulama).
+# Atac (Python) - Nuitka ile Windows'ta derlenir.
+# Nuitka Python'u gercek C'ye derler; PyInstaller'in self-extract bootloader'i olmadigi icin
+# antivirus yanlis-pozitifi belirgin sekilde azalir. windows-latest'te MSVC hazir kuruludur.
+#
+# - atac-py-v* etiketi gonderilince: exe'yi o etiketin Release'ine yukler.
+# - workflow_dispatch "surum" ile elle: o surumle derler + release olusturur.
+# - PR'da: sadece derler (dogrulama).
 name: Ataç (Python)
 
 on:
@@ -26,20 +27,68 @@ permissions:
 jobs:
   build:
     runs-on: windows-latest
+    env:
+      PFX: ${{ secrets.CODE_SIGN_PFX_BASE64 }}
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.14'
+          python-version: '3.12'   # Nuitka icin en kararli; MSVC runner'da mevcut
 
-      - name: Derle
-        shell: cmd
+      - name: Sürüm değişkeni
+        shell: bash
+        run: |
+          RAW="${{ (github.event_name == 'workflow_dispatch' && inputs.surum != '' && format('atac-py-v{0}', inputs.surum)) || (startsWith(github.ref, 'refs/tags/atac-py-v') && github.ref_name) || 'dev' }}"
+          echo "VER=${RAW#atac-py-v}" >> "$GITHUB_ENV"
+
+      - name: Bağımlılıklar
+        shell: bash
+        working-directory: atac-py
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install nuitka
+
+      - name: İkon + version.txt
+        shell: bash
+        working-directory: atac-py
+        run: |
+          echo "$VER" > version.txt
+          python -c "from PIL import Image; im=Image.open('assets/atac-clip.png').convert('RGBA'); w,h=im.size; s=max(w,h); c=Image.new('RGBA',(s,s),(0,0,0,0)); c.paste(im,((s-w)//2,(s-h)//2),im); c.save('icon.ico', sizes=[(16,16),(32,32),(48,48),(256,256)])"
+
+      - name: Nuitka ile derle
+        shell: bash
+        working-directory: atac-py
+        run: |
+          python -m nuitka --onefile --windows-console-mode=disable --assume-yes-for-downloads \
+            --windows-icon-from-ico=icon.ico \
+            --company-name=gokhangeo --product-name=Atac \
+            --file-version="${VER%%-*}.0" --product-version="${VER%%-*}.0" \
+            --file-description="Atac - yuzen dosya rafi" --copyright="(c) gokhangeo" \
+            --include-data-dir=assets=assets \
+            --include-data-files=version.txt=version.txt \
+            --enable-plugin=tk-inter \
+            --include-module=pystray._win32 \
+            --output-dir=dist --output-filename=Atac.exe \
+            --remove-output \
+            atac.py
+          ls -la dist/Atac.exe
+
+      # --- Opsiyonel Authenticode imzalama (yalnizca sertifika secret'i varsa calisir) ---
+      # Gereken secret'lar: CODE_SIGN_PFX_BASE64 (base64 .pfx), CODE_SIGN_PFX_PASSWORD
+      - name: İmzala (Authenticode)
+        if: ${{ env.PFX != '' }}
+        shell: pwsh
         env:
-          TEMP: ${{ runner.temp }}
-          TMP: ${{ runner.temp }}
-          ATAC_VERSION: ${{ (github.event_name == 'workflow_dispatch' && inputs.surum != '' && format('atac-py-v{0}', inputs.surum)) || (startsWith(github.ref, 'refs/tags/atac-py-v') && github.ref_name) || 'dev' }}
-        run: atac-py\build.bat
+          PFX_PW: ${{ secrets.CODE_SIGN_PFX_PASSWORD }}
+        run: |
+          $pfx = Join-Path $env:RUNNER_TEMP "cs.pfx"
+          [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:PFX))
+          $sdk = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\signtool.exe" | Sort-Object FullName -Descending | Select-Object -First 1
+          & $sdk.FullName sign /f $pfx /p $env:PFX_PW /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 /d "Ataç" atac-py\dist\Atac.exe
+          & $sdk.FullName verify /pa atac-py\dist\Atac.exe
+          Remove-Item $pfx -Force
 
       - uses: actions/upload-artifact@v4
         with:
@@ -56,6 +105,6 @@ jobs:
         run: |
           if ! gh release view "$TAG" >/dev/null 2>&1; then
             gh release create "$TAG" --target "$GITHUB_SHA" --title "Ataç (Python) ${TAG#atac-py-v}" \
-              --notes "Ayrıntılar: [atac-py/README.md](https://github.com/${{ github.repository }}/tree/main/atac-py)"
+              --notes "Nuitka ile derlendi. Ayrıntılar: [atac-py/README.md](https://github.com/${{ github.repository }}/tree/main/atac-py)"
           fi
           gh release upload "$TAG" atac-py/dist/Atac.exe --clobber
