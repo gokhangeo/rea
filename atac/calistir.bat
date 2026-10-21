@@ -17,9 +17,16 @@ if errorlevel 1 (
   exit /b 1
 )
 
-REM Agda SSL denetimi varsa (SELF_SIGNED_CERT_IN_CHAIN), bu bilgisayarin zaten
-REM guvendigi sertifikalari kullan. Guvenligi KAPATMAZ; sadece sistem deposuna guvenir.
-REM Eski Node bu secenegi tanimazsa otomatik temizlenir.
+REM --- SSL denetimine (SELF_SIGNED_CERT_IN_CHAIN) karsi guvenli cozum ---
+REM Bu bilgisayarin ZATEN guvendigi kok sertifikalari bir dosyaya cikarip Node'a tanitiriz.
+REM Bu, guvenligi KAPATMAZ; sadece sistemin guvendigi sertifikalara guvenir. Her Node surumunde calisir.
+if not exist "%~dp0win-ca.pem" (
+  echo   Sistemdeki guvenilen sertifikalar hazirlaniyor...
+  powershell -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference='SilentlyContinue'; $c=Get-ChildItem Cert:\LocalMachine\Root,Cert:\CurrentUser\Root; $o=foreach($x in $c){'-----BEGIN CERTIFICATE-----';[Convert]::ToBase64String($x.RawData,'InsertLineBreaks');'-----END CERTIFICATE-----'}; Set-Content -LiteralPath '%~dp0win-ca.pem' -Value $o -Encoding ascii"
+)
+if exist "%~dp0win-ca.pem" set "NODE_EXTRA_CA_CERTS=%~dp0win-ca.pem"
+
+REM Node 22+ ise sistem deposunu da dogrudan kullan (eski Node tanimazsa otomatik temizlenir)
 set "NODE_OPTIONS=--use-system-ca"
 node -e "process.exit(0)" >nul 2>nul
 if errorlevel 1 set "NODE_OPTIONS="
@@ -35,9 +42,9 @@ if not exist "node_modules" (
   if errorlevel 1 (
     echo.
     echo   Kurulum tamamlanamadi.
-    echo   Internet baglantinizi kontrol edin. Sertifika hatasi devam ederse,
-    echo   antivirusunuzun "HTTPS taramasi / SSL taramasi" ayarini gecici kapatip
-    echo   tekrar deneyin ya da OKU-BENI.txt dosyasindaki adimlari izleyin.
+    echo   Sertifika hatasi hala suruyorsa, antivirusunuzun
+    echo   "HTTPS taramasi / SSL taramasi" ayarini gecici kapatip tekrar deneyin,
+    echo   kurulum bitince geri acabilirsiniz.
     pause
     exit /b 1
   )
