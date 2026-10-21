@@ -6,6 +6,7 @@ name: Ataç (Python)
 on:
   push:
     tags: ['atac-py-v*']
+  pull_request:
     paths:
       - "atac-py/**"
       - ".github/workflows/atac-py.yml"
