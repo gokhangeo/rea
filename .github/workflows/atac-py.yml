@@ -1,0 +1,52 @@
+# Atac (Python surumu) Windows'ta derlenir.
+# - atac-py-v* etiketi gonderilince: exe'yi o etiketin GitHub Release'ine yukler (release yoksa olusturur).
+# - Elle calistirinca (workflow_dispatch) ya da atac-py/** degisince: exe sadece "artifact" olarak indirilebilir.
+name: Ataç (Python)
+
+on:
+  push:
+    tags: ['atac-py-v*']
+    paths:
+      - "atac-py/**"
+      - ".github/workflows/atac-py.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+
+      - name: Derle
+        shell: cmd
+        env:
+          TEMP: ${{ runner.temp }}
+          TMP: ${{ runner.temp }}
+          ATAC_VERSION: ${{ startsWith(github.ref, 'refs/tags/atac-py-v') && github.ref_name || 'dev' }}
+        run: atac-py\build.bat
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Atac
+          path: atac-py/dist/Atac.exe
+          if-no-files-found: error
+
+      - name: Release'e yükle
+        if: startsWith(github.ref, 'refs/tags/atac-py-v')
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG" --title "Ataç (Python) ${TAG#atac-py-v}" \
+              --notes "Ayrıntılar: [atac-py/README.md](https://github.com/${{ github.repository }}/tree/$TAG/atac-py)"
+          fi
+          gh release upload "$TAG" atac-py/dist/Atac.exe --clobber
