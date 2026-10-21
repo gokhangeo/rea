@@ -15,7 +15,7 @@ echo Surum: %VER%
 python -m pip install -r requirements.txt || goto :hata
 python -c "from PIL import Image; im=Image.open('assets/atac-clip.png').convert('RGBA'); w,h=im.size; s=max(w,h); c=Image.new('RGBA',(s,s),(0,0,0,0)); c.paste(im,((s-w)//2,(s-h)//2),im); c.save(r'%WORK%-icon.ico', sizes=[(16,16),(32,32),(48,48),(256,256)])" || goto :hata
 python -m PyInstaller --noconfirm --onefile --windowed --name Atac ^
-  --icon "%WORK%-icon.ico" --add-data "assets;assets" --add-data "%WORK%\version.txt;." ^
+  --icon "%WORK%-icon.ico" --add-data "%~dp0assets;assets" --add-data "%WORK%\version.txt;." ^
   --hidden-import pystray._win32 ^
   --distpath dist --workpath "%WORK%" --specpath "%WORK%" atac.py || goto :hata
 echo.
