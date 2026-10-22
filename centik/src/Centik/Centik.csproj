@@ -1,0 +1,35 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\island.ico</ApplicationIcon>
+    <AssemblyName>Centik</AssemblyName>
+    <RootNamespace>Centik</RootNamespace>
+    <Version>2.10.1</Version>
+    <EnableCompressionInSingleFile>false</EnableCompressionInSingleFile>
+    <Title>Çentik</Title>
+    <Product>Çentik</Product>
+    <Company>Çentik</Company>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/gokhangeo/rea</RepositoryUrl>
+    <!-- WPF owns DPI awareness; WinForms is used only for Screen and NotifyIcon. -->
+    <NoWarn>$(NoWarn);WFO0003</NoWarn>
+    <StartupObject>Centik.App</StartupObject>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="System.Management" Version="10.0.0" />
+    <PackageReference Include="NAudio" Version="2.2.1" />
+    <Resource Include="Assets\island.ico" />
+    <EmbeddedResource Include="..\..\docs\presets\default-layout.json" LogicalName="Centik.DefaultLayout.json" />
+    <EmbeddedResource Include="..\..\LICENSE" LogicalName="Centik.LICENSE" />
+    <EmbeddedResource Include="..\..\licenses\NAudio-LICENSE.txt" LogicalName="Centik.NAudio-LICENSE.txt" />
+    <EmbeddedResource Include="..\..\licenses\LUCIDE-LICENSE.txt" LogicalName="Centik.LUCIDE-LICENSE.txt" />
+    <EmbeddedResource Include="..\..\licenses\DOTNET-LICENSE.txt" LogicalName="Centik.DOTNET-LICENSE.txt" />
+    <EmbeddedResource Include="..\..\licenses\DOTNET-ThirdPartyNotices.txt" LogicalName="Centik.DOTNET-ThirdPartyNotices.txt" />
+  </ItemGroup>
+</Project>
