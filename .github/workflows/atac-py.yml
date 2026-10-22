@@ -74,7 +74,6 @@ jobs:
             --file-description="Atac - yuzen dosya rafi" --copyright="(c) gokhangeo" \
             --include-data-dir=assets=assets \
             --include-data-files=version.txt=version.txt \
-            --enable-plugin=tk-inter \
             --include-module=pystray._win32 \
             --output-dir=dist --output-filename=Atac.exe \
             --remove-output \

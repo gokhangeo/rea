@@ -553,6 +553,71 @@ def open_path(path):
 
 
 # ---------------------------------------------------------------------------
+# Yerli (Win32) dosya seçici — "+" için. tkinter KULLANILMAZ (PyInstaller'da
+# tkinter'ın Tcl verisi sorun çıkarıyordu; ayrıca yerli seçici daha hafif).
+# ---------------------------------------------------------------------------
+comdlg32 = ctypes.WinDLL("comdlg32", use_last_error=True)
+
+OFN_READONLY = 0x00000001
+OFN_HIDEREADONLY = 0x00000004
+OFN_NOCHANGEDIR = 0x00000008
+OFN_PATHMUSTEXIST = 0x00000800
+OFN_FILEMUSTEXIST = 0x00001000
+OFN_EXPLORER = 0x00080000
+OFN_ALLOWMULTISELECT = 0x00000200
+
+
+class OPENFILENAMEW(ctypes.Structure):
+    _fields_ = [
+        ("lStructSize", wt.DWORD), ("hwndOwner", wt.HWND), ("hInstance", wt.HINSTANCE),
+        ("lpstrFilter", wt.LPCWSTR), ("lpstrCustomFilter", wt.LPWSTR), ("nMaxCustFilter", wt.DWORD),
+        ("nFilterIndex", wt.DWORD), ("lpstrFile", wt.LPWSTR), ("nMaxFile", wt.DWORD),
+        ("lpstrFileTitle", wt.LPWSTR), ("nMaxFileTitle", wt.DWORD), ("lpstrInitialDir", wt.LPCWSTR),
+        ("lpstrTitle", wt.LPCWSTR), ("Flags", wt.DWORD), ("nFileOffset", wt.WORD),
+        ("nFileExtension", wt.WORD), ("lpstrDefExt", wt.LPCWSTR), ("lCustData", ctypes.c_void_p),
+        ("lpfnHook", ctypes.c_void_p), ("lpTemplateName", wt.LPCWSTR), ("pvReserved", ctypes.c_void_p),
+        ("dwReserved", wt.DWORD), ("FlagsEx", wt.DWORD),
+    ]
+
+
+comdlg32.GetOpenFileNameW.restype = wt.BOOL
+comdlg32.GetOpenFileNameW.argtypes = [ctypes.POINTER(OPENFILENAMEW)]
+
+
+def pick_files():
+    """Çoklu seçimli yerli dosya seçici; seçilen tam yolların listesini döndürür."""
+    try:
+        buf = ctypes.create_unicode_buffer(32768)
+        ofn = OPENFILENAMEW()
+        ofn.lStructSize = ctypes.sizeof(OPENFILENAMEW)
+        ofn.lpstrFile = ctypes.cast(buf, wt.LPWSTR)
+        ofn.nMaxFile = 32768
+        ofn.lpstrTitle = "Ataç'a dosya ekle"
+        ofn.Flags = (OFN_EXPLORER | OFN_ALLOWMULTISELECT | OFN_FILEMUSTEXIST |
+                     OFN_PATHMUSTEXIST | OFN_HIDEREADONLY | OFN_NOCHANGEDIR)
+        if not comdlg32.GetOpenFileNameW(ctypes.byref(ofn)):
+            return []
+        # Çoklu seçim: dizin\0dosya1\0dosya2\0\0 ; tek seçim: tamyol\0\0
+        addr = ctypes.addressof(buf)
+        parts = []
+        while True:
+            s = ctypes.wstring_at(addr)
+            if not s:
+                break
+            parts.append(s)
+            addr += (len(s) + 1) * ctypes.sizeof(ctypes.c_wchar)
+        if not parts:
+            return []
+        if len(parts) == 1:
+            return [parts[0]]
+        base = parts[0]
+        return [os.path.join(base, f) for f in parts[1:]]
+    except Exception:
+        log_err()
+        return []
+
+
+# ---------------------------------------------------------------------------
 # Görünüm ölçüleri ve renkler (Electron sürümüyle aynı)
 # ---------------------------------------------------------------------------
 COL_W, COL_H = 66, 82
@@ -1022,18 +1087,9 @@ class Atac:
 
     # ---- menüler / seçiciler ----
     def show_add_menu(self):
-        try:
-            import tkinter as tk
-            from tkinter import filedialog
-            root = tk.Tk()
-            root.withdraw()
-            root.attributes("-topmost", True)
-            paths = filedialog.askopenfilenames(parent=root, title="Dosya ekle")
-            root.destroy()
-            if paths:
-                self.add_paths(list(paths))
-        except Exception:
-            log_err()
+        paths = pick_files()
+        if paths:
+            self.add_paths(paths)
 
     def act(self, action, data, dbl=False):
         self.wake()
