@@ -41,7 +41,8 @@ class Sunucu(private val c: Context) : NanoHTTPD(PORT) {
                     .put("surum", runCatching { c.packageManager.getPackageInfo(c.packageName, 0).versionName }.getOrNull().orEmpty())
                     .put("adres", adres()?.let { "$it:$PORT" } ?: JSONObject.NULL)
                     .put("izinler", Izinler.json(c))
-                    .put("isler", Kurucu.liste()),
+                    .put("isler", Kurucu.liste())
+                    .put("yeniSurum", Kurucu.bilinenYeni),
             )
             "/api/kur" -> {
                 if (!post) return metin(Response.Status.METHOD_NOT_ALLOWED, "")
@@ -77,13 +78,19 @@ class Sunucu(private val c: Context) : NanoHTTPD(PORT) {
             }
             "/api/takimlar" -> if (post) {
                 val acik = (s.parameters["acik"]?.firstOrNull() ?: "1") != "0"
-                s.parameters["ses"]?.firstOrNull()?.let { Goller.sesAyarla(c, it != "0") }
+                Goller.gorunumAyarla(c) { s.parameters[it]?.firstOrNull() }
                 Goller.ayarla(c, s.parameters["secili"]?.firstOrNull(), s.parameters["eskiler"]?.firstOrNull(), acik)
                     ?.let { metin(Response.Status.BAD_REQUEST, it) } ?: json(Goller.json(c))
             } else json(Goller.json(c))
             "/api/gol-dene" -> {
                 if (!post) return metin(Response.Status.METHOD_NOT_ALLOWED, "")
                 if (Goller.dene(c)) tamam() else metin(Response.Status.CONFLICT, "TV'de 'üstte gösterme' izni yok")
+            }
+            "/api/ayar-gonder" -> {
+                if (!post) return metin(Response.Status.METHOD_NOT_ALLOWED, "")
+                val hedef = s.parameters["hedef"]?.firstOrNull()?.trim().orEmpty()
+                val hedefKod = s.parameters["hedefKod"]?.firstOrNull()?.trim().orEmpty()
+                ayarGonder(hedef, hedefKod)?.let { metin(Response.Status.BAD_REQUEST, it) } ?: tamam()
             }
             "/api/lig-takimlar" -> {
                 val lig = s.parameters["lig"]?.firstOrNull().orEmpty()
@@ -116,6 +123,32 @@ class Sunucu(private val c: Context) : NanoHTTPD(PORT) {
             } else json(AnaEkran.json(c))
             else -> metin(Response.Status.NOT_FOUND, "bulunamadı")
         }
+    }
+
+    /** Gol ayarlarını evdeki diğer Kutu Kurucu'ya (8090) gönderir. Yalnızca yerel ağ adresleri. Hata varsa metni döner. */
+    private fun ayarGonder(hedef: String, hedefKod: String): String? {
+        val m = Regex("^(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})$").find(hedef) ?: return "Diğer kutunun IP adresini yazın (ör. 192.168.1.106)."
+        val o = m.groupValues.drop(1).map { it.toInt() }
+        if (o.any { it > 255 }) return "IP adresi geçersiz."
+        val yerel = o[0] == 192 && o[1] == 168 || o[0] == 10 || o[0] == 172 && o[1] in 16..31
+        if (!yerel) return "Yalnızca evdeki ağ adresleri (192.168.x.x gibi)."
+        if (hedef == adres()) return "Bu zaten bu kutu."
+        if (!hedefKod.matches(Regex("\\d{4}"))) return "Diğer kutunun TV ekranındaki 4 haneli kodu yazın."
+        val sorgu = (Goller.aktarimParametreleri(c) + ("kod" to hedefKod)).entries
+            .joinToString("&") { (k, v) -> k + "=" + URLEncoder.encode(v, "UTF-8") }
+        val b = java.net.URL("http://$hedef:$PORT/api/takimlar?$sorgu").openConnection() as java.net.HttpURLConnection
+        b.connectTimeout = 5_000; b.readTimeout = 10_000
+        b.requestMethod = "POST"; b.doOutput = true
+        return try {
+            b.outputStream.use { }
+            when (b.responseCode) {
+                200 -> null
+                401 -> "Diğer kutunun kodu yanlış."
+                else -> "Diğer kutu kabul etmedi (HTTP ${b.responseCode}). Orada Kutu Kurucu güncel mi?"
+            }
+        } catch (e: Exception) {
+            "Diğer kutuya ulaşılamadı ($hedef). Açık ve Kutu Kurucu çalışıyor mu?"
+        } finally { b.disconnect() }
     }
 
     /** Kod denemesi: 10 dakikada 30 yanlıştan sonra bir süre kimse giremez. */

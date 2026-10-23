@@ -12,7 +12,8 @@ import android.util.Log
 object GolSesi {
     @Volatile private var calan: MediaPlayer? = null
 
-    fun cal(c: Context) {
+    /** [duzey]: 0..1 (varsayılan düşük). */
+    fun cal(c: Context, duzey: Float = 0.3f) {
         runCatching {
             calan?.release()
             val mp = MediaPlayer()
@@ -27,6 +28,7 @@ object GolSesi {
             }
             mp.setOnCompletionListener { it.release(); if (calan === it) calan = null }
             mp.prepare()
+            mp.setVolume(duzey, duzey)
             mp.start()
             calan = mp
         }.onFailure { Log.w("KutuKurucu", "gol sesi çalınamadı", it) }

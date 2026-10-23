@@ -45,6 +45,14 @@ class SunucuServisi : Service() {
                 ana.postDelayed(this, 20_000)
             }
         })
+        // Yeni Kutu Kurucu sürümü: açılıştan 2 dk sonra, sonra 6 saatte bir bakılır.
+        ana.postDelayed(object : Runnable {
+            override fun run() {
+                val c = applicationContext
+                Thread { runCatching { Kurucu.yeniSurumDenetle(c) } }.start()
+                ana.postDelayed(this, 6 * 3600_000L)
+            }
+        }, 120_000)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int) = START_STICKY

@@ -90,8 +90,8 @@ object Kurucu {
         return i
     }
 
-    /** GitHub'daki son "kutu-kurucu-v1.N" sürümü kuruludan yeniyse onu kurar; değilse null. */
-    fun kendiniGuncelle(c: Context): Is? {
+    /** GitHub'daki en yeni "kutu-kurucu-v1.N" sürümü: (N, APK adresi). */
+    fun sonSurum(): Pair<Int, String>? {
         val surumler = JSONArray(getir("https://api.github.com/repos/gokhangeo/rea/releases?per_page=40"))
         val re = Regex("^kutu-kurucu-v1\\.(\\d+)$")
         var en = 0
@@ -103,12 +103,35 @@ object Kurucu {
             if (n <= en) continue
             apkVarligi(r)?.let { en = n; url = it }
         }
-        val kurulu = runCatching {
-            val p = c.packageManager.getPackageInfo(c.packageName, 0)
-            if (Build.VERSION.SDK_INT >= 28) p.longVersionCode.toInt() else @Suppress("DEPRECATION") p.versionCode
-        }.getOrDefault(0)
-        if (en <= kurulu || url == null) return null
-        return baglantidan(c, url!!, "Kutu Kurucu 1.$en")
+        return url?.let { en to it }
+    }
+
+    fun kurulu(c: Context): Int = runCatching {
+        val p = c.packageManager.getPackageInfo(c.packageName, 0)
+        if (Build.VERSION.SDK_INT >= 28) p.longVersionCode.toInt() else @Suppress("DEPRECATION") p.versionCode
+    }.getOrDefault(0)
+
+    /** Son denetimde bulunan yeni sürüm numarası (yoksa 0); panel gösterir. */
+    @Volatile var bilinenYeni = 0
+
+    /** Yeni sürüm varsa TV'de bir kez küçük uyarı gösterir. Ağ işi; ayrı iş parçacığında çağrılır. */
+    fun yeniSurumDenetle(c: Context) {
+        val (n, _) = runCatching { sonSurum() }.getOrNull() ?: return
+        if (n <= kurulu(c)) { bilinenYeni = 0; return }
+        bilinenYeni = n
+        val p = c.getSharedPreferences("guncelleme", Context.MODE_PRIVATE)
+        if (p.getInt("uyarilan", 0) >= n) return
+        if (Mesaj.goster(c, "⬆ Kutu Kurucu 1.$n hazır", "Panelde \"Kutu Kurucu'yu güncelle\"ye basın", 15_000,
+                kompakt = true, ayar = Goller.kartAyari(c).copy(sureMs = 15_000))) {
+            p.edit().putInt("uyarilan", n).apply()
+        }
+    }
+
+    /** GitHub'daki son sürüm kuruludan yeniyse onu kurar; değilse null. */
+    fun kendiniGuncelle(c: Context): Is? {
+        val (en, url) = sonSurum() ?: return null
+        if (en <= kurulu(c)) return null
+        return baglantidan(c, url, "Kutu Kurucu 1.$en")
     }
 
     private fun kur(c: Context, i: Is, girdi: InputStream, uzunluk: Long) {

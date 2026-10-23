@@ -23,7 +23,9 @@ Her kutuya ayrı kurulur; her kutunun kendi adresi ve kodu vardır.
   Eredivisie, Primeira Liga, Belçika, İskoçya, Avrupa kupaları, milli takım turnuvaları), sonra o ligin takımı listeden seçilir
   (liste ESPN'den gelir). Eşleşme ESPN takım kimliğiyle yapılır, ad benzerliğiyle değil. Kutu 20 saniyede bir takımın kendi
   ligini, Avrupa kupalarını ve Türkiye Kupası'nı yoklar; gol olunca skoru üstte 12 saniye gösterir ve kısa bir gol sesi (düdük + boru) çalar; ses sayfadan kapatılabilir,
-  "Dene" düğmesi örnek bildirim gösterir. Kanal açıkken de görünür.
+  "Dene" düğmesi örnek bildirim gösterir. Kart küçük; dakika, golcü ve takım logoları görünür. Kartın yeri, boyutu,
+  ekranda kalma süresi ve ses düzeyi (varsayılan düşük) panelden seçilir; ayarlar IP + kodla diğer kutuya kopyalanabilir.
+  Yeni Kutu Kurucu sürümü çıkınca TV'de bir kez küçük uyarı görünür (6 saatte bir bakılır). Kanal açıkken de görünür.
   Eski sürümde elle yazılmış adlar "elle yazılmış" etiketiyle görünür, silinene kadar eskisi gibi izlenir.
 - **Telefondan görüntü/video:** Telefondan seçilen fotoğraf ya da video kutuya gider ve tam ekran açılır; kumandada GERİ kapatır,
   video bitince kendiliğinden kapanır (`POST /api/medya`).

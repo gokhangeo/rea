@@ -35,6 +35,10 @@
   .takim small { opacity:.7; } .takim.eski { border:1px dashed #f5c518; }
   .takim button { background:none; border:0; color:inherit; font-size:20px; line-height:1; padding:0 2px; cursor:pointer; }
   .uyari { color:var(--sari); }
+  .ayarlar { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:8px 0; }
+  .ayarlar label { color:var(--soluk); font-size:13px; display:flex; flex-direction:column; gap:4px; }
+  .ayarlar select { font-size:16px; padding:9px; }
+  .yeni { color:var(--zemin); background:var(--sari); border-radius:999px; padding:3px 10px; font-weight:700; font-size:13px; }
   .gizli { display:none; }
   progress { width:100%; height:14px; }
 </style>
@@ -105,9 +109,24 @@
       </div>
       <div id="seciliTakimlar" class="takimlar"></div>
       <label class="secim" style="margin-top:8px"><input type="checkbox" id="golAcik" checked><span><b>Gol bildirimleri açık</b></span></label>
-      <label class="secim"><input type="checkbox" id="golSes" checked><span><b>Gol sesi</b> (düdük + boru, TV'nin ses düzeyiyle)</span></label>
+      <label class="secim"><input type="checkbox" id="golSes" checked><span><b>Gol sesi</b> (düdük + boru)</span></label>
+      <label class="secim"><input type="checkbox" id="golLogo" checked><span><b>Takım logoları</b> kartta görünsün</span></label>
+      <div class="ayarlar">
+        <label>Ses düzeyi<select id="golSesDuzey"><option value="cokDusuk">Çok düşük</option><option value="dusuk">Düşük</option><option value="orta">Orta</option><option value="yuksek">Yüksek</option></select></label>
+        <label>Kartın yeri<select id="golKonum"><option value="sagUst">Sağ üst</option><option value="solUst">Sol üst</option><option value="sagAlt">Sağ alt</option><option value="solAlt">Sol alt</option></select></label>
+        <label>Boyut<select id="golBoyut"><option value="kucuk">Küçük</option><option value="orta">Orta</option><option value="buyuk">Büyük</option></select></label>
+        <label>Ekranda kalma<select id="golSure"><option value="6">6 sn</option><option value="10">10 sn</option><option value="15">15 sn</option><option value="20">20 sn</option><option value="30">30 sn</option></select></label>
+      </div>
       <div class="satir"><button class="ikinci" id="golDene">Dene</button></div>
       <p class="alt" id="takimDurum"></p>
+      <h2 style="margin-top:16px;font-size:16px">Ayarları diğer kutuya kopyala</h2>
+      <div class="alt">Takımlar ve kart ayarları diğer kutuya aynen gönderilir. Kod, o kutunun TV ekranında yazar.</div>
+      <div class="satir" style="margin-top:8px">
+        <input type="text" id="hedefIp" placeholder="IP (ör. 192.168.1.106)" inputmode="decimal" style="flex:2;min-width:150px">
+        <input type="tel" id="hedefKod" placeholder="Kod" maxlength="4" style="flex:1;min-width:80px">
+        <button id="ayarGonder">Gönder</button>
+      </div>
+      <p class="alt" id="gonderDurum"></p>
     </section>
 
     <section class="kart">
@@ -181,7 +200,7 @@ async function durum() {
   try {
     const d = await api('/api/durum');
     $('cihaz').textContent = d.cihaz + ' · Android ' + d.android + (d.adres ? ' · ' + d.adres : '');
-    $('surum').textContent = 'Sürüm ' + d.surum;
+    $('surum').innerHTML = 'Sürüm ' + esc(d.surum) + (d.yeniSurum ? ' <span class="yeni">1.' + d.yeniSurum + ' hazır</span>' : '');
     const i = d.izinler, s = [];
     s.push((i.yukleme ? '✔' : '✘') + ' Uygulama yükleme izni');
     s.push((i.ustte ? '✔' : '✘') + ' Arka planda onay penceresi' + (i.ustte ? '' : " (yoksa TV'de Kutu Kurucu açık olmalı)"));
@@ -328,7 +347,9 @@ function takimCiz() {
 async function golKaydet() {
   try {
     const d = await api('/api/takimlar?secili=' + encodeURIComponent(JSON.stringify(golSecili.map(({ id, ad, lig }) => ({ id, ad, lig })))) +
-      '&eskiler=' + encodeURIComponent(golEski.join(',')) + '&acik=' + ($('golAcik').checked ? '1' : '0') + '&ses=' + ($('golSes').checked ? '1' : '0'), { method: 'POST' });
+      '&eskiler=' + encodeURIComponent(golEski.join(',')) + '&acik=' + ($('golAcik').checked ? '1' : '0') + '&ses=' + ($('golSes').checked ? '1' : '0') +
+      '&logo=' + ($('golLogo').checked ? '1' : '0') + '&sesDuzey=' + $('golSesDuzey').value + '&konum=' + $('golKonum').value +
+      '&boyut=' + $('golBoyut').value + '&sure=' + $('golSure').value, { method: 'POST' });
     golSecili = d.secili || []; golEski = d.eskiler || []; takimCiz();
   } catch (e) { if (e.message !== 'kod') $('takimDurum').textContent = e.message; }
 }
@@ -338,6 +359,11 @@ async function takimYukle() {
     golSecili = d.secili || []; golEski = d.eskiler || [];
     $('golAcik').checked = !!d.acik;
     $('golSes').checked = d.ses !== false;
+    $('golLogo').checked = d.logo !== false;
+    if (d.sesDuzey) $('golSesDuzey').value = d.sesDuzey;
+    if (d.konum) $('golKonum').value = d.konum;
+    if (d.boyut) $('golBoyut').value = d.boyut;
+    if (d.sure) $('golSure').value = String(d.sure);
     if (golLig.options.length <= 1) (d.ligler || []).forEach(l => golLig.add(new Option(l.ad, l.kod)));
     takimCiz();
   } catch (e) { if (e.message !== 'kod') $('takimDurum').textContent = e.message; }
@@ -371,6 +397,17 @@ $('seciliTakimlar').onclick = e => {
 };
 $('golAcik').onchange = golKaydet;
 $('golSes').onchange = golKaydet;
+['golLogo', 'golSesDuzey', 'golKonum', 'golBoyut', 'golSure'].forEach(i => $(i).onchange = golKaydet);
+try { $('hedefIp').value = localStorage.getItem('hedefIp') || ''; } catch (e) {}
+$('ayarGonder').onclick = async () => {
+  const ip = $('hedefIp').value.trim(), k = $('hedefKod').value.trim();
+  $('gonderDurum').textContent = 'Gönderiliyor…';
+  try {
+    await api('/api/ayar-gonder?hedef=' + encodeURIComponent(ip) + '&hedefKod=' + encodeURIComponent(k), { method: 'POST' });
+    try { localStorage.setItem('hedefIp', ip); } catch (e) {}
+    $('gonderDurum').textContent = 'Ayarlar ' + ip + ' kutusuna kopyalandı.';
+  } catch (e) { if (e.message !== 'kod') $('gonderDurum').textContent = e.message; }
+};
 $('golDene').onclick = async () => {
   try { await api('/api/gol-dene', { method: 'POST' }); $('takimDurum').textContent = "TV'de örnek gol bildirimi gösterildi."; }
   catch (e) { if (e.message !== 'kod') $('takimDurum').textContent = e.message; }

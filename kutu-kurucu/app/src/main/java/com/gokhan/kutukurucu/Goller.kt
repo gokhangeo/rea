@@ -1,6 +1,9 @@
 package com.gokhan.kutukurucu
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.view.Gravity
 import android.util.Log
 import org.json.JSONArray
 import org.json.JSONObject
@@ -74,11 +77,52 @@ object Goller {
     fun ses(c: Context) = p(c).getBoolean("ses", true)
     fun sesAyarla(c: Context, acik: Boolean) = p(c).edit().putBoolean("ses", acik).apply()
 
+    // Kart görünümü ve ses düzeyi (panelden).
+    private val KONUMLAR = mapOf(
+        "sagUst" to (Gravity.TOP or Gravity.END), "solUst" to (Gravity.TOP or Gravity.START),
+        "sagAlt" to (Gravity.BOTTOM or Gravity.END), "solAlt" to (Gravity.BOTTOM or Gravity.START),
+    )
+    private val BOYUTLAR = mapOf("kucuk" to 0.85f, "orta" to 1f, "buyuk" to 1.3f)
+    private val SES_DUZEY = mapOf("cokDusuk" to 0.12f, "dusuk" to 0.3f, "orta" to 0.55f, "yuksek" to 1f)
+    private val SURELER = setOf(6, 10, 15, 20, 30)
+
+    private fun konum(c: Context) = p(c).getString("konum", "sagUst")!!.takeIf { it in KONUMLAR } ?: "sagUst"
+    private fun boyut(c: Context) = p(c).getString("boyut", "orta")!!.takeIf { it in BOYUTLAR } ?: "orta"
+    private fun sesDuzey(c: Context) = p(c).getString("sesDuzey", "dusuk")!!.takeIf { it in SES_DUZEY } ?: "dusuk"
+    private fun sure(c: Context) = p(c).getInt("sure", 12).takeIf { it in SURELER } ?: 12
+    fun logo(c: Context) = p(c).getBoolean("logo", true)
+
+    fun kartAyari(c: Context) = Mesaj.KartAyari(KONUMLAR.getValue(konum(c)), BOYUTLAR.getValue(boyut(c)), sure(c) * 1000L)
+    fun sesCal(c: Context) { if (ses(c)) GolSesi.cal(c, SES_DUZEY.getValue(sesDuzey(c))) }
+
+    /** Panelden gelen görünüm ayarları; bilinmeyen değerler yok sayılır. */
+    fun gorunumAyarla(c: Context, al: (String) -> String?) {
+        val e = p(c).edit()
+        al("ses")?.let { e.putBoolean("ses", it != "0") }
+        al("logo")?.let { e.putBoolean("logo", it != "0") }
+        al("konum")?.takeIf { it in KONUMLAR }?.let { e.putString("konum", it) }
+        al("boyut")?.takeIf { it in BOYUTLAR }?.let { e.putString("boyut", it) }
+        al("sesDuzey")?.takeIf { it in SES_DUZEY }?.let { e.putString("sesDuzey", it) }
+        al("sure")?.toIntOrNull()?.takeIf { it in SURELER }?.let { e.putInt("sure", it) }
+        e.apply()
+    }
+
+    /** Diğer kutuya gönderilecek tüm ayarlar (/api/takimlar POST parametreleri). */
+    fun aktarimParametreleri(c: Context): Map<String, String> = mapOf(
+        "secili" to JSONArray(secili(c).map { JSONObject().put("id", it.id).put("ad", it.ad).put("lig", it.lig) }).toString(),
+        "eskiler" to eskiAdlar(c).joinToString(","),
+        "acik" to if (acik(c)) "1" else "0",
+        "ses" to if (ses(c)) "1" else "0",
+        "logo" to if (logo(c)) "1" else "0",
+        "konum" to konum(c), "boyut" to boyut(c), "sesDuzey" to sesDuzey(c), "sure" to sure(c).toString(),
+    )
+
     /** Sayfadaki "Dene" düğmesi: örnek gol bildirimi (ve açıksa sesi). */
     fun dene(c: Context): Boolean {
+        val ayar = kartAyari(c)
         val ok = Mesaj.goster(c, "⚽ GOL!  67'  ·  Deneme", "Ev Sahibi 2 - 1 Deplasman", 6_000,
-            kompakt = true, ek = "Golcü Oyuncu (P) · Ev Sahibi")
-        if (ses(c)) GolSesi.cal(c)
+            kompakt = true, ek = "Golcü Oyuncu (P) · Ev Sahibi", ayar = ayar.copy(sureMs = minOf(ayar.sureMs, 8_000)))
+        sesCal(c)
         return ok
     }
 
@@ -112,6 +156,8 @@ object Goller {
         .put("eskiler", JSONArray(eskiAdlar(c)))
         .put("acik", acik(c))
         .put("ses", ses(c))
+        .put("logo", logo(c))
+        .put("konum", konum(c)).put("boyut", boyut(c)).put("sesDuzey", sesDuzey(c)).put("sure", sure(c))
         .put("ligler", JSONArray(SECILEBILIR.map { (k, v) -> JSONObject().put("kod", k).put("ad", v) }))
 
     /** Bir ligin takımları (ESPN). 6 saat önbellekte tutulur. */
@@ -220,8 +266,10 @@ object Goller {
                 }
                 val alt = "$evAd $hs - $as_ $depAd"
                 val ek = goller.joinToString("   ") { (dk, kim) -> if (goller.size > 1 && dk.isNotBlank()) "$kim $dk" else kim }
-                Mesaj.goster(c, baslik, alt, 12_000, kompakt = true, ek = ek)
-                if (ses(c)) GolSesi.cal(c)
+                val lEv = if (logo(c)) logoAl(ev.optJSONObject("team")) else null
+                val lDep = if (logo(c)) logoAl(dep.optJSONObject("team")) else null
+                Mesaj.goster(c, baslik, alt, 12_000, kompakt = true, ek = ek, ayar = kartAyari(c), logoEv = lEv, logoDep = lDep)
+                sesCal(c)
             }
         }
         // Eski maçları biriktirmemek için son 300 kayıt tutulur.
@@ -250,6 +298,27 @@ object Goller {
             hepsi.add(dk to "$kim · $takim")
         }
         return hepsi.takeLast(adet.coerceAtLeast(1))
+    }
+
+    private val logolar = HashMap<String, Bitmap?>()
+
+    /** Takım logosu (ESPN), küçültülüp bellekte tutulur. Ağ işi; ana iş parçacığında çağrılmaz. */
+    private fun logoAl(t: JSONObject?): Bitmap? {
+        val url = t?.optString("logo").orEmpty().ifBlank {
+            t?.optJSONArray("logos")?.optJSONObject(0)?.optString("href").orEmpty()
+        }
+        if (!url.startsWith("https://")) return null
+        synchronized(logolar) { if (logolar.containsKey(url)) return logolar[url] }
+        val bmp = runCatching {
+            val b = URL(url).openConnection() as HttpURLConnection
+            b.connectTimeout = 8_000; b.readTimeout = 10_000
+            try {
+                if (b.responseCode != 200) null
+                else BitmapFactory.decodeStream(b.inputStream)?.let { Bitmap.createScaledBitmap(it, 96, 96, true) }
+            } finally { b.disconnect() }
+        }.getOrNull()
+        synchronized(logolar) { if (logolar.size > 80) logolar.clear(); logolar[url] = bmp }
+        return bmp
     }
 
     private fun golSayisi(comp: JSONObject): Int {
