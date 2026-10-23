@@ -20,6 +20,8 @@ class LocalServer(private val context: Context, private val photos: PhotoStore, 
         p.getString("code", null) ?: Random.nextInt(1000, 10000).toString().also { p.edit().putString("code", it).apply() }
     }
 
+    private val menu = Menu(context)
+
     override fun serve(session: IHTTPSession): Response = try {
         route(session)
     } catch (t: Throwable) {
@@ -59,6 +61,7 @@ class LocalServer(private val context: Context, private val photos: PhotoStore, 
                 val id = photos.add(File(tmp)) ?: return text(Response.Status.BAD_REQUEST, "fotoğraf okunamadı")
                 json(JSONObject().put("id", id))
             }
+            "/api/menu" -> json(menu.json())
             "/api/photos/delete" -> {
                 photos.delete(s.parameters["id"]?.firstOrNull().orEmpty())
                 json(JSONObject().put("ok", true))
