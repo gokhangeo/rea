@@ -43,14 +43,13 @@ jobs:
         env:
           EV_KEYSTORE_B64: ${{ secrets.EV_KEYSTORE_B64 }}
         run: |
-          if [ -n "$EV_KEYSTORE_B64" ]; then echo "$EV_KEYSTORE_B64" | base64 -d > ev-ekrani.jks; fi
+          true  # anahtar depoda: ev-ekrani/ev-ekrani.jks
       - uses: actions/cache@v4
         with:
           path: ~/.android/debug.keystore
           key: ev-ekrani-debug-keystore
       - name: APK derle
         env:
-          EV_KEYSTORE_PASS: ${{ secrets.EV_KEYSTORE_PASS }}
         run: ./gradlew --no-daemon assembleRelease
       - name: APK adını düzenle
         run: cp app/build/outputs/apk/release/app-release.apk "EvEkrani-0.2.${GITHUB_RUN_NUMBER}.apk"
