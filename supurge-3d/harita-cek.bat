@@ -9,12 +9,10 @@ set PY=py -3
   pause
   exit /b 1
 )
-if not exist harita-cek.py (
-  echo harita-cek.py indiriliyor...
-  powershell -NoProfile -Command "Invoke-WebRequest -UseBasicParsing -OutFile harita-cek.py https://raw.githubusercontent.com/gokhangeo/rea/main/supurge-3d/harita-cek.py"
-)
+echo harita-cek.py indiriliyor...
+powershell -NoProfile -Command "Invoke-WebRequest -UseBasicParsing -OutFile harita-cek.py https://raw.githubusercontent.com/gokhangeo/rea/main/supurge-3d/harita-cek.py"
 echo Gerekli paketler kuruluyor, birkac dakika surebilir...
-%PY% -m pip install --quiet --disable-pip-version-check numpy pillow pycryptodome python-miio mini-racer paho-mqtt cryptography requests
+%PY% -m pip install --quiet --disable-pip-version-check --only-binary=:all: numpy pillow pycryptodome mini-racer paho-mqtt cryptography requests
 %PY% harita-cek.py
 if exist cikti\harita.json explorer cikti
 pause
