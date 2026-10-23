@@ -26,6 +26,9 @@ Her kutuya ayrı kurulur; her kutunun kendi adresi ve kodu vardır.
 - **Kendini güncelleme:** Sayfadaki "Kutu Kurucu'yu güncelle" düğmesi GitHub'daki son sürümü kurar.
 - **Kutu Kurucu'yu kaldır:** Sayfadaki bu düğme TV'de Android'in kaldırma penceresini açar. Yeni sürüm "başka anahtarla
   imzalı" diye kurulmuyorsa eski sürüm böyle kaldırılır; onaydan sonra panel kapanır, APK yeniden kurulur.
+- **Eskisini kaldır:** Bir APK "başka anahtarla imzalı ya da daha yeni" diye kurulamazsa, iş listesinde hatanın hemen altında
+  bu düğme çıkar. Kutudaki eski sürümün kaldırma penceresini TV'de açar; onaydan sonra APK yeniden gönderilir.
+  Kutu Kurucu'nun kendisiyse kendi kaldırma yolu kullanılır, sonra 8091'deki Kurulum'dan yeni sürüm kurulur.
 - Sürümler depodaki `kutu-kurucu/kutu-kurucu.jks` anahtarıyla imzalanır; anahtar değişmedikçe yeni sürüm eskisinin üstüne kurulur.
 
 ## Kutu Kurucu Kurulum (ayrı küçük uygulama, port 8091)
@@ -71,4 +74,4 @@ Ev Ekranı seçilirse tuşu Ev Ekranı'nın kendi servisi yönetir; başka bir e
 
 - Kod `app/src/main/java/com/gokhan/kutukurucu/`, telefon/PC sayfası `app/src/main/assets/sayfa.html`.
 - APK GitHub Actions'ta derlenir (`.github/workflows/kutu-kurucu.yml`); main'e her birleştirmede `kutu-kurucu-v1.N`
-  sürümü yayınlanır. İmza Actions önbelleğindeki hata ayıklama anahtarıdır, her sürüm eskisinin üstüne kurulur.
+  sürümü yayınlanır. İmza depodaki `kutu-kurucu.jks` anahtarıdır; 1.5 ve sonrası birbirinin üstüne kurulur. 1.4 ve öncesi farklı anahtarla imzalıdır, bir kez kaldırılması gerekir.

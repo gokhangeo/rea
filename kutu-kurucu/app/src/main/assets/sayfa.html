@@ -177,12 +177,28 @@ async function durum() {
     $('izinler').innerHTML = s.map(x => '<div>' + x + '</div>').join('');
     $('isler').innerHTML = d.isler.map(j =>
       '<div class="is"><b>' + esc(j.ad) + '</b> <span class="durum-' + j.durum + '">' + (DURUM[j.durum] || j.durum) + '</span>' +
-      (j.mesaj ? '<div class="alt">' + esc(j.mesaj) + '</div>' : '') + '</div>').join('');
+      (j.mesaj ? '<div class="alt">' + esc(j.mesaj) + '</div>' : '') +
+      (j.durum === 'hata' && j.cakisma && j.paket ? '<button class="tehlike" data-eskikaldir="' + esc(j.paket) + '">Eskisini kaldır</button>' : '') +
+      '</div>').join('');
     const bitti = d.isler.some(j => j.durum === 'kuruldu' && !gorulen.has(j.id));
     d.isler.forEach(j => { if (j.durum === 'kuruldu') gorulen.add(j.id); });
     if (bitti) uygulamaListesi();
   } catch (e) {}
 }
+// Kurulum "başka anahtarla imzalı" diye düşerse eski sürümü buradan kaldır (TV'de kumandayla onaylanır).
+$('isler').addEventListener('click', async e => {
+  const b = e.target.closest('[data-eskikaldir]'); if (!b) return;
+  const paket = b.dataset.eskikaldir, kendisi = paket === 'com.gokhan.kutukurucu';
+  const soru = kendisi
+    ? "Kutudaki eski Kutu Kurucu kaldırılacak.\n\nTV'de kumandayla onaylayın. Onaydan sonra bu panel kapanır; yeni sürümü 8091'deki Kutu Kurucu Kurulum'dan ya da Kutuya-Gonder.bat ile kurun.\n\nDevam edilsin mi?"
+    : paket + " kaldırılacak. TV'de kumandayla onaylayın, sonra APK'yı yeniden gönderin.\n\nDevam edilsin mi?";
+  if (!confirm(soru)) return;
+  b.disabled = true; b.textContent = "TV'de onaylayın…";
+  try {
+    await api(kendisi ? '/api/kendini-kaldir' : '/api/kaldir?paket=' + encodeURIComponent(paket), { method: 'POST' });
+    if (!kendisi) setTimeout(uygulamaListesi, 4000);
+  } catch (err) { b.disabled = false; b.textContent = 'Eskisini kaldır'; if (err.message !== 'kod') alert(err.message); }
+});
 const gorulen = new Set();
 setInterval(() => { if (!$('panel').classList.contains('gizli')) durum(); }, 2000);
 

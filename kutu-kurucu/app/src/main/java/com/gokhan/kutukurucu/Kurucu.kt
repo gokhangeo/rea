@@ -27,8 +27,10 @@ object Kurucu {
         @Volatile var durum = "hazirlaniyor"   // hazirlaniyor, indiriliyor, onay, kuruldu, iptal, hata
         @Volatile var mesaj = ""
         @Volatile var paket = ""
+        /** Kutudaki sürüm başka anahtarla imzalı / daha yeni: sayfada "Eskisini kaldır" düğmesi çıkar. */
+        @Volatile var cakisma = false
         val zaman = System.currentTimeMillis()
-        fun json(): JSONObject = JSONObject().put("id", id).put("ad", ad).put("durum", durum).put("mesaj", mesaj).put("paket", paket)
+        fun json(): JSONObject = JSONObject().put("id", id).put("ad", ad).put("durum", durum).put("mesaj", mesaj).put("paket", paket).put("cakisma", cakisma)
     }
 
     private val isler = LinkedHashMap<Int, Is>()
@@ -238,7 +240,8 @@ class KurulumSonucu : BroadcastReceiver() {
             }
             PackageInstaller.STATUS_FAILURE_CONFLICT -> {
                 i?.durum = "hata"
-                i?.mesaj = "Kutudaki sürüm başka anahtarla imzalı ya da daha yeni. Önce eskisini kaldırın."
+                i?.cakisma = true
+                i?.mesaj = "Kutudaki sürüm başka anahtarla imzalı ya da daha yeni. Aşağıdaki düğmeyle eskisini kaldırıp yeniden kurun."
             }
             PackageInstaller.STATUS_FAILURE_INCOMPATIBLE -> {
                 i?.durum = "hata"
