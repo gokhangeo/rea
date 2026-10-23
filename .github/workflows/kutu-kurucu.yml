@@ -56,4 +56,5 @@ jobs:
             kutu-kurucu/pc/Kutuya-Gonder.bat
             kutu-kurucu/pc/kutuya-gonder.ps1
             kutu-kurucu/pc/ilk-kurulum.bat
+            kutu-kurucu/pc/kutu-kur-adbli.bat
           body_path: kutu-kurucu/notlar.txt
