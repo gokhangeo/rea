@@ -81,3 +81,9 @@ Ev Ekranı seçilirse tuşu Ev Ekranı'nın kendi servisi yönetir; başka bir e
 - Kod `app/src/main/java/com/gokhan/kutukurucu/`, telefon/PC sayfası `app/src/main/assets/sayfa.html`.
 - APK GitHub Actions'ta derlenir (`.github/workflows/kutu-kurucu.yml`); main'e her birleştirmede `kutu-kurucu-v1.N`
   sürümü yayınlanır. İmza depodaki `kutu-kurucu.jks` anahtarıdır; 1.5 ve sonrası birbirinin üstüne kurulur. 1.4 ve öncesi farklı anahtarla imzalıdır, bir kez kaldırılması gerekir.
+
+## Birden çok kutu, kodsuz giriş (1.16+)
+
+- Panelin üstündeki listeden evdeki diğer Kutu Kurucu'lar seçilir; her şey (APK kurma, uygulamalar, gol ayarları, mesaj) seçilen kutuda yapılır.
+  İstek panelin açık olduğu kutu üzerinden diğerine aktarılır. Kutular ağda kendiliğinden bulunur ("Ara" yeniden tarar).
+- Evdeki ağdan (192.168.x.x, 10.x, 172.16-31.x) gelen isteklerde kod sorulmaz. "Evdeki ağda kod sorma" kapatılırsa kod yeniden istenir.

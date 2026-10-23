@@ -47,6 +47,10 @@
 <main>
   <h1>Kutu Kurucu</h1>
   <div class="alt" id="cihaz">TV kutusu</div>
+  <div class="satir gizli" id="kutuSatir" style="margin-top:10px">
+    <select id="kutuSec" style="flex:1"></select>
+    <button class="ikinci" id="kutuAra" title="Ağdaki kutuları yeniden ara">Ara</button>
+  </div>
 
   <section class="kart" id="giris">
     <h2>TV ekranındaki 4 haneli kodu yazın</h2>
@@ -120,10 +124,10 @@
       <div class="satir"><button class="ikinci" id="golDene">Dene</button></div>
       <p class="alt" id="takimDurum"></p>
       <h2 style="margin-top:16px;font-size:16px">Ayarları diğer kutuya kopyala</h2>
-      <div class="alt">Takımlar ve kart ayarları diğer kutuya aynen gönderilir. Kod, o kutunun TV ekranında yazar.</div>
+      <div class="alt">Takımlar ve kart ayarları diğer kutuya aynen gönderilir. O kutuda kod sorma kapalıysa TV ekranındaki kodu da yazın.</div>
       <div class="satir" style="margin-top:8px">
         <input type="text" id="hedefIp" placeholder="IP (ör. 192.168.1.106)" inputmode="decimal" style="flex:2;min-width:150px">
-        <input type="tel" id="hedefKod" placeholder="Kod" maxlength="4" style="flex:1;min-width:80px">
+        <input type="tel" id="hedefKod" placeholder="Kod (gerekirse)" maxlength="4" style="flex:1;min-width:80px">
         <button id="ayarGonder">Gönder</button>
       </div>
       <p class="alt" id="gonderDurum"></p>
@@ -160,21 +164,23 @@
       <div class="satir" style="margin-top:12px">
         <button class="ikinci" id="kaldirBtn" style="border-color:var(--kirmizi);color:var(--kirmizi)">Kutu Kurucu'yu kaldır</button>
       </div>
+      <label class="secim" style="margin-top:12px"><input type="checkbox" id="kodsuz"><span><b>Evdeki ağda kod sorma</b> (aynı Wi-Fi'deki telefon ve kutular kodsuz girer)</span></label>
       <p class="uyari" id="kaldirUyari">Yeni sürüm "başka anahtarla imzalı" diye kurulmuyorsa önce eski sürüm kaldırılır. Kaldırma TV'de onay ister; onaydan sonra bu panel kapanır ve yeni APK'yı yeniden kurmanız gerekir.</p>
     </section>
   </div>
 </main>
 <script>
 const $ = id => document.getElementById(id);
-let kod = '';
-try { kod = localStorage.getItem('kod') || ''; } catch (e) {}
+let kod = '', kutu = '';
+try { kod = localStorage.getItem('kod') || ''; kutu = localStorage.getItem('kutu') || ''; } catch (e) {}
+const kutuQ = () => kutu ? '&kutu=' + encodeURIComponent(kutu) : '';
 let uygulamalar = [];
 const DURUM = { hazirlaniyor:'hazırlanıyor…', indiriliyor:'kutuya iniyor…', onay:"TV'de \"Yükle\"ye basın", kuruldu:'kuruldu ✔', iptal:'iptal edildi', hata:'kurulamadı' };
 
 async function api(yol, secenek = {}) {
-  secenek.headers = Object.assign({ 'x-kod': kod }, secenek.headers || {});
+  secenek.headers = Object.assign({ 'x-kod': kod }, kutu ? { 'x-kutu': kutu } : {}, secenek.headers || {});
   const r = await fetch(yol, secenek);
-  if (r.status === 401) { cikis('Kod yanlış ya da değişmiş.'); throw new Error('kod'); }
+  if (r.status === 401) { cikis(kod ? 'Kod yanlış ya da değişmiş.' : ''); throw new Error('kod'); }
   if (!r.ok) throw new Error(await r.text() || ('HTTP ' + r.status));
   return r.json();
 }
@@ -184,22 +190,53 @@ function cikis(mesaj) {
   $('girisMesaj').textContent = mesaj || '';
 }
 
-async function gir() {
-  kod = $('kod').value.trim();
+async function gir(sessiz) {
+  if (!sessiz) kod = $('kod').value.trim();
+  const k = kutu; kutu = '';
   try {
     await api('/api/kontrol');
-    try { localStorage.setItem('kod', kod); } catch (e) {}
+    if (kod) try { localStorage.setItem('kod', kod); } catch (e) {}
     $('giris').classList.add('gizli'); $('panel').classList.remove('gizli');
-    durum(); anaEkran(); uygulamaListesi(); takimYukle();
-  } catch (e) { if (e.message !== 'kod') $('girisMesaj').textContent = e.message; }
+    kutu = k;
+    kutulariYukle(false);
+    hepsiniYukle();
+  } catch (e) { kutu = k; if (e.message !== 'kod') $('girisMesaj').textContent = e.message; }
 }
-$('girBtn').onclick = gir;
-$('kod').addEventListener('keydown', e => { if (e.key === 'Enter') gir(); });
+function hepsiniYukle() { durum(); anaEkran(); uygulamaListesi(); takimYukle(); }
+
+// Ağdaki kutular: hepsi bu panelden yönetilir (istek bu kutu üzerinden seçilen kutuya gider).
+async function kutulariYukle(yenile) {
+  const k = kutu; kutu = '';
+  try {
+    if (yenile) $('kutuAra').textContent = 'Aranıyor…';
+    const d = await api('/api/kutular' + (yenile ? '?yenile=1' : ''));
+    const sec = $('kutuSec'); sec.innerHTML = '';
+    (d.kutular || []).forEach(x => sec.add(new Option((x.bu ? 'Bu kutu · ' : '') + x.cihaz + ' (' + x.ip + ') · ' + x.surum, x.bu ? '' : x.ip)));
+    kutu = k;
+    if (kutu && ![...sec.options].some(o => o.value === kutu)) { kutu = ''; try { localStorage.removeItem('kutu'); } catch (e) {} hepsiniYukle(); }
+    sec.value = kutu;
+    $('kutuSatir').classList.toggle('gizli', sec.options.length < 2 && !yenile);
+  } catch (e) { kutu = k; }
+  $('kutuAra').textContent = 'Ara';
+}
+$('kutuSec').onchange = () => {
+  kutu = $('kutuSec').value;
+  try { kutu ? localStorage.setItem('kutu', kutu) : localStorage.removeItem('kutu'); } catch (e) {}
+  hepsiniYukle();
+};
+$('kutuAra').onclick = () => kutulariYukle(true);
+$('kodsuz').onchange = async () => {
+  try { await api('/api/kodsuz?ac=' + ($('kodsuz').checked ? '1' : '0'), { method: 'POST' }); }
+  catch (e) { if (e.message !== 'kod') alert(e.message); }
+};
+$('girBtn').onclick = () => gir(false);
+$('kod').addEventListener('keydown', e => { if (e.key === 'Enter') gir(false); });
 
 async function durum() {
   try {
     const d = await api('/api/durum');
     $('cihaz').textContent = d.cihaz + ' · Android ' + d.android + (d.adres ? ' · ' + d.adres : '');
+    $('kodsuz').checked = d.kodsuz !== false;
     $('surum').innerHTML = 'Sürüm ' + esc(d.surum) + (d.yeniSurum ? ' <span class="yeni">1.' + d.yeniSurum + ' hazır</span>' : '');
     const i = d.izinler, s = [];
     s.push((i.yukleme ? '✔' : '✘') + ' Uygulama yükleme izni');
@@ -248,6 +285,7 @@ async function gonder(dosyalar) {
       const x = new XMLHttpRequest();
       x.open('POST', '/api/kur?ad=' + encodeURIComponent(f.name));
       x.setRequestHeader('x-kod', kod);
+      if (kutu) x.setRequestHeader('x-kutu', kutu);
       x.setRequestHeader('Content-Type', 'application/vnd.android.package-archive');
       const p = $('ilerleme'); p.classList.remove('gizli'); p.value = 0;
       x.upload.onprogress = e => { if (e.lengthComputable) p.value = e.loaded * 100 / e.total; };
@@ -301,10 +339,10 @@ function ciz() {
   const ara = $('ara').value.toLowerCase(), sistem = $('sistemGoster').checked;
   $('uygulamalar').innerHTML = uygulamalar
     .filter(u => (sistem || !u.sistem) && (!ara || u.ad.toLowerCase().includes(ara) || u.paket.includes(ara)))
-    .map(u => '<div class="uyg"><img loading="lazy" src="/api/simge?paket=' + encodeURIComponent(u.paket) + '&kod=' + kod + '" alt="">' +
+    .map(u => '<div class="uyg"><img loading="lazy" src="/api/simge?paket=' + encodeURIComponent(u.paket) + '&kod=' + kod + kutuQ() + '" alt="">' +
       '<div class="ad"><b>' + esc(u.ad) + '</b><span class="alt">' + esc(u.surum) + ' · ' + mb(u.boyut) + '</span></div>' +
       (u.acilabilir ? '<button class="ikinci" data-ac="' + esc(u.paket) + '">Aç</button>' : '') +
-      '<a class="dugme ikinci" title="' + (u.parcali ? 'Parçalı uygulama: tek APK eksik olabilir' : 'APK dosyasını indir') + '" href="/api/apk?paket=' + encodeURIComponent(u.paket) + '&kod=' + kod + '">APK</a>' +
+      '<a class="dugme ikinci" title="' + (u.parcali ? 'Parçalı uygulama: tek APK eksik olabilir' : 'APK dosyasını indir') + '" href="/api/apk?paket=' + encodeURIComponent(u.paket) + '&kod=' + kod + kutuQ() + '">APK</a>' +
       (u.korumali ? '' : '<button class="tehlike" data-kaldir="' + esc(u.paket) + '">Kaldır</button>') + '</div>').join('');
 }
 $('ara').oninput = ciz; $('sistemGoster').onchange = ciz;
@@ -426,6 +464,7 @@ function medyaGonder(f) {
     const x = new XMLHttpRequest();
     x.open('POST', '/api/medya?ad=' + encodeURIComponent(f.name));
     x.setRequestHeader('x-kod', kod);
+    if (kutu) x.setRequestHeader('x-kutu', kutu);
     x.setRequestHeader('Content-Type', f.type || 'application/octet-stream');
     const p = $('medyaIlerleme'); p.classList.remove('gizli'); p.value = 0;
     x.upload.onprogress = e => { if (e.lengthComputable) p.value = e.loaded * 100 / e.total; };
@@ -442,7 +481,8 @@ function medyaGonder(f) {
 function mb(b) { return (b / 1048576).toFixed(1) + ' MB'; }
 function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' })[c]); }
 
-if (kod) { $('kod').value = kod; gir(); }
+$('kod').value = kod;
+gir(true);
 </script>
 </body>
 </html>

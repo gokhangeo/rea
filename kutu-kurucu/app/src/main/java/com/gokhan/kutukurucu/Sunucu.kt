@@ -28,12 +28,25 @@ class Sunucu(private val c: Context) : NanoHTTPD(PORT) {
         val uri = s.uri
         if (uri == "/" || uri == "/index.html") return sayfa()
         if (!uri.startsWith("/api/")) return metin(Response.Status.NOT_FOUND, "bulunamadı")
+        if (uri == "/api/kim") return json(Kutular.kim(c))
         if (!kodDogru(s)) return metin(Response.Status.UNAUTHORIZED, "kod yanlış")
+        // Panel başka bir kutuyu yönetiyorsa istek oraya aktarılır.
+        val kutu = (s.headers["x-kutu"] ?: s.parameters["kutu"]?.firstOrNull())?.trim().orEmpty()
+        if (kutu.isNotEmpty() && kutu != adres()) {
+            if (!Kutular.yerel(kutu) || !kutu.matches(Regex("^\\d{1,3}(\\.\\d{1,3}){3}$"))) return metin(Response.Status.BAD_REQUEST, "kutu adresi geçersiz")
+            return Kutular.vekil(s, kutu)
+        }
         val paket = s.parameters["paket"]?.firstOrNull().orEmpty()
         val post = s.method == Method.POST
 
         return when (uri) {
             "/api/kontrol" -> json(JSONObject().put("ok", true))
+            "/api/kutular" -> json(JSONObject().put("kutular", Kutular.liste(c, s.parameters["yenile"]?.firstOrNull() == "1")))
+            "/api/kodsuz" -> {
+                if (!post) return metin(Response.Status.METHOD_NOT_ALLOWED, "")
+                kodsuzAyarla(c, s.parameters["ac"]?.firstOrNull() != "0")
+                json(JSONObject().put("kodsuz", kodsuz(c)))
+            }
             "/api/durum" -> json(
                 JSONObject()
                     .put("cihaz", "${Build.MANUFACTURER} ${Build.MODEL}".trim())
@@ -42,7 +55,8 @@ class Sunucu(private val c: Context) : NanoHTTPD(PORT) {
                     .put("adres", adres()?.let { "$it:$PORT" } ?: JSONObject.NULL)
                     .put("izinler", Izinler.json(c))
                     .put("isler", Kurucu.liste())
-                    .put("yeniSurum", Kurucu.bilinenYeni),
+                    .put("yeniSurum", Kurucu.bilinenYeni)
+                    .put("kodsuz", kodsuz(c)),
             )
             "/api/kur" -> {
                 if (!post) return metin(Response.Status.METHOD_NOT_ALLOWED, "")
@@ -133,8 +147,8 @@ class Sunucu(private val c: Context) : NanoHTTPD(PORT) {
         val yerel = o[0] == 192 && o[1] == 168 || o[0] == 10 || o[0] == 172 && o[1] in 16..31
         if (!yerel) return "Yalnızca evdeki ağ adresleri (192.168.x.x gibi)."
         if (hedef == adres()) return "Bu zaten bu kutu."
-        if (!hedefKod.matches(Regex("\\d{4}"))) return "Diğer kutunun TV ekranındaki 4 haneli kodu yazın."
-        val sorgu = (Goller.aktarimParametreleri(c) + ("kod" to hedefKod)).entries
+        if (hedefKod.isNotEmpty() && !hedefKod.matches(Regex("\\d{4}"))) return "Kod 4 haneli olmalı."
+        val sorgu = (Goller.aktarimParametreleri(c) + (if (hedefKod.isNotEmpty()) mapOf("kod" to hedefKod) else emptyMap())).entries
             .joinToString("&") { (k, v) -> k + "=" + URLEncoder.encode(v, "UTF-8") }
         val b = java.net.URL("http://$hedef:$PORT/api/takimlar?$sorgu").openConnection() as java.net.HttpURLConnection
         b.connectTimeout = 5_000; b.readTimeout = 10_000
@@ -143,7 +157,7 @@ class Sunucu(private val c: Context) : NanoHTTPD(PORT) {
             b.outputStream.use { }
             when (b.responseCode) {
                 200 -> null
-                401 -> "Diğer kutunun kodu yanlış."
+                401 -> "Diğer kutu kod istiyor; TV ekranındaki kodu yazın."
                 else -> "Diğer kutu kabul etmedi (HTTP ${b.responseCode}). Orada Kutu Kurucu güncel mi?"
             }
         } catch (e: Exception) {
@@ -159,6 +173,7 @@ class Sunucu(private val c: Context) : NanoHTTPD(PORT) {
             yanlis = 0
             yanlisBaslangic = simdi
         }
+        if (kodsuz(c) && Kutular.yerel(s.remoteIpAddress)) return true
         if (yanlis >= 30) return false
         val kod = kod(c)
         val ok = s.headers["x-kod"] == kod || s.parameters["kod"]?.firstOrNull() == kod
@@ -182,6 +197,11 @@ class Sunucu(private val c: Context) : NanoHTTPD(PORT) {
         fun kod(c: Context): String = c.getSharedPreferences("sunucu", Context.MODE_PRIVATE).let { p ->
             p.getString("kod", null) ?: yeniKod(c)
         }
+
+        /** Evdeki ağdan (192.168.x.x vb.) gelen isteklerde kod sorulmaz (varsayılan açık, panelden kapatılır). */
+        fun kodsuz(c: Context) = c.getSharedPreferences("sunucu", Context.MODE_PRIVATE).getBoolean("kodsuz", true)
+        fun kodsuzAyarla(c: Context, ac: Boolean) =
+            c.getSharedPreferences("sunucu", Context.MODE_PRIVATE).edit().putBoolean("kodsuz", ac).apply()
 
         fun yeniKod(c: Context): String = Random.nextInt(1000, 10000).toString().also {
             c.getSharedPreferences("sunucu", Context.MODE_PRIVATE).edit().putString("kod", it).apply()
