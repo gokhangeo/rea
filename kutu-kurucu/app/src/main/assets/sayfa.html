@@ -76,7 +76,8 @@
         <button id="bagBtn">Kutuya indir ve kur</button>
       </div>
       <div class="satir" style="margin-top:8px">
-        <button class="hazir" data-url="https://github.com/recloudstream/cloudstream/releases/latest">CloudStream (son sürüm)</button>
+        <button class="hazir" data-url="https://github.com/recloudstream/cloudstream/releases/latest" data-depo="recloudstream/cloudstream" data-paket="com.lagradost.cloudstream3">CloudStream</button>
+        <span class="hazir-durum alt" style="align-self:center"></span>
       </div>
       <div id="isler" style="margin-top:12px"></div>
     </section>
@@ -306,9 +307,41 @@ $('bagBtn').onclick = async () => {
   catch (e) { if (e.message !== 'kod') alert(e.message); }
 };
 
+/* Hazır uygulamalar: kutudaki sürüm GitHub'daki son sürümle karşılaştırılır; güncelse düğme kapanır. */
+const sonSurumler = {};
+async function sonSurum(depo) {
+  if (!(depo in sonSurumler)) sonSurumler[depo] = fetch('https://api.github.com/repos/' + depo + '/releases/latest')
+    .then(r => r.ok ? r.json() : null).then(j => j ? String(j.tag_name || '').replace(/^v/i, '') : '').catch(() => '');
+  return sonSurumler[depo];
+}
+function surumKarsilastir(a, b) {
+  const x = a.split(/[.-]/).map(n => parseInt(n) || 0), y = b.split(/[.-]/).map(n => parseInt(n) || 0);
+  for (let i = 0; i < Math.max(x.length, y.length); i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) - (y[i] || 0);
+  return 0;
+}
+async function hazirDurum() {
+  for (const b of document.querySelectorAll('.hazir')) {
+    const yazi = b.nextElementSibling, ad = b.textContent;
+    const kurulu = (uygulamalar || []).find(u => u.paket === b.dataset.paket);
+    const son = await sonSurum(b.dataset.depo);
+    const kSurum = kurulu ? String(kurulu.surum).replace(/^v/i, '') : '';
+    if (kurulu && son && surumKarsilastir(kSurum, son) >= 0) {
+      b.disabled = true; b.title = 'Kutudaki sürüm güncel';
+      yazi.textContent = ad + ' ' + kSurum + ' kurulu, güncel ✔';
+    } else if (kurulu) {
+      b.disabled = false; b.title = '';
+      yazi.textContent = son ? 'Güncelleme var: ' + kSurum + ' → ' + son : ad + ' ' + kSurum + ' kurulu';
+    } else {
+      b.disabled = false; b.title = '';
+      yazi.textContent = son ? 'Kurulu değil · son sürüm ' + son : 'Kurulu değil';
+    }
+  }
+}
+
 document.querySelectorAll('.hazir').forEach(b => b.onclick = async () => {
+  b.disabled = true;
   try { await api('/api/bag?url=' + encodeURIComponent(b.dataset.url), { method: 'POST' }); durum(); }
-  catch (e) { if (e.message !== 'kod') alert(e.message); }
+  catch (e) { b.disabled = false; if (e.message !== 'kod') alert(e.message); }
 });
 
 $('guncelleBtn').onclick = async () => {
@@ -341,7 +374,7 @@ async function anaEkran(secim) {
 
 // Uygulamalar
 async function uygulamaListesi() {
-  try { uygulamalar = (await api('/api/uygulamalar')).uygulamalar; ciz(); } catch (e) {}
+  try { uygulamalar = (await api('/api/uygulamalar')).uygulamalar; ciz(); hazirDurum(); } catch (e) {}
 }
 function ciz() {
   const ara = $('ara').value.toLowerCase(), sistem = $('sistemGoster').checked;
