@@ -57,6 +57,7 @@
       bir dikdörtgen çizerek yalnızca haritayı seçin; duvarlar otomatik yükselir.</p>
     <div class="row">
       <label class="file">Harita dosyası seç<input id="dosya" type="file" accept="image/*,.json,application/json"></label>
+      <button id="evimizBtn">Evimiz</button>
       <button id="ornek">Örnek ev</button>
     </div>
     <canvas id="onizleme" width="300" height="300"></canvas>
@@ -252,18 +253,19 @@ function geometri(g) {
 const yeniG = () => ({ pos: [], nor: [], col: [], idx: [] });
 const srgb = c => new THREE.Color().setRGB(c[0] / 255, c[1] / 255, c[2] / 255, THREE.SRGBColorSpace);
 
-// harita.json: 0 dış, 255/251 duvar, 1-63 oda, 100+/200+ oda kenarı, 249-254 genel zemin
+// harita.json: 0 dış, 255/251 duvar, 252 mobilya, 1-63 oda, 100+/200+ oda kenarı, 249-254 genel zemin
 const ODA_RENK = [[156, 199, 240], [246, 196, 143], [181, 227, 168], [233, 179, 214], [242, 227, 138], [180, 170, 240]];
 function jsonIzgara() {
   const j = jsonHarita, W = j.genislik, H = j.yukseklik;
   const ham = Uint8Array.from(atob(j.pikseller), ch => ch.charCodeAt(0));
-  const tip = new Uint8Array(W * H), renk = new Array(W * H);
+  const tip = new Uint8Array(W * H), renk = new Array(W * H), odaNo = new Uint8Array(W * H);
   for (let i = 0; i < W * H; i++) {
     const v = ham[i];
     if (v === 0) continue;
     if (v === 255 || v === 251) { tip[i] = 2; continue; }
+    if (v === 252) { tip[i] = 4; renk[i] = [150, 112, 82]; continue; }
     const oda = v < 100 ? v : v < 200 ? v - 100 : v < 249 ? v - 200 : 0;
-    tip[i] = 1;
+    tip[i] = 1; odaNo[i] = oda;
     renk[i] = oda ? ODA_RENK[oda % ODA_RENK.length] : [215, 215, 210];
   }
   // Haritada duvar pikseli yoksa zeminin dışa komşu kenarı duvar sayılır
@@ -275,12 +277,28 @@ function jsonIzgara() {
     }
     for (let i = 0; i < W * H; i++) if (tip[i] === 3) tip[i] = 2;
   }
-  return { W, H, tip, renk };
+  return { W, H, tip, renk, odaNo };
 }
+
+function etiket(yazi) {
+  const c = document.createElement('canvas'), x = c.getContext('2d');
+  x.font = '600 44px system-ui, sans-serif';
+  c.width = Math.ceil(x.measureText(yazi).width) + 32; c.height = 64;
+  x.font = '600 44px system-ui, sans-serif';
+  x.fillStyle = 'rgba(255,255,255,.88)';
+  x.beginPath(); x.roundRect(0, 0, c.width, c.height, 18); x.fill();
+  x.fillStyle = '#1d2330'; x.textBaseline = 'middle'; x.fillText(yazi, 16, 34);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, depthTest: false }));
+  sp.scale.set(c.width / c.height * 0.45, 0.45, 1);
+  sp.renderOrder = 10;
+  return sp;
+}
+let etiketler = null;
 
 function modelKur() {
   if (!kaynak && !jsonHarita) return;
-  const { W, H, tip, renk } = jsonHarita ? jsonIzgara() : izgaraCikar();
+  const { W, H, tip, renk, odaNo } = jsonHarita ? jsonIzgara() : izgaraCikar();
   const m = jsonHarita ? jsonHarita.hucre_mm / 1000 : ayar.gen / W;   // hücre başına metre
   const ox = -W * m / 2, oz = -H * m / 2;
 
@@ -300,6 +318,31 @@ function modelKur() {
       [dr.r, dr.g, dr.b]);
   }
 
+  // Mobilya (haritada süpürgenin giremediği iç alanlar)
+  const mob = yeniG();
+  for (const r of dikdortgenler(W, H, (x, y) => tip[y * W + x] === 4 ? 1 : null)) {
+    kutuEkle(mob, ox + r.x * m, 0, oz + r.y * m, ox + (r.x + r.w) * m, 0.45, oz + (r.y + r.h) * m,
+      (c => [c.r, c.g, c.b])(srgb([150, 112, 82])));
+  }
+
+  if (etiketler) { scene.remove(etiketler); etiketler.traverse(o => o.material && (o.material.map.dispose(), o.material.dispose())); etiketler = null; }
+  if (odaNo && jsonHarita.odalar) {
+    etiketler = new THREE.Group();
+    const top = {};
+    for (let i = 0; i < W * H; i++) if (odaNo[i]) {
+      const t = top[odaNo[i]] ||= { x: 0, y: 0, n: 0 };
+      t.x += i % W; t.y += Math.floor(i / W); t.n++;
+    }
+    for (const [id, t] of Object.entries(top)) {
+      const ad = jsonHarita.odalar[id]?.ad;
+      if (!ad || t.n < 400) continue;
+      const sp = etiket(ad);
+      sp.position.set(ox + (t.x / t.n) * m, ayar.yuk + 0.4, oz + (t.y / t.n) * m);
+      etiketler.add(sp);
+    }
+    scene.add(etiketler);
+  }
+
   if (ev) { scene.remove(ev); ev.traverse(o => o.geometry && o.geometry.dispose()); }
   ev = new THREE.Group();
   ev.name = 'Ev';
@@ -308,8 +351,14 @@ function modelKur() {
   const dm = new THREE.Mesh(geometri(duvar), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.7 }));
   dm.name = 'Duvarlar'; dm.castShadow = true; dm.receiveShadow = true;
   ev.add(zm, dm);
+  if (mob.pos.length) {
+    const mm = new THREE.Mesh(geometri(mob), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.8 }));
+    mm.name = 'Mobilya'; mm.castShadow = true; ev.add(mm);
+  }
   scene.add(ev);
-  $('durum').textContent = `${W}×${H} hücre · hücre ≈ ${(m * 100).toFixed(1)} cm`;
+  $('durum').textContent = jsonHarita
+    ? `${(W * m).toFixed(1)} × ${(H * m).toFixed(1)} m · ${Object.keys(jsonHarita.odalar || {}).length} oda`
+    : `${W}×${H} hücre · hücre ≈ ${(m * 100).toFixed(1)} cm`;
 }
 
 // ---------- 2D önizleme ve kırpma ----------
@@ -373,14 +422,7 @@ $('dosya').addEventListener('change', e => {
   const f = e.target.files[0];
   if (!f) return;
   if (/\.json$/i.test(f.name) || f.type === 'application/json') {
-    f.text().then(t => {
-      jsonHarita = JSON.parse(t);
-      kaynak = null;
-      oc.clearRect(0, 0, on.width, on.height);
-      modelKur();
-      ayar.gen = jsonHarita.genislik * jsonHarita.hucre_mm / 1000;
-      ustten(false);
-    }).catch(err => { $('durum').textContent = 'harita.json okunamadı: ' + err.message; });
+    f.text().then(t => jsonYukle(JSON.parse(t))).catch(err => { $('durum').textContent = 'harita.json okunamadı: ' + err.message; });
     return;
   }
   jsonHarita = null;
@@ -410,6 +452,30 @@ function ornekEv() {
   return c;
 }
 
+function jsonYukle(j) {
+  jsonHarita = j; kaynak = null;
+  // Önizlemede planı küçük resim olarak göster
+  const W = j.genislik, H = j.yukseklik, ham = Uint8Array.from(atob(j.pikseller), ch => ch.charCodeAt(0));
+  on.height = Math.round(on.width * H / W);
+  const im = oc.createImageData(W, H);
+  for (let i = 0; i < W * H; i++) {
+    const v = ham[i], c = v === 0 ? [0, 0, 0, 0] : v >= 251 ? (v === 252 ? [150, 112, 82, 255] : [60, 64, 72, 255])
+      : [...ODA_RENK[(v % 100) % ODA_RENK.length], 255];
+    im.data.set(c, i * 4);
+  }
+  const tmp = document.createElement('canvas'); tmp.width = W; tmp.height = H;
+  tmp.getContext('2d').putImageData(im, 0, 0);
+  oc.clearRect(0, 0, on.width, on.height);
+  oc.imageSmoothingEnabled = false;
+  oc.drawImage(tmp, 0, 0, on.width, on.height);
+  ayar.gen = W * j.hucre_mm / 1000;
+  modelKur();
+  ustten(false);
+}
+// Sayfaya gömülü ev planı varsa (id="evimiz") açılışta o gösterilir
+const evimiz = $('evimiz') ? JSON.parse($('evimiz').textContent) : null;
+$('evimizBtn').hidden = !evimiz;
+$('evimizBtn').onclick = () => jsonYukle(evimiz);
 $('ornek').onclick = () => { jsonHarita = null; kaynakAyarla(ornekEv()); };
 $('kirpSifirla').onclick = () => { if (!kaynak) return; kirp = { x: 0, y: 0, w: kaynak.width, h: kaynak.height }; onizlemeCiz(); modelKur(); };
 $('duvarSec').onclick = () => { duvarSecMod = !duvarSecMod; $('duvarSec').setAttribute('aria-pressed', String(duvarSecMod)); };
@@ -448,5 +514,5 @@ for (const k of Object.keys(ayar)) {
   el.addEventListener('change', modelKur);
 }
 
-kaynakAyarla(ornekEv());
+if (evimiz) jsonYukle(evimiz); else kaynakAyarla(ornekEv());
 </script>
