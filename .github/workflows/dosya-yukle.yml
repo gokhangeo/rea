@@ -1,0 +1,49 @@
+# Önceden hazırlanmış bir dosyayı (ör. elde derlenmiş, antivirüs tarafından
+# temize çıkarılmış bir exe) belirtilen Release'e yükler/üzerine yazar.
+# Dosya, iş akışının çalıştırıldığı dal (ref) içinde bulunmalıdır.
+name: Dosyayı sürüme yükle
+
+on:
+  workflow_dispatch:
+    inputs:
+      etiket:
+        description: "Release etiketi (ör. atac-py-v0.2)"
+        type: string
+        required: true
+      yol:
+        description: "Dalın içindeki dosya yolu"
+        type: string
+        required: true
+      ad:
+        description: "Release'deki dosya adı (boşsa dosyanın kendi adı)"
+        type: string
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  yukle:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Dosyayı sürüme yükle
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ETIKET: ${{ inputs.etiket }}
+          YOL: ${{ inputs.yol }}
+          AD: ${{ inputs.ad }}
+        run: |
+          test -f "$YOL" || { echo "Dosya bulunamadı: $YOL"; exit 1; }
+          if [ -n "$AD" ]; then
+            cp "$YOL" "/tmp/$AD"
+            SRC="/tmp/$AD"
+          else
+            SRC="$YOL"
+          fi
+          echo "Yüklenen dosyanın SHA-256:"
+          sha256sum "$SRC"
+          gh release upload "$ETIKET" "$SRC" --clobber --repo "${{ github.repository }}"
+          echo "Yüklendi: $ETIKET <- $SRC"
