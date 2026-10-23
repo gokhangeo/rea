@@ -66,11 +66,22 @@ object Uygulamalar {
     /** Android'in kaldırma penceresini TV'de açar; onay kumandayla verilir. */
     fun kaldir(c: Context, paket: String): String? {
         val ai = runCatching { c.packageManager.getApplicationInfo(paket, 0) }.getOrNull() ?: return "Uygulama bulunamadı."
-        if (korumali(c, paket, ai)) return "Bu uygulama sistemin ya da operatörün; kaldırılmaz."
+        if (korumali(c, paket, ai)) return "Bu uygulama sistemin ya da operatörün; kaldırılamaz."
         @Suppress("DEPRECATION")
         val i = Intent(Intent.ACTION_UNINSTALL_PACKAGE, Uri.parse("package:$paket")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         return if (runCatching { c.startActivity(i) }.isSuccess) null else "Kaldırma penceresi açılamadı."
     }
+
+    /**
+     * Kutu Kurucu'nun kendisini kaldırır: TV'de Android'in kaldırma penceresi açılır, onay kumandayla verilir.
+     * İmzası değişen sürümler eskisinin üstüne kurulamadığı için gereklidir.
+     */
+    fun kendiniKaldir(c: Context): String? {
+        @Suppress("DEPRECATION")
+        val i = Intent(Intent.ACTION_DELETE, Uri.parse("package:${c.packageName}")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        return if (runCatching { c.startActivity(i) }.isSuccess) null else "Kaldırma penceresi açılamadı."
+    }
+
 
     /** Uygulamanın kurulu APK dosyası (yedek almak ya da öbür kutuya kurmak için). */
     fun apk(c: Context, paket: String): Pair<File, String>? {

@@ -24,6 +24,9 @@ Her kutuya ayrı kurulur; her kutunun kendi adresi ve kodu vardır.
 - **Telefondan görüntü/video:** Telefondan seçilen fotoğraf ya da video kutuya gider ve tam ekran açılır; kumandada GERİ kapatır,
   video bitince kendiliğinden kapanır (`POST /api/medya`).
 - **Kendini güncelleme:** Sayfadaki "Kutu Kurucu'yu güncelle" düğmesi GitHub'daki son sürümü kurar.
+- **Kutu Kurucu'yu kaldır:** Sayfadaki bu düğme TV'de Android'in kaldırma penceresini açar. Yeni sürüm "başka anahtarla
+  imzalı" diye kurulmuyorsa eski sürüm böyle kaldırılır; onaydan sonra panel kapanır, APK yeniden kurulur.
+- Sürümler depodaki `kutu-kurucu/kutu-kurucu.jks` anahtarıyla imzalanır; anahtar değişmedikçe yeni sürüm eskisinin üstüne kurulur.
 - Sayfa TV ekranında yazan 4 haneli kodu ister. Port 8090; Ev Ekranı'nın 8080'deki sayfasıyla çakışmaz.
 
 ## İlk kurulum (her kutuya bir kez)

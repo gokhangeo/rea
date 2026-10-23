@@ -126,6 +126,10 @@
         <button class="ikinci" id="guncelleBtn">Kutu Kurucu'yu güncelle</button>
         <span class="alt" id="surum"></span>
       </div>
+      <div class="satir" style="margin-top:12px">
+        <button class="ikinci" id="kaldirBtn" style="border-color:var(--kirmizi);color:var(--kirmizi)">Kutu Kurucu'yu kaldır</button>
+      </div>
+      <p class="uyari" id="kaldirUyari">Yeni sürüm "başka anahtarla imzalı" diye kurulmuyorsa önce eski sürüm kaldırılır. Kaldırma TV'de onay ister; onaydan sonra bu panel kapanır ve yeni APK'yı yeniden kurmanız gerekir.</p>
     </section>
   </div>
 </main>
@@ -217,6 +221,14 @@ $('bagBtn').onclick = async () => {
 $('guncelleBtn').onclick = async () => {
   try { const r = await api('/api/kendini-guncelle', { method: 'POST' }); if (r.mesaj) alert(r.mesaj); durum(); }
   catch (e) { if (e.message !== 'kod') alert(e.message); }
+};
+
+$('kaldirBtn').onclick = async () => {
+  if (!confirm("Kutu Kurucu kutudan tamamen kaldırılacak.\n\nOnaydan sonra bu panel kapanır; yeni APK'yı (Kutuya-Gonder.bat ya da kutuya-gonder.ps1 ile) yeniden kurmanız gerekir.\n\nDevam edilsin mi?")) return;
+  try {
+    await api('/api/kendini-kaldir', { method: 'POST' });
+    $('kaldirUyari').textContent = "TV'de kaldırma penceresi açıldı; kumandayla onaylayın. Kaldırıldıktan sonra bu sayfa kapanır.";
+  } catch (e) { if (e.message !== 'kod') $('kaldirUyari').textContent = e.message; }
 };
 
 // Ana ekran

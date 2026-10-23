@@ -61,6 +61,10 @@ class Sunucu(private val c: Context) : NanoHTTPD(PORT) {
                 val i = Kurucu.kendiniGuncelle(c)
                 json(i?.json() ?: JSONObject().put("mesaj", "Kutu Kurucu zaten güncel."))
             }
+            "/api/kendini-kaldir" -> {
+                if (!post) return metin(Response.Status.METHOD_NOT_ALLOWED, "")
+                Uygulamalar.kendiniKaldir(c)?.let { metin(Response.Status.CONFLICT, it) } ?: tamam()
+            }
             "/api/mesaj" -> {
                 if (!post) return metin(Response.Status.METHOD_NOT_ALLOWED, "")
                 val yazi = s.parameters["metin"]?.firstOrNull()?.trim().orEmpty()

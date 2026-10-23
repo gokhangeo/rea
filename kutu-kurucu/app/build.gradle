@@ -17,11 +17,12 @@ android {
         versionName "1.${runNumber}"
     }
 
-    // Her sürüm aynı anahtarla imzalanmalı ki yeni APK eskisinin üstüne kurulabilsin. Anahtar depoda tutulmaz:
-    // KUTU_KEYSTORE_B64 ve KUTU_KEYSTORE_PASS gizli değerleri varsa onlar, yoksa Actions önbelleğindeki
-    // hata ayıklama anahtarı kullanılır (bkz. .github/workflows/kutu-kurucu.yml).
+    // Her sürüm aynı anahtarla imzalanmalı ki yeni APK eskisinin üstüne kurulabilsin. Anahtar depoda
+    // kutu-kurucu/kutu-kurucu.jks olarak durur (bu araç için parolası kutukurucu). KUTU_KEYSTORE_PASS
+    // verilirse o parola kullanılır.
     def keystore = rootProject.file('kutu-kurucu.jks')
-    def keystorePass = System.getenv('KUTU_KEYSTORE_PASS')
+    def keystorePass = System.getenv('KUTU_KEYSTORE_PASS') ?: (keystore.exists() ? 'kutukurucu' : null)
+
     if (keystore.exists() && keystorePass) {
         signingConfigs {
             kutu {
