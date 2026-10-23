@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- TV uygulama listesindeki şerit: lacivert zemin, sarı ok, beyaz kutu. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="320dp" android:height="180dp" android:viewportWidth="320" android:viewportHeight="180">
+    <path android:fillColor="#0B2E5C" android:pathData="M0,0h320v180h-320z" />
+    <path android:fillColor="#FFD200" android:pathData="M148,30h24v50h22l-34,34l-34,-34h22z" />
+    <path android:fillColor="#FFFFFF" android:pathData="M110,110h16v22h68v-22h16v38h-100z" />
+</vector>

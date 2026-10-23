@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kutu Kurucu</title>
+<style>
+  :root { --zemin:#0b2e5c; --kart:#123b70; --yazi:#fff; --soluk:#c8d6ea; --sari:#ffd200; --yesil:#7ce38b; --kirmizi:#ff8a80; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; background:var(--zemin); color:var(--yazi); }
+  main { max-width:760px; margin:0 auto; padding:16px; }
+  h1 { color:var(--sari); margin:8px 0 2px; font-size:26px; }
+  h2 { font-size:18px; margin:0 0 10px; }
+  .alt { color:var(--soluk); font-size:14px; }
+  .kart { background:var(--kart); border-radius:14px; padding:16px; margin:14px 0; }
+  input[type=text], input[type=tel], input[type=url] { width:100%; padding:12px; border-radius:10px; border:0; font-size:18px; }
+  button, .dugme { background:var(--sari); color:var(--zemin); border:0; border-radius:10px; padding:11px 16px; font-size:16px; font-weight:600; cursor:pointer; text-decoration:none; display:inline-block; }
+  button.ikinci, .dugme.ikinci { background:var(--soluk); }
+  button.tehlike { background:var(--kirmizi); }
+  button:disabled { opacity:.5; }
+  .satir { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .birak { border:2px dashed var(--soluk); border-radius:14px; padding:28px 12px; text-align:center; cursor:pointer; }
+  .birak.ustunde { border-color:var(--sari); background:#1a4a86; }
+  .is { padding:8px 0; border-bottom:1px solid #2a5592; }
+  .is:last-child { border:0; }
+  .durum-kuruldu { color:var(--yesil); } .durum-hata, .durum-iptal { color:var(--kirmizi); } .durum-onay { color:var(--sari); }
+  .uyg { display:flex; gap:10px; align-items:center; padding:8px 0; border-bottom:1px solid #2a5592; }
+  .uyg img { width:40px; height:40px; border-radius:8px; flex:none; }
+  .uyg .ad { flex:1; min-width:0; } .uyg .ad b { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .uyg button, .uyg .dugme { padding:7px 10px; font-size:14px; }
+  label.secim { display:flex; gap:10px; align-items:center; padding:10px; border-radius:10px; background:#0e3466; margin:6px 0; cursor:pointer; }
+  label.secim input { width:22px; height:22px; }
+  .uyari { color:var(--sari); }
+  .gizli { display:none; }
+  progress { width:100%; height:14px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Kutu Kurucu</h1>
+  <div class="alt" id="cihaz">TV kutusu</div>
+
+  <section class="kart" id="giris">
+    <h2>TV ekranındaki 4 haneli kodu yazın</h2>
+    <div class="satir">
+      <input type="tel" id="kod" maxlength="4" inputmode="numeric" autocomplete="off" style="flex:1">
+      <button id="girBtn">Gir</button>
+    </div>
+    <p class="alt" id="girisMesaj"></p>
+  </section>
+
+  <div id="panel" class="gizli">
+    <section class="kart">
+      <h2>APK yükle</h2>
+      <div class="birak" id="birak">
+        <b>APK dosyasını buraya bırakın ya da dokunup seçin</b>
+        <div class="alt">Birden fazla dosya seçebilirsiniz. Kurulumu TV'de kumandayla "Yükle"ye basarak onaylayın.</div>
+      </div>
+      <input type="file" id="dosya" accept=".apk,application/vnd.android.package-archive" multiple class="gizli">
+      <progress id="ilerleme" value="0" max="100" class="gizli"></progress>
+      <h2 style="margin-top:16px">Bağlantıdan kur</h2>
+      <div class="satir">
+        <input type="url" id="url" placeholder="https://… .apk ya da GitHub sürüm sayfası" style="flex:1">
+        <button id="bagBtn">Kutuya indir ve kur</button>
+      </div>
+      <div id="isler" style="margin-top:12px"></div>
+    </section>
+
+    <section class="kart">
+      <h2>Ana ekran</h2>
+      <div class="alt">Kumandanın Home tuşu hangi ekranı açsın?</div>
+      <div id="anaekranlar"></div>
+      <p class="uyari" id="anaUyari"></p>
+    </section>
+
+    <section class="kart">
+      <div class="satir" style="justify-content:space-between">
+        <h2 style="margin:0">Uygulamalar</h2>
+        <label class="alt"><input type="checkbox" id="sistemGoster"> sistem uygulamaları</label>
+      </div>
+      <input type="text" id="ara" placeholder="Ara…" style="margin-top:10px">
+      <div id="uygulamalar"></div>
+    </section>
+
+    <section class="kart">
+      <h2>Kutu Kurucu</h2>
+      <div id="izinler" class="alt"></div>
+      <div class="satir" style="margin-top:10px">
+        <button class="ikinci" id="guncelleBtn">Kutu Kurucu'yu güncelle</button>
+        <span class="alt" id="surum"></span>
+      </div>
+    </section>
+  </div>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+let kod = '';
+try { kod = localStorage.getItem('kod') || ''; } catch (e) {}
+let uygulamalar = [];
+const DURUM = { hazirlaniyor:'hazırlanıyor…', indiriliyor:'kutuya iniyor…', onay:"TV'de \"Yükle\"ye basın", kuruldu:'kuruldu ✔', iptal:'iptal edildi', hata:'kurulamadı' };
+
+async function api(yol, secenek = {}) {
+  secenek.headers = Object.assign({ 'x-kod': kod }, secenek.headers || {});
+  const r = await fetch(yol, secenek);
+  if (r.status === 401) { cikis('Kod yanlış ya da değişmiş.'); throw new Error('kod'); }
+  if (!r.ok) throw new Error(await r.text() || ('HTTP ' + r.status));
+  return r.json();
+}
+
+function cikis(mesaj) {
+  $('panel').classList.add('gizli'); $('giris').classList.remove('gizli');
+  $('girisMesaj').textContent = mesaj || '';
+}
+
+async function gir() {
+  kod = $('kod').value.trim();
+  try {
+    await api('/api/kontrol');
+    try { localStorage.setItem('kod', kod); } catch (e) {}
+    $('giris').classList.add('gizli'); $('panel').classList.remove('gizli');
+    durum(); anaEkran(); uygulamaListesi();
+  } catch (e) { if (e.message !== 'kod') $('girisMesaj').textContent = e.message; }
+}
+$('girBtn').onclick = gir;
+$('kod').addEventListener('keydown', e => { if (e.key === 'Enter') gir(); });
+
+async function durum() {
+  try {
+    const d = await api('/api/durum');
+    $('cihaz').textContent = d.cihaz + ' · Android ' + d.android + (d.adres ? ' · ' + d.adres : '');
+    $('surum').textContent = 'Sürüm ' + d.surum;
+    const i = d.izinler, s = [];
+    s.push((i.yukleme ? '✔' : '✘') + ' Uygulama yükleme izni');
+    s.push((i.ustte ? '✔' : '✘') + ' Arka planda onay penceresi' + (i.ustte ? '' : " (yoksa TV'de Kutu Kurucu açık olmalı)"));
+    s.push((i.ayar ? '✔' : '✘') + ' Ayar yazma (ana ekran seçimi için ilk kurulum izni)');
+    $('izinler').innerHTML = s.map(x => '<div>' + x + '</div>').join('');
+    $('isler').innerHTML = d.isler.map(j =>
+      '<div class="is"><b>' + esc(j.ad) + '</b> <span class="durum-' + j.durum + '">' + (DURUM[j.durum] || j.durum) + '</span>' +
+      (j.mesaj ? '<div class="alt">' + esc(j.mesaj) + '</div>' : '') + '</div>').join('');
+    const bitti = d.isler.some(j => j.durum === 'kuruldu' && !gorulen.has(j.id));
+    d.isler.forEach(j => { if (j.durum === 'kuruldu') gorulen.add(j.id); });
+    if (bitti) uygulamaListesi();
+  } catch (e) {}
+}
+const gorulen = new Set();
+setInterval(() => { if (!$('panel').classList.contains('gizli')) durum(); }, 2000);
+
+// APK yükleme
+const birak = $('birak');
+birak.onclick = () => $('dosya').click();
+$('dosya').onchange = e => gonder([...e.target.files]);
+['dragenter', 'dragover'].forEach(t => birak.addEventListener(t, e => { e.preventDefault(); birak.classList.add('ustunde'); }));
+['dragleave', 'drop'].forEach(t => birak.addEventListener(t, e => { e.preventDefault(); birak.classList.remove('ustunde'); }));
+birak.addEventListener('drop', e => gonder([...e.dataTransfer.files]));
+
+async function gonder(dosyalar) {
+  for (const f of dosyalar) {
+    if (!/\.apk$/i.test(f.name)) { alert(f.name + ' bir APK değil.'); continue; }
+    await new Promise(bitir => {
+      const x = new XMLHttpRequest();
+      x.open('POST', '/api/kur?ad=' + encodeURIComponent(f.name));
+      x.setRequestHeader('x-kod', kod);
+      x.setRequestHeader('Content-Type', 'application/vnd.android.package-archive');
+      const p = $('ilerleme'); p.classList.remove('gizli'); p.value = 0;
+      x.upload.onprogress = e => { if (e.lengthComputable) p.value = e.loaded * 100 / e.total; };
+      x.onloadend = () => { p.classList.add('gizli'); if (x.status !== 200) alert(f.name + ': ' + (x.responseText || 'gönderilemedi')); durum(); bitir(); };
+      x.send(f);
+    });
+  }
+  $('dosya').value = '';
+}
+
+$('bagBtn').onclick = async () => {
+  const url = $('url').value.trim();
+  if (!url) return;
+  try { await api('/api/bag?url=' + encodeURIComponent(url), { method: 'POST' }); $('url').value = ''; durum(); }
+  catch (e) { if (e.message !== 'kod') alert(e.message); }
+};
+
+$('guncelleBtn').onclick = async () => {
+  try { const r = await api('/api/kendini-guncelle', { method: 'POST' }); if (r.mesaj) alert(r.mesaj); durum(); }
+  catch (e) { if (e.message !== 'kod') alert(e.message); }
+};
+
+// Ana ekran
+async function anaEkran(secim) {
+  try {
+    const d = secim === undefined ? await api('/api/anaekran')
+      : await api('/api/anaekran?paket=' + encodeURIComponent(secim), { method: 'POST' });
+    const satirlar = [{ paket: '', ad: 'Kutunun kendi ana ekranı' + (d.adaylar.find(a => a.sistem) ? ' (' + d.adaylar.find(a => a.sistem).ad + ')' : '') }]
+      .concat(d.adaylar.filter(a => !a.sistem));
+    $('anaekranlar').innerHTML = satirlar.map(a =>
+      '<label class="secim"><input type="radio" name="ana" value="' + esc(a.paket) + '"' + (a.paket === d.secili ? ' checked' : '') + '>' +
+      '<span><b>' + esc(a.ad) + '</b>' + (a.paket ? '<div class="alt">' + esc(a.paket) + '</div>' : '') + '</span></label>').join('');
+    document.querySelectorAll('input[name=ana]').forEach(r => r.onchange = () => anaEkran(r.value));
+    $('anaUyari').textContent = d.uyari || '';
+  } catch (e) { if (e.message !== 'kod') $('anaUyari').textContent = e.message; }
+}
+
+// Uygulamalar
+async function uygulamaListesi() {
+  try { uygulamalar = (await api('/api/uygulamalar')).uygulamalar; ciz(); } catch (e) {}
+}
+function ciz() {
+  const ara = $('ara').value.toLowerCase(), sistem = $('sistemGoster').checked;
+  $('uygulamalar').innerHTML = uygulamalar
+    .filter(u => (sistem || !u.sistem) && (!ara || u.ad.toLowerCase().includes(ara) || u.paket.includes(ara)))
+    .map(u => '<div class="uyg"><img loading="lazy" src="/api/simge?paket=' + encodeURIComponent(u.paket) + '&kod=' + kod + '" alt="">' +
+      '<div class="ad"><b>' + esc(u.ad) + '</b><span class="alt">' + esc(u.surum) + ' · ' + mb(u.boyut) + '</span></div>' +
+      (u.acilabilir ? '<button class="ikinci" data-ac="' + esc(u.paket) + '">Aç</button>' : '') +
+      '<a class="dugme ikinci" title="' + (u.parcali ? 'Parçalı uygulama: tek APK eksik olabilir' : 'APK dosyasını indir') + '" href="/api/apk?paket=' + encodeURIComponent(u.paket) + '&kod=' + kod + '">APK</a>' +
+      (u.korumali ? '' : '<button class="tehlike" data-kaldir="' + esc(u.paket) + '">Kaldır</button>') + '</div>').join('');
+}
+$('ara').oninput = ciz; $('sistemGoster').onchange = ciz;
+$('uygulamalar').onclick = async e => {
+  const p = e.target.dataset;
+  try {
+    if (p.ac) await api('/api/ac?paket=' + encodeURIComponent(p.ac), { method: 'POST' });
+    if (p.kaldir && confirm('Kaldırılsın mı? Onayı TV\'de kumandayla da vermeniz gerekecek.')) {
+      await api('/api/kaldir?paket=' + encodeURIComponent(p.kaldir), { method: 'POST' });
+      setTimeout(uygulamaListesi, 8000);
+    }
+  } catch (err) { if (err.message !== 'kod') alert(err.message); }
+};
+
+function mb(b) { return (b / 1048576).toFixed(1) + ' MB'; }
+function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' })[c]); }
+
+if (kod) { $('kod').value = kod; gir(); }
+</script>
+</body>
+</html>

@@ -1,0 +1,57 @@
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+}
+
+def runNumber = System.getenv('GITHUB_RUN_NUMBER') ?: '1'
+
+android {
+    namespace 'com.gokhan.kutukurucu'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'com.gokhan.kutukurucu'
+        minSdk 26
+        targetSdk 34
+        versionCode runNumber.toInteger()
+        versionName "1.${runNumber}"
+    }
+
+    // Her sürüm aynı anahtarla imzalanmalı ki yeni APK eskisinin üstüne kurulabilsin. Anahtar depoda tutulmaz:
+    // KUTU_KEYSTORE_B64 ve KUTU_KEYSTORE_PASS gizli değerleri varsa onlar, yoksa Actions önbelleğindeki
+    // hata ayıklama anahtarı kullanılır (bkz. .github/workflows/kutu-kurucu.yml).
+    def keystore = rootProject.file('kutu-kurucu.jks')
+    def keystorePass = System.getenv('KUTU_KEYSTORE_PASS')
+    if (keystore.exists() && keystorePass) {
+        signingConfigs {
+            kutu {
+                storeFile keystore
+                storePassword keystorePass
+                keyAlias System.getenv('KUTU_KEY_ALIAS') ?: 'kutukurucu'
+                keyPassword keystorePass
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.findByName('kutu') ?: signingConfigs.debug
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+kotlin {
+    jvmToolchain 17
+}
+
+dependencies {
+    implementation 'org.nanohttpd:nanohttpd:2.3.1'
+}
