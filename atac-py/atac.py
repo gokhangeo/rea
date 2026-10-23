@@ -66,6 +66,8 @@ SWP_NOMOVE = 0x0002
 SWP_NOACTIVATE = 0x0010
 SWP_SHOWWINDOW = 0x0040
 HWND_TOPMOST = -1
+HWND_NOTOPMOST = -2
+HWND_BOTTOM = 1
 ULW_ALPHA = 0x00000002
 AC_SRC_OVER = 0x00
 AC_SRC_ALPHA = 0x01
@@ -88,6 +90,7 @@ WM_ATAC_SHOW = WM_APP + 1      # tepsiden "göster/gizle"
 WM_ATAC_DROP = WM_APP + 2      # OLE kuyruğunda bırakılan dosya var
 WM_ATAC_QUIT = WM_APP + 3
 WM_ATAC_UPDATED = WM_APP + 4   # güncelleme indirildi
+WM_ATAC_BEHIND = WM_APP + 5    # tepsiden "arkada kal" aç/kapa
 
 CS_DBLCLKS = 0x0008
 IDC_ARROW = 32512
@@ -326,8 +329,20 @@ def version_tuple(text):
         return None
 
 
+IS_COMPILED = getattr(sys, "frozen", False) or ("__compiled__" in globals())
+
+
+def app_exe_path():
+    # Onefile'da kullanicinin calistirdigi GERCEK exe yolu.
+    # Nuitka onefile: sys.executable gecici kopyadir; gercek exe sys.argv[0].
+    # PyInstaller onefile: sys.executable zaten gercek exe.
+    if "__compiled__" in globals():
+        return os.path.abspath(sys.argv[0])
+    return sys.executable
+
+
 def can_self_update():
-    return getattr(sys, "frozen", False) and version_tuple(APP_VERSION) is not None
+    return IS_COMPILED and version_tuple(APP_VERSION) is not None
 
 
 def find_update(current):
@@ -352,7 +367,7 @@ def find_update(current):
 
 def download_update(url, size):
     import urllib.request
-    dest = os.path.join(os.path.dirname(sys.executable), "Atac.guncelleme.exe")
+    dest = os.path.join(os.path.dirname(app_exe_path()), "Atac.guncelleme.exe")
     part = dest + ".part"
     req = urllib.request.Request(url, headers={"User-Agent": "Atac"})
     with urllib.request.urlopen(req, timeout=120) as r, open(part, "wb") as f:
@@ -365,7 +380,7 @@ def download_update(url, size):
 
 
 def apply_update(new_exe, tag):
-    exe = sys.executable
+    exe = app_exe_path()
     old = os.path.splitext(exe)[0] + ".eski.exe"
     if os.path.exists(old):
         os.remove(old)
@@ -760,6 +775,8 @@ class Atac:
         self._drop_ref = None
         self._panel_cache = {}
         self._tracking = False
+        self.behind = (reg_get("Behind") == "1")   # arkada kal modu
+        self.front_until = 0.0                       # arkada moddayken gecici one-alma suresi
 
         a = load_anchor()
         rx, ry, rr, rb = work_area_at(*cursor_pos())
@@ -783,7 +800,9 @@ class Atac:
         cls.lpszClassName = "AtacLayered"
         user32.RegisterClassW(ctypes.byref(cls))
 
-        ex = WS_EX_LAYERED | WS_EX_TOPMOST | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE
+        ex = WS_EX_LAYERED | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE
+        if not self.behind:
+            ex |= WS_EX_TOPMOST
         self.hwnd = user32.CreateWindowExW(ex, "AtacLayered", "Ataç", WS_POPUP,
                                            0, 0, COL_W, COL_H, None, None, hinst, None)
         if not self.hwnd:
@@ -1027,7 +1046,11 @@ class Atac:
         size = SIZE(w, h)
         ptsrc = POINT(0, 0)
         blend = BLENDFUNCTION(AC_SRC_OVER, 0, self.fade_alpha, AC_SRC_ALPHA)
-        user32.SetWindowPos(self.hwnd, HWND_TOPMOST, 0, 0, 0, 0,
+        if self.behind and time.time() >= self.front_until:
+            zpos = HWND_BOTTOM        # arkada kal: diger pencerelerin altina
+        else:
+            zpos = HWND_TOPMOST       # normal mod ya da gecici one-alma
+        user32.SetWindowPos(self.hwnd, zpos, 0, 0, 0, 0,
                             SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE)
         user32.UpdateLayeredWindow(self.hwnd, screen, ctypes.byref(ptdst), ctypes.byref(size),
                                    memdc, ctypes.byref(ptsrc), 0, ctypes.byref(blend), ULW_ALPHA)
@@ -1050,6 +1073,8 @@ class Atac:
         self.idle = False
         self.fade_alpha = 255
         self.last_activity = time.time()
+        if self.behind:
+            self.front_until = self.last_activity + 4.0   # etkinlikte 4 sn one gel
 
     def add_paths(self, paths):
         eklendi = 0
@@ -1128,6 +1153,17 @@ class Atac:
         else:
             self.show()
 
+    def toggle_behind(self):
+        self.behind = not self.behind
+        reg_set("Behind", "1" if self.behind else "0")
+        if not self.visible:
+            self.show()
+        self.front_until = 0.0     # behind ise hemen arkaya; normal modda yok sayilir
+        self.idle = False
+        self.fade_alpha = 255
+        self.last_activity = time.time()
+        self.render()
+
     # ---- WndProc ----
     def _wndproc(self, hwnd, msg, wp, lp):
         try:
@@ -1144,11 +1180,21 @@ class Atac:
             if msg == WM_ATAC_UPDATED:
                 self.render()
                 return 0
+            if msg == WM_ATAC_BEHIND:
+                self.toggle_behind()
+                return 0
             if msg == WM_ATAC_QUIT:
                 user32.PostQuitMessage(0)
                 return 0
             if msg == WM_HOTKEY:
-                self.toggle_visible()
+                if self.behind:
+                    if not self.visible:
+                        self.show()      # gizliyse goster (wake one alir)
+                    else:
+                        self.wake()      # gorunuyorsa one getir
+                        self.render()
+                else:
+                    self.toggle_visible()
                 return 0
             if msg in (WM_LBUTTONDOWN, WM_LBUTTONUP, WM_LBUTTONDBLCLK, WM_MOUSEMOVE, WM_MOUSELEAVE,
                        WM_MOUSEWHEEL, WM_RBUTTONUP):
@@ -1245,6 +1291,10 @@ class Atac:
             return
 
     def _on_timer(self):
+        # arkada kal: gecici one-alma suresi bitince arkaya gonder
+        if self.behind and self.front_until and time.time() >= self.front_until:
+            self.front_until = 0.0
+            self.render()
         # boşta saydamlaş
         if not self.hover and not self.idle and time.time() - self.last_activity > 2.6:
             self.idle = True
@@ -1277,6 +1327,9 @@ def start_tray(app):
     def on_autostart(icon, item):
         set_autostart(not autostart_enabled())
 
+    def on_behind(icon, item):
+        user32.PostMessageW(app.hwnd, WM_ATAC_BEHIND, 0, 0)
+
     def on_update(icon, item):
         threading.Thread(target=lambda: manual_update(app), daemon=True).start()
 
@@ -1288,6 +1341,7 @@ def start_tray(app):
         pystray.MenuItem(f"Ataç — sürüm {APP_VERSION}", None, enabled=False),
         pystray.MenuItem("Ataç'ı göster / gizle", on_show, default=True),
         pystray.MenuItem("Windows açılışında başlat", on_autostart, checked=lambda it: autostart_enabled()),
+        pystray.MenuItem("Arkada kal (diğer pencerelerin altında)", on_behind, checked=lambda it: app.behind),
         pystray.MenuItem("Güncellemeleri denetle", on_update),
         pystray.MenuItem("Çıkış", on_quit),
     )
