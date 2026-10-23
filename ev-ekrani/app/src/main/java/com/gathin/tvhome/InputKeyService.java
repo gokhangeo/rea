@@ -18,6 +18,15 @@ import java.util.Map;
  */
 public class InputKeyService extends AccessibilityService {
 
+    /** Bağlıyken ana ekranın "Yeniden başlat" düğmesi güç menüsünü bununla açar. */
+    static volatile InputKeyService instance;
+
+    @Override
+    public boolean onUnbind(Intent intent) {
+        if (instance == this) instance = null;
+        return super.onUnbind(intent);
+    }
+
     private static final String ACTION_VIEW_INPUTS = "com.android.tv.action.VIEW_INPUTS";
 
     private int[] inputKeycodes = new int[0];
@@ -26,6 +35,7 @@ public class InputKeyService extends AccessibilityService {
     @Override
     protected void onServiceConnected() {
         super.onServiceConnected();
+        instance = this;
         // From config.xml or a theme's config.json; theme.sh rebinds this service after a push.
         Config config = Config.load(this);
         inputKeycodes = config.inputKeycodes;

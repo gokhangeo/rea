@@ -458,6 +458,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             return true;
         });
         btnSettings.setOnClickListener(v -> open(systemIntent(Settings.ACTION_SETTINGS)));
+        View btnRestart = findViewById(R.id.btnRestart);
+        btnRestart.setOnClickListener(v -> restartDevice());
         btnReorder = findViewById(R.id.btnReorder);
         btnReorder.setOnClickListener(v -> toggleReorder());
         btnReorder.setVisibility(cfg.reorderButton ? View.VISIBLE : View.GONE);
@@ -478,17 +480,18 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 return true;
             }
             int firstButton = btnInputs.getVisibility() == View.VISIBLE ? R.id.btnInputs : R.id.btnWifi;
-            int leftButton = rtlMenuBar ? R.id.btnSettings : firstButton;
-            int rightButton = rtlMenuBar ? firstButton : R.id.btnSettings;
+            int leftButton = rtlMenuBar ? R.id.btnRestart : firstButton;
+            int rightButton = rtlMenuBar ? firstButton : R.id.btnRestart;
             if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) return v.getId() == leftButton;
             return keyCode == KeyEvent.KEYCODE_DPAD_RIGHT && v.getId() == rightButton;
         };
         btnInputs.setOnKeyListener(pillKeys);
         btnWifi.setOnKeyListener(pillKeys);
         btnSettings.setOnKeyListener(pillKeys);
+        btnRestart.setOnKeyListener(pillKeys);
         btnReorder.setOnKeyListener(pillKeys);
         if (advancedEffects) {
-            for (View button : new View[]{btnInputs, btnWifi, btnReorder, btnSettings}) {
+            for (View button : new View[]{btnInputs, btnWifi, btnReorder, btnSettings, btnRestart}) {
                 button.setOnFocusChangeListener((view, focused) -> view.animate()
                         .scaleX(focused ? 1.04f : 1f).scaleY(focused ? 1.04f : 1f)
                         .setDuration(160).start());
@@ -2118,6 +2121,28 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         cardPrompt = dialog;
         dialog.show();
         keep.requestFocus();
+    }
+
+    /**
+     * Ev Ekranı: "Yeniden başlat" düğmesi. Uygulamalar cihazı kendisi yeniden başlatamaz (REBOOT sistem izni);
+     * kumanda servislerinden biri açıksa Android'in güç menüsü açılır (Kapat / Yeniden başlat). Değilse ipucu verir.
+     */
+    private void restartDevice() {
+        try {
+            ((android.os.PowerManager) getSystemService(POWER_SERVICE)).reboot(null);
+            return;
+        } catch (SecurityException ignored) {
+            // Beklenen: sistem uygulaması değiliz.
+        }
+        android.accessibilityservice.AccessibilityService s = HomeKeyService.instance != null
+                ? HomeKeyService.instance : InputKeyService.instance;
+        if (s != null && s.performGlobalAction(android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_POWER_DIALOG)) return;
+        // Servis kapalı: bir kez Erişilebilirlik'ten "Ev Ekranı" servisi açılınca düğme güç menüsünü açar.
+        android.widget.Toast.makeText(this, R.string.restart_hint, android.widget.Toast.LENGTH_LONG).show();
+        try {
+            startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+        } catch (android.content.ActivityNotFoundException ignored) {
+        }
     }
 
     /**

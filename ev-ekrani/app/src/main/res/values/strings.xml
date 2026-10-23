@@ -4,6 +4,8 @@
     <string name="inputs">Girişler</string>
     <string name="wifi">Wi-Fi</string>
     <string name="settings">Ayarlar</string>
+    <string name="restart">Yeniden başlat</string>
+    <string name="restart_hint">Bir kez açılan ekranda “Ev Ekranı” servisini açın; sonra bu düğme Yeniden başlat menüsünü açar. Şimdilik güç tuşuna basılı tutabilirsiniz.</string>
     <string name="choose_input">Girişler</string>
     <string name="connected">Bağlı</string>
     <string name="standby">Bekleme</string>
