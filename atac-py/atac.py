@@ -238,6 +238,7 @@ def cursor_pos():
 SETTINGS_KEY = r"Software\gokhangeo\Atac"
 RUN_KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
 ANCHOR_FILE = os.path.join(APPDATA, "konum.json")
+ITEMS_FILE = os.path.join(APPDATA, "ogeler.json")
 
 
 def load_anchor():
@@ -253,6 +254,24 @@ def save_anchor(right, top):
     try:
         with open(ANCHOR_FILE, "w", encoding="utf-8") as f:
             json.dump({"right": right, "top": top}, f)
+    except OSError:
+        pass
+
+
+def load_items():
+    try:
+        with open(ITEMS_FILE, encoding="utf-8") as f:
+            d = json.load(f)
+        return [str(p) for p in d] if isinstance(d, list) else []
+    except Exception:
+        return []
+
+
+def save_items(paths):
+    try:
+        os.makedirs(APPDATA, exist_ok=True)
+        with open(ITEMS_FILE, "w", encoding="utf-8") as f:
+            json.dump(list(paths), f, ensure_ascii=False)
     except OSError:
         pass
 
@@ -788,6 +807,11 @@ class Atac:
 
         self._make_window()
 
+        # kaydedilmis ogeleri geri yukle (artik olmayan yollari atla)
+        saved = load_items()
+        if saved:
+            self.add_paths(saved, expand=False, skip_missing=True)
+
     # ---- pencere ----
     def _make_window(self):
         hinst = kernel32.GetModuleHandleW(None)
@@ -1076,11 +1100,13 @@ class Atac:
         if self.behind:
             self.front_until = self.last_activity + 4.0   # etkinlikte 4 sn one gel
 
-    def add_paths(self, paths):
+    def add_paths(self, paths, expand=True, skip_missing=False):
         eklendi = 0
         for p in paths:
             p = p.rstrip("\\/")
             if not p or any(o["path"] == p for o in self.items):
+                continue
+            if skip_missing and not os.path.exists(p):
                 continue
             try:
                 isdir = os.path.isdir(p)
@@ -1091,17 +1117,20 @@ class Atac:
             self.items.append({"path": p, "name": name, "isdir": isdir, "thumb": t})
             eklendi += 1
         if eklendi:
-            if not self.expanded:
+            save_items([o["path"] for o in self.items])
+            if expand and not self.expanded:
                 self.set_expanded(True)
             else:
                 self.render()
 
     def remove(self, path):
         self.items = [o for o in self.items if o["path"] != path]
+        save_items([o["path"] for o in self.items])
         self.render()
 
     def clear(self):
         self.items = []
+        save_items([])
         self.render()
 
     def hit_test(self, x, y):
