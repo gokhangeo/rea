@@ -37,19 +37,8 @@ jobs:
           distribution: temurin
           java-version: "17"
       - uses: gradle/actions/setup-gradle@v4
-      # İmza anahtarı: gizli değer tanımlıysa o, değilse önbellekte saklanan hata ayıklama anahtarı.
-      # İkisi de her derlemede aynı anahtarı verir; böylece yeni APK eskisinin üstüne kurulur.
-      - name: İmza anahtarını hazırla
-        env:
-          EV_KEYSTORE_B64: ${{ secrets.EV_KEYSTORE_B64 }}
-        run: |
-          true  # anahtar depoda: ev-ekrani/ev-ekrani.jks
-      - uses: actions/cache@v4
-        with:
-          path: ~/.android/debug.keystore
-          key: ev-ekrani-debug-keystore
+      # İmza anahtarı depoda (ev-ekrani/ev-ekrani.jks): her derleme aynı anahtarla imzalanır.
       - name: APK derle
-        env:
         run: ./gradlew --no-daemon assembleRelease
       - name: APK adını düzenle
         run: cp app/build/outputs/apk/release/app-release.apk "EvEkrani-0.2.${GITHUB_RUN_NUMBER}.apk"
