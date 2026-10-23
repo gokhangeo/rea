@@ -19,6 +19,7 @@ class Menu(context: Context) {
     private val prefs = context.getSharedPreferences("menu", Context.MODE_PRIVATE)
     @Volatile private var busy = false
     @Volatile private var failedAt = 0L
+    @Volatile private var lastError = ""
 
     /** Bugünün menüsü hazırsa {g, m:[...]}; değilse arka planda hazırlanır ve {g, m:[]} döner. */
     fun json(): JSONObject {
@@ -33,13 +34,14 @@ class Menu(context: Context) {
                     refresh(g)
                 } catch (e: Exception) {
                     failedAt = System.currentTimeMillis()
+                    lastError = e.toString()
                     Log.w(TAG, "günün menüsü alınamadı", e)
                 } finally {
                     busy = false
                 }
             }.start()
         }
-        return JSONObject().put("g", g).put("m", JSONArray())
+        return JSONObject().put("g", g).put("m", JSONArray()).put("hazirlaniyor", busy).put("hata", lastError)
     }
 
     private fun today(): Long = (System.currentTimeMillis() + 3 * 3600_000L) / 86_400_000L
@@ -150,11 +152,12 @@ class Menu(context: Context) {
     }
 
     private fun get(url: String): String {
-        val conn = URL(url).openConnection() as HttpURLConnection
-        conn.connectTimeout = 10_000
-        conn.readTimeout = 20_000
-        conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 9; Android TV) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36 EvEkrani")
-        conn.setRequestProperty("Accept-Language", "tr-TR,tr;q=0.9")
+        val conn = Dns.ac(url) {
+            it.connectTimeout = 10_000
+            it.readTimeout = 20_000
+            it.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 9; Android TV) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36 EvEkrani")
+            it.setRequestProperty("Accept-Language", "tr-TR,tr;q=0.9")
+        }
         try {
             if (conn.responseCode != 200) error("HTTP ${conn.responseCode}")
             return conn.inputStream.bufferedReader().readText()
