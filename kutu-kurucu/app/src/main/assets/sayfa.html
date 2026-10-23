@@ -13,7 +13,7 @@
   h2 { font-size:18px; margin:0 0 10px; }
   .alt { color:var(--soluk); font-size:14px; }
   .kart { background:var(--kart); border-radius:14px; padding:16px; margin:14px 0; }
-  input[type=text], input[type=tel], input[type=url] { width:100%; padding:12px; border-radius:10px; border:0; font-size:18px; }
+  input[type=text], input[type=tel], input[type=url], select { width:100%; padding:12px; border-radius:10px; border:0; font-size:18px; }
   button, .dugme { background:var(--sari); color:var(--zemin); border:0; border-radius:10px; padding:11px 16px; font-size:16px; font-weight:600; cursor:pointer; text-decoration:none; display:inline-block; }
   button.ikinci, .dugme.ikinci { background:var(--soluk); }
   button.tehlike { background:var(--kirmizi); }
@@ -74,6 +74,43 @@
     </section>
 
     <section class="kart">
+      <h2>Ekrana mesaj</h2>
+      <div class="alt">TV'de ne açık olursa olsun (kanal, film, uygulama) üstte görünür ve birkaç saniye sonra kaybolur.</div>
+      <input type="text" id="mesaj" placeholder="Mesaj yazın…" style="margin-top:10px">
+      <div class="satir" style="margin-top:8px">
+        <select id="mesajSure" style="flex:1">
+          <option value="5">5 saniye</option>
+          <option value="8" selected>8 saniye</option>
+          <option value="15">15 saniye</option>
+          <option value="30">30 saniye</option>
+        </select>
+        <button id="mesajBtn">Gönder</button>
+      </div>
+      <p class="alt" id="mesajDurum"></p>
+    </section>
+
+    <section class="kart">
+      <h2>Gol bildirimleri</h2>
+      <div class="alt">Takımlarının maçında gol olunca TV'de üstte bildirim çıkar, kendiliğinden kaybolur. Kanal açıkken de görünür.</div>
+      <input type="text" id="takimlar" placeholder="Fenerbahçe, Galatasaray" style="margin-top:10px">
+      <label class="secim" style="margin-top:8px"><input type="checkbox" id="golAcik" checked><span><b>Gol bildirimleri açık</b></span></label>
+      <div class="satir"><button id="takimBtn">Kaydet</button></div>
+      <p class="alt" id="takimDurum"></p>
+    </section>
+
+    <section class="kart">
+      <h2>Telefondan görüntü / video</h2>
+      <div class="alt">Telefondan bir fotoğraf ya da video seçin; kutuda tam ekran açılır. Kapatmak için TV kumandasında GERİ.</div>
+      <div class="birak" id="medyaBirak" style="margin-top:10px">
+        <b>Fotoğraf ya da video seçin</b>
+        <div class="alt">Telefonda "Dosyalar"/"Galeri" açılır; seçtiğiniz anda kutuda oynar.</div>
+      </div>
+      <input type="file" id="medyaDosya" accept="image/*,video/*" class="gizli">
+      <progress id="medyaIlerleme" value="0" max="100" class="gizli"></progress>
+      <p class="alt" id="medyaDurum"></p>
+    </section>
+
+    <section class="kart">
       <div class="satir" style="justify-content:space-between">
         <h2 style="margin:0">Uygulamalar</h2>
         <label class="alt"><input type="checkbox" id="sistemGoster"> sistem uygulamaları</label>
@@ -118,7 +155,7 @@ async function gir() {
     await api('/api/kontrol');
     try { localStorage.setItem('kod', kod); } catch (e) {}
     $('giris').classList.add('gizli'); $('panel').classList.remove('gizli');
-    durum(); anaEkran(); uygulamaListesi();
+    durum(); anaEkran(); uygulamaListesi(); takimYukle();
   } catch (e) { if (e.message !== 'kod') $('girisMesaj').textContent = e.message; }
 }
 $('girBtn').onclick = gir;
@@ -222,6 +259,62 @@ $('uygulamalar').onclick = async e => {
     }
   } catch (err) { if (err.message !== 'kod') alert(err.message); }
 };
+
+// Ekrana mesaj
+$('mesajBtn').onclick = async () => {
+  const m = $('mesaj').value.trim();
+  if (!m) return;
+  const sure = (parseInt($('mesajSure').value, 10) || 8) * 1000;
+  try {
+    await api('/api/mesaj?metin=' + encodeURIComponent(m) + '&baslik=' + encodeURIComponent('Kutu Kurucu') + '&sure=' + sure, { method: 'POST' });
+    $('mesaj').value = '';
+    $('mesajDurum').textContent = 'TV\'ye gönderildi.';
+  } catch (e) { if (e.message !== 'kod') $('mesajDurum').textContent = e.message; }
+};
+
+// Gol bildirimleri
+async function takimYukle() {
+  try {
+    const d = await api('/api/takimlar');
+    $('takimlar').value = (d.takimlar || []).join(', ');
+    $('golAcik').checked = !!d.acik;
+    $('takimDurum').textContent = (d.takimlar || []).length ? 'İzleniyor: ' + d.takimlar.join(', ') : 'Henüz takım seçilmedi.';
+  } catch (e) { if (e.message !== 'kod') $('takimDurum').textContent = e.message; }
+}
+$('takimBtn').onclick = async () => {
+  try {
+    const d = await api('/api/takimlar?takimlar=' + encodeURIComponent($('takimlar').value) + '&acik=' + ($('golAcik').checked ? '1' : '0'), { method: 'POST' });
+    $('takimlar').value = (d.takimlar || []).join(', ');
+    $('takimDurum').textContent = (d.takimlar || []).length
+      ? (d.acik ? 'Kaydedildi, goller izleniyor.' : 'Kaydedildi, bildirimler kapalı.')
+      : 'Takım adı yazın.';
+  } catch (e) { if (e.message !== 'kod') $('takimDurum').textContent = e.message; }
+};
+
+// Telefondan görüntü / video
+const medyaBirak = $('medyaBirak');
+medyaBirak.onclick = () => $('medyaDosya').click();
+$('medyaDosya').onchange = () => { const f = $('medyaDosya').files[0]; if (f) medyaGonder(f); };
+['dragenter', 'dragover'].forEach(t => medyaBirak.addEventListener(t, e => { e.preventDefault(); medyaBirak.classList.add('ustunde'); }));
+['dragleave', 'drop'].forEach(t => medyaBirak.addEventListener(t, e => { e.preventDefault(); medyaBirak.classList.remove('ustunde'); }));
+medyaBirak.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if (f) medyaGonder(f); });
+function medyaGonder(f) {
+  return new Promise(bitir => {
+    const x = new XMLHttpRequest();
+    x.open('POST', '/api/medya?ad=' + encodeURIComponent(f.name));
+    x.setRequestHeader('x-kod', kod);
+    x.setRequestHeader('Content-Type', f.type || 'application/octet-stream');
+    const p = $('medyaIlerleme'); p.classList.remove('gizli'); p.value = 0;
+    x.upload.onprogress = e => { if (e.lengthComputable) p.value = e.loaded * 100 / e.total; };
+    x.onloadend = () => {
+      p.classList.add('gizli');
+      $('medyaDurum').textContent = x.status === 200 ? 'Kutuya gönderildi, TV\'de açıldı.' : (x.responseText || 'Gönderilemedi.');
+      $('medyaDosya').value = '';
+      bitir();
+    };
+    x.send(f);
+  });
+}
 
 function mb(b) { return (b / 1048576).toFixed(1) + ' MB'; }
 function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' })[c]); }

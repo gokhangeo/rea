@@ -61,6 +61,29 @@ class Sunucu(private val c: Context) : NanoHTTPD(PORT) {
                 val i = Kurucu.kendiniGuncelle(c)
                 json(i?.json() ?: JSONObject().put("mesaj", "Kutu Kurucu zaten güncel."))
             }
+            "/api/mesaj" -> {
+                if (!post) return metin(Response.Status.METHOD_NOT_ALLOWED, "")
+                val yazi = s.parameters["metin"]?.firstOrNull()?.trim().orEmpty()
+                if (yazi.isEmpty()) return metin(Response.Status.BAD_REQUEST, "mesaj boş")
+                val baslik = s.parameters["baslik"]?.firstOrNull()?.trim()?.takeIf { it.isNotEmpty() } ?: "Kutu Kurucu"
+                val sure = s.parameters["sure"]?.firstOrNull()?.toLongOrNull() ?: 8000L
+                if (!Mesaj.goster(c, baslik, yazi, sure)) {
+                    metin(Response.Status.CONFLICT, "TV'de 'üstte gösterme' izni yok")
+                } else tamam()
+            }
+            "/api/takimlar" -> if (post) {
+                val liste = s.parameters["takimlar"]?.firstOrNull().orEmpty()
+                val acik = (s.parameters["acik"]?.firstOrNull() ?: "1") != "0"
+                Goller.ayarla(c, liste, acik)
+                json(Goller.json(c))
+            } else json(Goller.json(c))
+            "/api/medya" -> {
+                if (!post) return metin(Response.Status.METHOD_NOT_ALLOWED, "")
+                val uzunluk = s.headers["content-length"]?.toLongOrNull() ?: -1L
+                if (uzunluk <= 0) return metin(Response.Status.BAD_REQUEST, "dosya boş")
+                val ad = s.parameters["ad"]?.firstOrNull()?.takeIf { it.isNotBlank() } ?: "medya"
+                json(Medya.kaydet(c, ad, s.inputStream, uzunluk))
+            }
             "/api/uygulamalar" -> json(JSONObject().put("uygulamalar", Uygulamalar.json(c)))
             "/api/simge" -> Uygulamalar.simge(c, paket)?.let {
                 newFixedLengthResponse(Response.Status.OK, "image/png", it.inputStream(), it.size.toLong())
