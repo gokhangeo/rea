@@ -70,6 +70,17 @@ object Goller {
 
     fun acik(c: Context) = p(c).getBoolean("acik", true)
 
+    /** Gol olunca ses çalsın mı (varsayılan açık). */
+    fun ses(c: Context) = p(c).getBoolean("ses", true)
+    fun sesAyarla(c: Context, acik: Boolean) = p(c).edit().putBoolean("ses", acik).apply()
+
+    /** Sayfadaki "Dene" düğmesi: örnek gol bildirimi (ve açıksa sesi). */
+    fun dene(c: Context): Boolean {
+        val ok = Mesaj.goster(c, "⚽ GOL!", "Deneme: Ev Sahibi 1 - 0 Deplasman\nKutu Kurucu", 6_000)
+        if (ses(c)) GolSesi.cal(c)
+        return ok
+    }
+
     /**
      * [secimJson]: [{"id":"134","ad":"VfB Stuttgart","lig":"ger.1"}, ...]. Yalnızca bilinen liglerden ve
      * sayısal kimlikli takımlar kabul edilir. [eskiler]: tutulacak eski elle yazılmış adlar (silinenler düşer).
@@ -99,6 +110,7 @@ object Goller {
         .put("secili", JSONArray(secili(c).map { it.json() }))
         .put("eskiler", JSONArray(eskiAdlar(c)))
         .put("acik", acik(c))
+        .put("ses", ses(c))
         .put("ligler", JSONArray(SECILEBILIR.map { (k, v) -> JSONObject().put("kod", k).put("ad", v) }))
 
     /** Bir ligin takımları (ESPN). 6 saat önbellekte tutulur. */
@@ -194,6 +206,7 @@ object Goller {
                     if (dakika.isNotBlank()) append(" · ").append(dakika)
                 }
                 Mesaj.goster(c, baslik, alt, 12_000)
+                if (ses(c)) GolSesi.cal(c)
             }
         }
         // Eski maçları biriktirmemek için son 300 kayıt tutulur.

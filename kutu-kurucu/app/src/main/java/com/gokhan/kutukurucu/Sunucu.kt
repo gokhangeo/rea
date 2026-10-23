@@ -77,14 +77,19 @@ class Sunucu(private val c: Context) : NanoHTTPD(PORT) {
             }
             "/api/takimlar" -> if (post) {
                 val acik = (s.parameters["acik"]?.firstOrNull() ?: "1") != "0"
+                s.parameters["ses"]?.firstOrNull()?.let { Goller.sesAyarla(c, it != "0") }
                 Goller.ayarla(c, s.parameters["secili"]?.firstOrNull(), s.parameters["eskiler"]?.firstOrNull(), acik)
                     ?.let { metin(Response.Status.BAD_REQUEST, it) } ?: json(Goller.json(c))
             } else json(Goller.json(c))
+            "/api/gol-dene" -> {
+                if (!post) return metin(Response.Status.METHOD_NOT_ALLOWED, "")
+                if (Goller.dene(c)) tamam() else metin(Response.Status.CONFLICT, "TV'de 'üstte gösterme' izni yok")
+            }
             "/api/lig-takimlar" -> {
                 val lig = s.parameters["lig"]?.firstOrNull().orEmpty()
                 if (lig !in Goller.SECILEBILIR) metin(Response.Status.BAD_REQUEST, "Bilinmeyen lig")
                 else runCatching { json(JSONObject().put("lig", lig).put("takimlar", Goller.ligTakimlari(lig))) }
-                    .getOrElse { metin(Response.Status.BAD_GATEWAY, "Takım listesi alınamadı (ESPN): ${it.message}") }
+                    .getOrElse { metin(Response.Status.INTERNAL_ERROR, "Takım listesi alınamadı (ESPN): ${it.message}") }
             }
             "/api/medya" -> {
                 if (!post) return metin(Response.Status.METHOD_NOT_ALLOWED, "")

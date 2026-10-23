@@ -105,6 +105,8 @@
       </div>
       <div id="seciliTakimlar" class="takimlar"></div>
       <label class="secim" style="margin-top:8px"><input type="checkbox" id="golAcik" checked><span><b>Gol bildirimleri açık</b></span></label>
+      <label class="secim"><input type="checkbox" id="golSes" checked><span><b>Gol sesi</b> (düdük + boru, TV'nin ses düzeyiyle)</span></label>
+      <div class="satir"><button class="ikinci" id="golDene">Dene</button></div>
       <p class="alt" id="takimDurum"></p>
     </section>
 
@@ -326,7 +328,7 @@ function takimCiz() {
 async function golKaydet() {
   try {
     const d = await api('/api/takimlar?secili=' + encodeURIComponent(JSON.stringify(golSecili.map(({ id, ad, lig }) => ({ id, ad, lig })))) +
-      '&eskiler=' + encodeURIComponent(golEski.join(',')) + '&acik=' + ($('golAcik').checked ? '1' : '0'), { method: 'POST' });
+      '&eskiler=' + encodeURIComponent(golEski.join(',')) + '&acik=' + ($('golAcik').checked ? '1' : '0') + '&ses=' + ($('golSes').checked ? '1' : '0'), { method: 'POST' });
     golSecili = d.secili || []; golEski = d.eskiler || []; takimCiz();
   } catch (e) { if (e.message !== 'kod') $('takimDurum').textContent = e.message; }
 }
@@ -335,6 +337,7 @@ async function takimYukle() {
     const d = await api('/api/takimlar');
     golSecili = d.secili || []; golEski = d.eskiler || [];
     $('golAcik').checked = !!d.acik;
+    $('golSes').checked = d.ses !== false;
     if (golLig.options.length <= 1) (d.ligler || []).forEach(l => golLig.add(new Option(l.ad, l.kod)));
     takimCiz();
   } catch (e) { if (e.message !== 'kod') $('takimDurum').textContent = e.message; }
@@ -367,6 +370,11 @@ $('seciliTakimlar').onclick = e => {
   golKaydet();
 };
 $('golAcik').onchange = golKaydet;
+$('golSes').onchange = golKaydet;
+$('golDene').onclick = async () => {
+  try { await api('/api/gol-dene', { method: 'POST' }); $('takimDurum').textContent = "TV'de örnek gol bildirimi gösterildi."; }
+  catch (e) { if (e.message !== 'kod') $('takimDurum').textContent = e.message; }
+};
 
 
 // Telefondan görüntü / video
