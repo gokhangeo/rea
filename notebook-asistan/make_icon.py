@@ -30,4 +30,4 @@ for i in range(8):
 d.polygon(pts, fill="white")
 img.save("icon.png")
 img.save("icon.ico", sizes=[(16, 16), (24, 24), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)])
-print("icon.ico hazır")
+print("icon.ico ok")
