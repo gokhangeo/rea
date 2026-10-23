@@ -17,6 +17,12 @@ Her kutuya ayrı kurulur; her kutunun kendi adresi ve kodu vardır.
 - **Ana ekran:** Home tuşu kutunun kendi ana ekranını mı, Ev Ekranı'nı mı, başka bir başlatıcıyı mı açsın, sayfadan seçilir.
 - **Uygulamalar:** Kutudaki uygulamalar listelenir; açılabilir, APK'sı indirilebilir (yedek ya da öbür kutuya kurmak için),
   kaldırılabilir. Sistem ve operatör (Turkcell/Skyworth) uygulamaları kaldırılamaz.
+- **Ekrana mesaj:** Sayfadan yazılan mesaj TV'de ne açık olursa olsun (kanal, film, uygulama) üstte görünür ve seçilen süre
+  sonunda kendiliğinden kaybolur. `POST /api/mesaj?metin=...&sure=8000`.
+- **Gol bildirimleri:** Sayfada takım adları yazılır (örn. `Fenerbahçe, Galatasaray`); kutu 30 saniyede bir ESPN'in
+  herkese açık skor servisini yoklar, gol olunca skoru üstte 12 saniye gösterir. Kanal açıkken de görünür.
+- **Telefondan görüntü/video:** Telefondan seçilen fotoğraf ya da video kutuya gider ve tam ekran açılır; kumandada GERİ kapatır,
+  video bitince kendiliğinden kapanır (`POST /api/medya`).
 - **Kendini güncelleme:** Sayfadaki "Kutu Kurucu'yu güncelle" düğmesi GitHub'daki son sürümü kurar.
 - Sayfa TV ekranında yazan 4 haneli kodu ister. Port 8090; Ev Ekranı'nın 8080'deki sayfasıyla çakışmaz.
 

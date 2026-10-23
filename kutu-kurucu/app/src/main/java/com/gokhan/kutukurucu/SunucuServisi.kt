@@ -38,6 +38,13 @@ class SunucuServisi : Service() {
         }
         // Ev Ekranı açılışta Home servisini kendisi geri açar; seçim biraz sonra yeniden uygulanır.
         for (ms in longArrayOf(0, 15_000, 60_000)) ana.postDelayed({ AnaEkran.uygula(this) }, ms)
+        // Seçili takımların gollerini izle (20 saniyede bir, yalnızca takım seçiliyse ağa çıkar).
+        ana.post(object : Runnable {
+            override fun run() {
+                Goller.dongu(this@SunucuServisi)
+                ana.postDelayed(this, 20_000)
+            }
+        })
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int) = START_STICKY

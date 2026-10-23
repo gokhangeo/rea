@@ -42,6 +42,14 @@
             </intent-filter>
         </activity>
 
+        <!-- Telefondan gelen fotoğraf/video tam ekran; üstte gösterme izniyle arka plandan açılır. -->
+        <activity
+            android:name=".MedyaGoster"
+            android:exported="false"
+            android:launchMode="singleTop"
+            android:excludeFromRecents="true"
+            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen" />
+
         <service
             android:name=".SunucuServisi"
             android:exported="false"
