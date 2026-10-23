@@ -189,16 +189,17 @@ object Kurucu {
         return null
     }
 
-    private fun baglan(url: String): HttpURLConnection = (URL(url).openConnection() as HttpURLConnection).apply {
-        connectTimeout = 15_000
-        readTimeout = 60_000
-        instanceFollowRedirects = true
-        setRequestProperty("User-Agent", "KutuKurucu/1.0")
+    /** Yönlendirmeler elle izlenir: kutunun DNS'i yönlendirilen adı çözemezse Dns yedeği devreye girsin. */
+    private fun baglan(url: String, ek: (HttpURLConnection) -> Unit = {}): HttpURLConnection = Dns.ac(url) {
+        it.connectTimeout = 15_000
+        it.readTimeout = 60_000
+        it.instanceFollowRedirects = false
+        it.setRequestProperty("User-Agent", "KutuKurucu/1.0")
+        ek(it)
     }
 
     private fun getir(url: String): String {
-        val b = baglan(url)
-        b.setRequestProperty("Accept", "application/vnd.github+json")
+        val b = baglan(url) { it.setRequestProperty("Accept", "application/vnd.github+json") }
         try {
             if (b.responseCode != 200) error("GitHub cevap vermedi (HTTP ${b.responseCode})")
             return b.inputStream.bufferedReader().readText()

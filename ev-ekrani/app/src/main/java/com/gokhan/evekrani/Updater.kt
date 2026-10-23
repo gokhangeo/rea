@@ -134,16 +134,31 @@ object Updater {
     private fun download(url: String, file: File, size: Long) {
         file.parentFile?.mkdirs()
         val part = File(file.path + ".part")
-        val conn = URL(url).openConnection() as HttpURLConnection
-        conn.connectTimeout = 15_000
-        conn.readTimeout = 60_000
-        conn.setRequestProperty("User-Agent", "EvEkrani/1.0")
-        try {
-            if (conn.responseCode != 200) error("HTTP ${conn.responseCode}")
-            conn.inputStream.use { input -> part.outputStream().use { input.copyTo(it, 64 * 1024) } }
-        } finally {
-            conn.disconnect()
+        // Yönlendirmeler elle izlenir: kutunun DNS'i release-assets.githubusercontent.com'u çözemezse Dns yedeği devreye girsin.
+        var adres = url
+        var bitti = false
+        for (n in 0 until 5) {
+            val conn = Dns.ac(adres) {
+                it.connectTimeout = 15_000
+                it.readTimeout = 60_000
+                it.instanceFollowRedirects = false
+                it.setRequestProperty("User-Agent", "EvEkrani/1.0")
+            }
+            try {
+                val kod = conn.responseCode
+                if (kod in 300..399) {
+                    adres = URL(URL(adres), conn.getHeaderField("Location") ?: error("yönlendirme bozuk")).toString()
+                    continue
+                }
+                if (kod != 200) error("HTTP $kod")
+                conn.inputStream.use { input -> part.outputStream().use { input.copyTo(it, 64 * 1024) } }
+                bitti = true
+                break
+            } finally {
+                conn.disconnect()
+            }
         }
+        if (!bitti) error("çok fazla yönlendirme")
         if (size > 0 && part.length() != size) {
             part.delete()
             error("indirme yarım kaldı")
@@ -152,11 +167,12 @@ object Updater {
     }
 
     private fun get(url: String): String {
-        val conn = URL(url).openConnection() as HttpURLConnection
-        conn.connectTimeout = 10_000
-        conn.readTimeout = 15_000
-        conn.setRequestProperty("User-Agent", "EvEkrani/1.0")
-        conn.setRequestProperty("Accept", "application/vnd.github+json")
+        val conn = Dns.ac(url) {
+            it.connectTimeout = 10_000
+            it.readTimeout = 15_000
+            it.setRequestProperty("User-Agent", "EvEkrani/1.0")
+            it.setRequestProperty("Accept", "application/vnd.github+json")
+        }
         try {
             if (conn.responseCode != 200) error("HTTP ${conn.responseCode}")
             return conn.inputStream.bufferedReader().readText()
