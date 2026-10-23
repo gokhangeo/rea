@@ -46,6 +46,30 @@ def modulu_hazirla() -> None:
                     f.write(z.read(ad))
     # dreame_vacuum/__init__.py Home Assistant ister; bu yüzden yalnızca alt "dreame" paketi yüklenir
     sys.path.insert(0, paket)
+    miio_yedegi()
+
+
+def miio_yedegi() -> None:
+    """python-miio yalnızca Mi Home yerel bağlantısı için gerekir ve Windows'ta derleyici ister.
+    Dreamehome bulut bağlantısında kullanılmadığından yoksa yerine boş bir sınıf konur."""
+    try:
+        import miio.miioprotocol  # noqa: F401
+        return
+    except ImportError:
+        pass
+    yedek = os.path.join(ONBELLEK, "miio-yedek", "miio")
+    os.makedirs(yedek, exist_ok=True)
+    with open(os.path.join(yedek, "__init__.py"), "w", encoding="utf-8") as f:
+        f.write("")
+    with open(os.path.join(yedek, "miioprotocol.py"), "w", encoding="utf-8") as f:
+        f.write(
+            "class MiIOProtocol:\n"
+            "    def __init__(self, *args, **kwargs):\n"
+            "        self._discovered = False\n"
+            "    def send(self, *args, **kwargs):\n"
+            "        raise RuntimeError('Yerel Mi Home baglantisi desteklenmiyor')\n"
+        )
+    sys.path.insert(0, os.path.dirname(yedek))
 
 
 def modeller(device_info_b64: str) -> dict:
