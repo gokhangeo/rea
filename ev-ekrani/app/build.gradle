@@ -20,19 +20,17 @@ android {
         ndk { abiFilters 'armeabi-v7a', 'arm64-v8a' }
     }
 
-    // Her sürüm aynı anahtarla imzalanmalı ki yeni APK eskisinin üstüne kurulabilsin. Anahtar depoda tutulmaz:
-    // GitHub'da EV_KEYSTORE_B64 ve EV_KEYSTORE_PASS gizli değerleri varsa onlar, yoksa derleme makinesinin
-    // önbellekte saklanan hata ayıklama anahtarı kullanılır (bkz. .github/workflows/ev-ekrani.yml).
+    // Her sürüm aynı anahtarla imzalanmalı ki yeni APK eskisinin üstüne kurulabilsin. Anahtar depoda
+    // ev-ekrani/ev-ekrani.jks olarak durur (0.2.27+, parolası evekrani; Kutu Kurucu ile aynı yöntem).
+    // Önceki sürümler her derlemede başka anahtarla imzalandığı için kutudaki eski sürüm bir kez kaldırılmalı.
     def keystore = rootProject.file('ev-ekrani.jks')
-    def keystorePass = System.getenv('EV_KEYSTORE_PASS')
-    if (keystore.exists() && keystorePass) {
-        signingConfigs {
-            ev {
-                storeFile keystore
-                storePassword keystorePass
-                keyAlias System.getenv('EV_KEY_ALIAS') ?: 'evekrani'
-                keyPassword keystorePass
-            }
+    def keystorePass = System.getenv('EV_KEYSTORE_PASS') ?: 'evekrani'
+    signingConfigs {
+        ev {
+            storeFile keystore
+            storePassword keystorePass
+            keyAlias System.getenv('EV_KEY_ALIAS') ?: 'evekrani'
+            keyPassword keystorePass
         }
     }
 
@@ -42,7 +40,7 @@ android {
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            signingConfig signingConfigs.findByName('ev') ?: signingConfigs.debug
+            signingConfig signingConfigs.ev
         }
     }
 
