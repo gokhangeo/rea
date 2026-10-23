@@ -29,6 +29,7 @@ jobs:
     runs-on: windows-latest
     env:
       PFX: ${{ secrets.CODE_SIGN_PFX_BASE64 }}
+      SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}
     steps:
       - uses: actions/checkout@v4
 
@@ -96,10 +97,41 @@ jobs:
           Remove-Item $pfx -Force
 
       - uses: actions/upload-artifact@v4
+        id: upload
         with:
           name: Atac
           path: atac-py/dist/Atac.exe
           if-no-files-found: error
+
+      # --- SignPath Foundation ile UCRETSIZ Authenticode imzalama ---
+      # Yalnizca SIGNPATH_API_TOKEN secret'i varsa calisir (onay sonrasi).
+      # Gereken secret'lar (SignPath hesabindan, OSS onayindan sonra):
+      #   SIGNPATH_API_TOKEN, SIGNPATH_ORGANIZATION_ID
+      #   SIGNPATH_PROJECT_SLUG, SIGNPATH_POLICY_SLUG   (ornek: rea / release-signing)
+      - name: İmzala (SignPath)
+        if: ${{ env.SIGNPATH_API_TOKEN != '' }}
+        env:
+          SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}
+        uses: signpath/github-action-submit-signing-request@v1
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ secrets.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ secrets.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ secrets.SIGNPATH_POLICY_SLUG }}
+          github-artifact-id: ${{ steps.upload.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: atac-py/dist-signed
+
+      - name: İmzalı exe'yi yerine koy (SignPath çalıştıysa)
+        if: ${{ env.SIGNPATH_API_TOKEN != '' }}
+        env:
+          SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}
+        shell: bash
+        run: |
+          if [ -f atac-py/dist-signed/Atac.exe ]; then
+            cp atac-py/dist-signed/Atac.exe atac-py/dist/Atac.exe
+            echo "İmzalı exe kullanılıyor."
+          fi
 
       - name: Release'e yükle
         if: ${{ startsWith(github.ref, 'refs/tags/atac-py-v') || (github.event_name == 'workflow_dispatch' && inputs.surum != '') }}
