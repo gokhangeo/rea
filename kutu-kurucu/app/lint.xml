@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<lint>
+    <!-- Elden kurulan, mağazaya gitmeyen bir TV aracı: tüm uygulamaları listelemesi ve ayar yazması amacının kendisi. -->
+    <issue id="QueryAllPackagesPermission" severity="ignore" />
+    <issue id="ProtectedPermissions" severity="ignore" />
+</lint>

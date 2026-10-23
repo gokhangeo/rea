@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Yalnızca tuşları süzer; ekran içeriği okunmaz, olay da yalnızca kendi paketinden gelir. -->
+<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:accessibilityEventTypes="typeAnnouncement"
+    android:accessibilityFeedbackType="feedbackGeneric"
+    android:accessibilityFlags="flagRequestFilterKeyEvents"
+    android:canRequestFilterKeyEvents="true"
+    android:canRetrieveWindowContent="false"
+    android:description="@string/servis_aciklama"
+    android:notificationTimeout="0"
+    android:packageNames="com.gokhan.kutukurucu" />

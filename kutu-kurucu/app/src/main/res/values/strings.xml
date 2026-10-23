@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Kutu Kurucu</string>
+    <string name="servis_adi">Kutu Kurucu ana ekran tuşu</string>
+    <string name="servis_aciklama">Kumandanın Home tuşunu Kutu Kurucu sayfasında seçilen ana ekrana yönlendirir. Başka hiçbir şeyi okumaz.</string>
+</resources>

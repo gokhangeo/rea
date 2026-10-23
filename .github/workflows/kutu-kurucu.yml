@@ -1,0 +1,76 @@
+name: Kutu Kurucu APK
+
+on:
+  push:
+    paths:
+      - "kutu-kurucu/**"
+      - ".github/workflows/kutu-kurucu.yml"
+  workflow_dispatch:
+  # İmza anahtarı Actions önbelleğinde durur ve 7 gün dokunulmazsa silinir; silinirse yeni APK eskisinin
+  # üstüne kurulamaz. Bu zamanlanmış çalışma yalnızca önbelleği okuyup canlı tutar.
+  schedule:
+    - cron: "41 3 */4 * *"
+
+permissions:
+  contents: write
+
+jobs:
+  anahtari-canli-tut:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/cache/restore@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: kutu-kurucu-debug-keystore
+
+  derle:
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: kutu-kurucu
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+      - name: İmza anahtarını hazırla
+        env:
+          KUTU_KEYSTORE_B64: ${{ secrets.KUTU_KEYSTORE_B64 }}
+        run: |
+          if [ -n "$KUTU_KEYSTORE_B64" ]; then echo "$KUTU_KEYSTORE_B64" | base64 -d > kutu-kurucu.jks; fi
+      - uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: kutu-kurucu-debug-keystore
+      - name: APK derle
+        env:
+          KUTU_KEYSTORE_PASS: ${{ secrets.KUTU_KEYSTORE_PASS }}
+        run: ./gradlew --no-daemon assembleRelease
+      - name: APK adını düzenle
+        run: cp app/build/outputs/apk/release/app-release.apk "KutuKurucu-1.${GITHUB_RUN_NUMBER}.apk"
+      - name: Sürüm notu
+        run: |
+          git log -1 --format=%s > notlar.txt
+          echo "" >> notlar.txt
+          echo "İki TV kutusuna telefondan/PC'den APK kurma ve ana ekran seçme aracı. Kurulum: depodaki kutu-kurucu/README.md." >> notlar.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: KutuKurucu-apk
+          path: kutu-kurucu/KutuKurucu-*.apk
+      - name: Sürüm yayınla (yalnızca main)
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: kutu-kurucu-v1.${{ github.run_number }}
+          name: Kutu Kurucu 1.${{ github.run_number }}
+          make_latest: false
+          files: |
+            kutu-kurucu/KutuKurucu-*.apk
+            kutu-kurucu/pc/Kutuya-Gonder.bat
+            kutu-kurucu/pc/kutuya-gonder.ps1
+            kutu-kurucu/pc/ilk-kurulum.bat
+          body_path: kutu-kurucu/notlar.txt
