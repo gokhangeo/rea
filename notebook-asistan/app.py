@@ -15,6 +15,14 @@ from pathlib import Path
 
 os.environ.setdefault("NOTEBOOKLM_HL", "tr")
 
+# SSL: Python'un kendi sertifika listesi yerine Windows sertifika deposunu kullan.
+# Kurum ağı / antivirüs HTTPS denetimi yapan PC'lerde "certificate verify failed" hatasını giderir.
+try:
+    import truststore
+    truststore.inject_into_ssl()
+except Exception:
+    pass
+
 APP = "Notebook Asistan"
 DEFAULT_NB = "3f678b22-546d-4b4c-a4a4-770ea15ff52c"
 HOME = Path.home() / ".notebooklm"

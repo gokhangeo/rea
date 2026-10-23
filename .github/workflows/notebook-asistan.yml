@@ -62,7 +62,7 @@ jobs:
         run: |
           python -m PyInstaller --noconfirm --onefile --windowed --name NotebookAsistan --icon icon.ico \
             --add-data "ui;ui" --add-data "version.txt;." --add-data "icon.ico;." \
-            --collect-all notebooklm --collect-all webview --collect-all playwright --collect-data certifi \
+            --collect-all notebooklm --collect-all webview --collect-all playwright --collect-data certifi --hidden-import truststore \
             app.py
           ls -la dist/NotebookAsistan.exe
 
