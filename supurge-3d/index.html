@@ -1,0 +1,452 @@
+<title>Süpürge Haritası 3D</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+  :root {
+    --bg: #f4f5f7; --panel: #ffffff; --text: #1d2330; --muted: #5f6878;
+    --line: #dde1e8; --accent: #1f6feb; --accent-text: #fff;
+    --scene: #eef1f5;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151b; --panel: #1b2029; --text: #e7eaf0; --muted: #9aa3b2;
+      --line: #2b3240; --accent: #4c8dff; --accent-text: #0b0e13;
+      --scene: #1b2029; color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151b; --panel: #1b2029; --text: #e7eaf0; --muted: #9aa3b2;
+    --line: #2b3240; --accent: #4c8dff; --accent-text: #0b0e13;
+    --scene: #1b2029; color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 16px; padding-block: 16px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+    min-height: 100%; }
+  html, body { height: 100%; }
+  aside { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+    padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+  h1 { font-size: 18px; margin: 0; }
+  p.hint { margin: 0; color: var(--muted); font-size: 13px; }
+  label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }
+  label span.val { color: var(--text); font-variant-numeric: tabular-nums; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; }
+  button, .file { appearance: none; border: 1px solid var(--line); background: var(--panel);
+    color: var(--text); border-radius: 8px; padding: 8px 12px; font: inherit; cursor: pointer; }
+  button.primary, .file { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+  button[aria-pressed="true"] { outline: 2px solid var(--accent); }
+  .file input { display: none; }
+  #onizleme { width: 100%; border-radius: 8px; border: 1px solid var(--line); cursor: crosshair;
+    touch-action: none; background: repeating-conic-gradient(#8881 0 25%, transparent 0 50%) 0 0/16px 16px; }
+  #sahne { position: relative; background: var(--panel); border: 1px solid var(--line);
+    border-radius: 12px; overflow: hidden; min-height: 420px; }
+  #sahne canvas { display: block; width: 100%; height: 100%; }
+  #durum { position: absolute; left: 12px; bottom: 10px; font-size: 12px; color: var(--muted); }
+  .renk { display: inline-block; width: 18px; height: 18px; border-radius: 4px;
+    border: 1px solid var(--line); vertical-align: middle; }
+  @media (max-width: 820px) {
+    main { grid-template-columns: 1fr; }
+    #sahne { min-height: 60vh; }
+  }
+</style>
+<main>
+  <aside>
+    <h1>Süpürge haritası → 3D ev</h1>
+    <p class="hint">Dreamehome'daki harita ekranının görüntüsünü yükleyin. Önizlemede parmakla/fareyle
+      bir dikdörtgen çizerek yalnızca haritayı seçin; duvarlar otomatik yükselir.</p>
+    <div class="row">
+      <label class="file">Harita dosyası seç<input id="dosya" type="file" accept="image/*,.json,application/json"></label>
+      <button id="ornek">Örnek ev</button>
+    </div>
+    <canvas id="onizleme" width="300" height="300"></canvas>
+    <div class="row">
+      <button id="kirpSifirla">Kırpmayı sıfırla</button>
+      <button id="duvarSec" aria-pressed="false">Duvar rengini seç</button>
+      <span class="hint">Duvar: <span id="duvarRenk" class="renk"></span></span>
+    </div>
+    <label>Duvar renk toleransı <span class="val" id="tolV"></span>
+      <input id="tol" type="range" min="5" max="120" value="55"></label>
+    <label>Evin gerçek genişliği (m) <span class="val" id="genV"></span>
+      <input id="gen" type="range" min="4" max="30" step="0.5" value="12"></label>
+    <label>Duvar yüksekliği (m) <span class="val" id="yukV"></span>
+      <input id="yuk" type="range" min="0.3" max="3" step="0.1" value="2.4"></label>
+    <label>Ayrıntı (hücre sayısı) <span class="val" id="detV"></span>
+      <input id="det" type="range" min="80" max="360" step="20" value="220"></label>
+    <div class="row">
+      <button class="primary" id="glb">.glb indir</button>
+      <button id="ustten">Üstten bak</button>
+    </div>
+    <p class="hint" id="glbNot">.glb dosyası iPhone'da Dosyalar'dan, bilgisayarda Windows "3D Görüntüleyici"
+      ile açılır. Bu sayfada dosya zip içinde iner.</p>
+  </aside>
+  <section id="sahne"><div id="durum"></div></section>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
+
+const $ = id => document.getElementById(id);
+const ayar = { tol: 55, gen: 12, yuk: 2.4, det: 220 };
+let kaynak = null;          // HTMLCanvasElement: yüklenen tam görüntü
+let kirp = null;            // {x,y,w,h} kaynak pikselinde
+let duvarRengi = null;      // [r,g,b]
+let duvarSecMod = false;
+let jsonHarita = null;     // harita-cek.py çıktısı (harita.json)
+
+// ---------- 3D sahne ----------
+const sahneEl = $('sahne');
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+sahneEl.prepend(renderer.domElement);
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 500);
+camera.position.set(9, 12, 12);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.maxPolarAngle = Math.PI * 0.49;
+scene.add(new THREE.HemisphereLight(0xffffff, 0x8899aa, 1.1));
+const gunes = new THREE.DirectionalLight(0xffffff, 1.6);
+gunes.position.set(8, 16, 6);
+gunes.castShadow = true;
+gunes.shadow.mapSize.set(2048, 2048);
+Object.assign(gunes.shadow.camera, { left: -20, right: 20, top: 20, bottom: -20 });
+scene.add(gunes);
+let ev = null;
+
+function temaRengi() {
+  const c = getComputedStyle(document.documentElement).getPropertyValue('--scene').trim() || '#eef1f5';
+  scene.background = new THREE.Color(c);
+}
+temaRengi();
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', temaRengi);
+new MutationObserver(temaRengi).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+function boyutla() {
+  const r = sahneEl.getBoundingClientRect();
+  renderer.setSize(r.width, r.height, false);
+  camera.aspect = r.width / r.height;
+  camera.updateProjectionMatrix();
+}
+new ResizeObserver(boyutla).observe(sahneEl);
+renderer.setAnimationLoop(() => { controls.update(); renderer.render(scene, camera); });
+
+// ---------- Görüntü işleme ----------
+const fark = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+
+function enSikRenk(pikseller) {
+  const say = new Map();
+  for (const p of pikseller) {
+    const k = (p[0] >> 4) << 8 | (p[1] >> 4) << 4 | (p[2] >> 4);
+    const e = say.get(k) || { n: 0, r: 0, g: 0, b: 0 };
+    e.n++; e.r += p[0]; e.g += p[1]; e.b += p[2];
+    say.set(k, e);
+  }
+  let en = null;
+  for (const e of say.values()) if (!en || e.n > en.n) en = e;
+  return [en.r / en.n, en.g / en.n, en.b / en.n];
+}
+
+// Kırpılmış bölgeyi ızgaraya indirger; her hücre: 0 boş, 1 zemin, 2 duvar
+function izgaraCikar() {
+  const k = kirp;
+  const olcek = ayar.det / Math.max(k.w, k.h);
+  const W = Math.max(8, Math.round(k.w * olcek)), H = Math.max(8, Math.round(k.h * olcek));
+  const c = document.createElement('canvas');
+  c.width = W; c.height = H;
+  const cx = c.getContext('2d', { willReadFrequently: true });
+  cx.imageSmoothingEnabled = true;
+  cx.drawImage(kaynak, k.x, k.y, k.w, k.h, 0, 0, W, H);
+  const d = cx.getImageData(0, 0, W, H).data;
+  const px = (x, y) => { const i = (y * W + x) * 4; return [d[i], d[i + 1], d[i + 2], d[i + 3]]; };
+
+  const kenar = [];
+  for (let x = 0; x < W; x++) kenar.push(px(x, 0), px(x, H - 1));
+  for (let y = 0; y < H; y++) kenar.push(px(0, y), px(W - 1, y));
+  const zeminDisi = enSikRenk(kenar);
+  if (!duvarRengi) duvarRengi = tahminiDuvar(px, W, H, zeminDisi);
+  $('duvarRenk').style.background = `rgb(${duvarRengi.map(Math.round).join(',')})`;
+
+  const tip = new Uint8Array(W * H), renk = new Array(W * H);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const p = px(x, y), i = y * W + x;
+    if (p[3] < 40 || fark(p, zeminDisi) < 22) tip[i] = 0;
+    else if (fark(p, duvarRengi) < ayar.tol) tip[i] = 2;
+    else { tip[i] = 1; renk[i] = p; }
+  }
+  return { W, H, tip, renk };
+}
+
+// Arka plandan en uzak, en koyu yaygın renk duvar kabul edilir
+function tahminiDuvar(px, W, H, arka) {
+  const adaylar = [];
+  for (let y = 0; y < H; y += 2) for (let x = 0; x < W; x += 2) {
+    const p = px(x, y);
+    if (fark(p, arka) < 40) continue;
+    const s = Math.max(p[0], p[1], p[2]) - Math.min(p[0], p[1], p[2]);
+    if (s < 40) adaylar.push(p);
+  }
+  if (adaylar.length < 10) return [90, 90, 90];
+  const arkaParlak = arka[0] + arka[1] + arka[2] > 380;
+  adaylar.sort((a, b) => (a[0] + a[1] + a[2]) - (b[0] + b[1] + b[2]));
+  const dilim = arkaParlak ? adaylar.slice(0, adaylar.length / 3) : adaylar.slice(-adaylar.length / 3);
+  return enSikRenk(dilim);
+}
+
+// Aynı anahtara sahip hücreleri dikdörtgenlere birleştirir (açgözlü yöntem)
+function dikdortgenler(W, H, anahtar) {
+  const kullanildi = new Uint8Array(W * H), sonuc = [];
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const a = anahtar(x, y);
+    if (a == null || kullanildi[y * W + x]) continue;
+    let w = 1;
+    while (x + w < W && !kullanildi[y * W + x + w] && anahtar(x + w, y) === a) w++;
+    let h = 1;
+    satir: while (y + h < H) {
+      for (let i = 0; i < w; i++) {
+        if (kullanildi[(y + h) * W + x + i] || anahtar(x + i, y + h) !== a) break satir;
+      }
+      h++;
+    }
+    for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) kullanildi[(y + j) * W + x + i] = 1;
+    sonuc.push({ x, y, w, h, a });
+  }
+  return sonuc;
+}
+
+function kutuEkle(g, x0, y0, z0, x1, y1, z1, c) {
+  const yuzler = [
+    [[1, 0, 0], [[x1, y0, z0], [x1, y1, z0], [x1, y1, z1], [x1, y0, z1]]],
+    [[-1, 0, 0], [[x0, y0, z1], [x0, y1, z1], [x0, y1, z0], [x0, y0, z0]]],
+    [[0, 1, 0], [[x0, y1, z0], [x0, y1, z1], [x1, y1, z1], [x1, y1, z0]]],
+    [[0, -1, 0], [[x0, y0, z1], [x0, y0, z0], [x1, y0, z0], [x1, y0, z1]]],
+    [[0, 0, 1], [[x1, y0, z1], [x1, y1, z1], [x0, y1, z1], [x0, y0, z1]]],
+    [[0, 0, -1], [[x0, y0, z0], [x0, y1, z0], [x1, y1, z0], [x1, y0, z0]]],
+  ];
+  for (const [n, v] of yuzler) {
+    const b = g.pos.length / 3;
+    for (const p of v) { g.pos.push(...p); g.nor.push(...n); g.col.push(...c); }
+    g.idx.push(b, b + 1, b + 2, b, b + 2, b + 3);
+  }
+}
+
+function geometri(g) {
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(g.pos, 3));
+  geo.setAttribute('normal', new THREE.Float32BufferAttribute(g.nor, 3));
+  geo.setAttribute('color', new THREE.Float32BufferAttribute(g.col, 3));
+  geo.setIndex(g.idx);
+  return geo;
+}
+
+const yeniG = () => ({ pos: [], nor: [], col: [], idx: [] });
+const srgb = c => new THREE.Color().setRGB(c[0] / 255, c[1] / 255, c[2] / 255, THREE.SRGBColorSpace);
+
+// harita.json: 0 dış, 255/251 duvar, 1-63 oda, 100+/200+ oda kenarı, 249-254 genel zemin
+const ODA_RENK = [[156, 199, 240], [246, 196, 143], [181, 227, 168], [233, 179, 214], [242, 227, 138], [180, 170, 240]];
+function jsonIzgara() {
+  const j = jsonHarita, W = j.genislik, H = j.yukseklik;
+  const ham = Uint8Array.from(atob(j.pikseller), ch => ch.charCodeAt(0));
+  const tip = new Uint8Array(W * H), renk = new Array(W * H);
+  for (let i = 0; i < W * H; i++) {
+    const v = ham[i];
+    if (v === 0) continue;
+    if (v === 255 || v === 251) { tip[i] = 2; continue; }
+    const oda = v < 100 ? v : v < 200 ? v - 100 : v < 249 ? v - 200 : 0;
+    tip[i] = 1;
+    renk[i] = oda ? ODA_RENK[oda % ODA_RENK.length] : [215, 215, 210];
+  }
+  // Haritada duvar pikseli yoksa zeminin dışa komşu kenarı duvar sayılır
+  if (!tip.includes(2)) {
+    const dis = (x, y) => x < 0 || y < 0 || x >= W || y >= H || ham[y * W + x] === 0;
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const i = y * W + x;
+      if (tip[i] === 1 && (dis(x - 1, y) || dis(x + 1, y) || dis(x, y - 1) || dis(x, y + 1))) tip[i] = 3;
+    }
+    for (let i = 0; i < W * H; i++) if (tip[i] === 3) tip[i] = 2;
+  }
+  return { W, H, tip, renk };
+}
+
+function modelKur() {
+  if (!kaynak && !jsonHarita) return;
+  const { W, H, tip, renk } = jsonHarita ? jsonIzgara() : izgaraCikar();
+  const m = jsonHarita ? jsonHarita.hucre_mm / 1000 : ayar.gen / W;   // hücre başına metre
+  const ox = -W * m / 2, oz = -H * m / 2;
+
+  // Zemin: rengi kabaca nicelendirip benzer hücreleri birleştir
+  const nicel = c => ((c[0] >> 5) << 6) | ((c[1] >> 5) << 3) | (c[2] >> 5);
+  const zemin = yeniG();
+  for (const r of dikdortgenler(W, H, (x, y) => tip[y * W + x] === 1 ? nicel(renk[y * W + x]) : null)) {
+    const c = renk[r.y * W + r.x];
+    const t = srgb(c).lerp(new THREE.Color(1, 1, 1), 0.15);
+    kutuEkle(zemin, ox + r.x * m, 0, oz + r.y * m, ox + (r.x + r.w) * m, 0.04, oz + (r.y + r.h) * m,
+      [t.r, t.g, t.b]);
+  }
+  // Duvarlar
+  const duvar = yeniG(), dr = srgb([235, 232, 226]);
+  for (const r of dikdortgenler(W, H, (x, y) => tip[y * W + x] === 2 ? 1 : null)) {
+    kutuEkle(duvar, ox + r.x * m, 0, oz + r.y * m, ox + (r.x + r.w) * m, ayar.yuk, oz + (r.y + r.h) * m,
+      [dr.r, dr.g, dr.b]);
+  }
+
+  if (ev) { scene.remove(ev); ev.traverse(o => o.geometry && o.geometry.dispose()); }
+  ev = new THREE.Group();
+  ev.name = 'Ev';
+  const zm = new THREE.Mesh(geometri(zemin), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9 }));
+  zm.name = 'Zemin'; zm.receiveShadow = true;
+  const dm = new THREE.Mesh(geometri(duvar), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.7 }));
+  dm.name = 'Duvarlar'; dm.castShadow = true; dm.receiveShadow = true;
+  ev.add(zm, dm);
+  scene.add(ev);
+  $('durum').textContent = `${W}×${H} hücre · hücre ≈ ${(m * 100).toFixed(1)} cm`;
+}
+
+// ---------- 2D önizleme ve kırpma ----------
+const on = $('onizleme'), oc = on.getContext('2d');
+let surukle = null;
+
+function onizlemeCiz() {
+  if (!kaynak) return;
+  on.height = Math.round(on.width * kaynak.height / kaynak.width);
+  oc.clearRect(0, 0, on.width, on.height);
+  oc.drawImage(kaynak, 0, 0, on.width, on.height);
+  const s = on.width / kaynak.width;
+  oc.fillStyle = 'rgba(0,0,0,.45)';
+  oc.beginPath();
+  oc.rect(0, 0, on.width, on.height);
+  oc.rect(kirp.x * s, kirp.y * s + kirp.h * s, kirp.w * s, -kirp.h * s);
+  oc.fill('evenodd');
+  oc.strokeStyle = '#4c8dff'; oc.lineWidth = 2;
+  oc.strokeRect(kirp.x * s, kirp.y * s, kirp.w * s, kirp.h * s);
+}
+
+function kaynakNokta(e) {
+  const r = on.getBoundingClientRect();
+  return [(e.clientX - r.left) / r.width * kaynak.width, (e.clientY - r.top) / r.height * kaynak.height];
+}
+
+on.addEventListener('pointerdown', e => {
+  if (!kaynak) return;
+  const [x, y] = kaynakNokta(e);
+  if (duvarSecMod) {
+    const d = kaynak.getContext('2d').getImageData(Math.floor(x), Math.floor(y), 1, 1).data;
+    duvarRengi = [d[0], d[1], d[2]];
+    duvarSecMod = false; $('duvarSec').setAttribute('aria-pressed', 'false');
+    modelKur(); return;
+  }
+  on.setPointerCapture(e.pointerId);
+  surukle = [x, y];
+});
+on.addEventListener('pointermove', e => {
+  if (!surukle) return;
+  const [x, y] = kaynakNokta(e);
+  const x0 = Math.max(0, Math.min(surukle[0], x)), y0 = Math.max(0, Math.min(surukle[1], y));
+  const x1 = Math.min(kaynak.width, Math.max(surukle[0], x)), y1 = Math.min(kaynak.height, Math.max(surukle[1], y));
+  if (x1 - x0 > 10 && y1 - y0 > 10) kirp = { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+  onizlemeCiz();
+});
+on.addEventListener('pointerup', () => { if (surukle) { surukle = null; modelKur(); } });
+
+function kaynakAyarla(cizilebilir) {
+  kaynak = document.createElement('canvas');
+  kaynak.width = cizilebilir.width; kaynak.height = cizilebilir.height;
+  kaynak.getContext('2d', { willReadFrequently: true }).drawImage(cizilebilir, 0, 0);
+  kirp = { x: 0, y: 0, w: kaynak.width, h: kaynak.height };
+  duvarRengi = null;
+  onizlemeCiz();
+  modelKur();
+  ustten(false);
+}
+
+$('dosya').addEventListener('change', e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  if (/\.json$/i.test(f.name) || f.type === 'application/json') {
+    f.text().then(t => {
+      jsonHarita = JSON.parse(t);
+      kaynak = null;
+      oc.clearRect(0, 0, on.width, on.height);
+      modelKur();
+      ayar.gen = jsonHarita.genislik * jsonHarita.hucre_mm / 1000;
+      ustten(false);
+    }).catch(err => { $('durum').textContent = 'harita.json okunamadı: ' + err.message; });
+    return;
+  }
+  jsonHarita = null;
+  const img = new Image();
+  img.onload = () => { kaynakAyarla(img); URL.revokeObjectURL(img.src); };
+  img.src = URL.createObjectURL(f);
+});
+
+// Dreamehome görünümüne benzeyen örnek plan
+function ornekEv() {
+  const c = document.createElement('canvas'); c.width = 600; c.height = 420;
+  const x = c.getContext('2d');
+  x.fillStyle = '#ffffff'; x.fillRect(0, 0, 600, 420);
+  const oda = (r, col) => { x.fillStyle = col; x.fillRect(...r); };
+  oda([40, 40, 250, 180], '#9cc7f0');   // salon
+  oda([290, 40, 270, 140], '#f6c48f');  // mutfak
+  oda([290, 180, 140, 200], '#b5e3a8'); // banyo
+  oda([430, 180, 130, 200], '#e9b3d6'); // yatak odası 1
+  oda([40, 220, 250, 160], '#f2e38a');  // yatak odası 2
+  x.strokeStyle = '#555b66'; x.lineWidth = 6;
+  x.strokeRect(40, 40, 520, 340);
+  const cizgi = (a, b, c2, d) => { x.beginPath(); x.moveTo(a, b); x.lineTo(c2, d); x.stroke(); };
+  cizgi(290, 40, 290, 150); cizgi(290, 200, 290, 380);
+  cizgi(40, 220, 180, 220); cizgi(230, 220, 290, 220);
+  cizgi(290, 180, 360, 180); cizgi(410, 180, 560, 180);
+  cizgi(430, 180, 430, 300); cizgi(430, 345, 430, 380);
+  return c;
+}
+
+$('ornek').onclick = () => { jsonHarita = null; kaynakAyarla(ornekEv()); };
+$('kirpSifirla').onclick = () => { if (!kaynak) return; kirp = { x: 0, y: 0, w: kaynak.width, h: kaynak.height }; onizlemeCiz(); modelKur(); };
+$('duvarSec').onclick = () => { duvarSecMod = !duvarSecMod; $('duvarSec').setAttribute('aria-pressed', String(duvarSecMod)); };
+
+function ustten(tam = true) {
+  const h = ayar.gen * 1.25;
+  camera.position.set(0, h, tam ? 0.01 : h * 0.8);
+  controls.target.set(0, 0, 0);
+}
+$('ustten').onclick = () => ustten(true);
+
+$('glb').onclick = () => {
+  if (!ev) return;
+  new GLTFExporter().parse(ev, async buf => {
+    const indir = await (window.claude?.use?.('downloads') ?? null);
+    if (indir && window.JSZip) {
+      const zip = new JSZip();
+      zip.file('ev-3d.glb', buf);
+      const data = await zip.generateAsync({ type: 'uint8array' });
+      try { await indir.save({ filename: 'ev-3d.zip', data }); }
+      catch (e) { if (e?.code !== 'declined') $('glbNot').textContent = 'İndirilemedi: ' + (e?.message || e); }
+      return;
+    }
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([buf], { type: 'model/gltf-binary' }));
+    a.download = 'ev-3d.glb'; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  }, err => { $('glbNot').textContent = 'Dışa aktarılamadı: ' + err; }, { binary: true });
+};
+
+for (const k of Object.keys(ayar)) {
+  const el = $(k), v = $(k + 'V');
+  const yaz = () => { ayar[k] = +el.value; v.textContent = el.value; };
+  yaz();
+  el.addEventListener('input', yaz);
+  el.addEventListener('change', modelKur);
+}
+
+kaynakAyarla(ornekEv());
+</script>
