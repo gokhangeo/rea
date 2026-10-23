@@ -76,7 +76,8 @@ object Goller {
 
     /** Sayfadaki "Dene" düğmesi: örnek gol bildirimi (ve açıksa sesi). */
     fun dene(c: Context): Boolean {
-        val ok = Mesaj.goster(c, "⚽ GOL!", "Deneme: Ev Sahibi 1 - 0 Deplasman\nKutu Kurucu", 6_000)
+        val ok = Mesaj.goster(c, "⚽ GOL!  67'  ·  Deneme", "Ev Sahibi 2 - 1 Deplasman", 6_000,
+            kompakt = true, ek = "Golcü Oyuncu (P) · Ev Sahibi")
         if (ses(c)) GolSesi.cal(c)
         return ok
     }
@@ -197,15 +198,29 @@ object Goller {
 
                 val onceki = eski.optString(anahtar, "")
                 if (onceki.isEmpty() || toplam(onceki) >= toplam(skorYazi)) continue
-                val dakika = durum?.optString("displayClock").orEmpty()
-                val baslik = if (toplam(skorYazi) - toplam(onceki) > 1) "⚽ GOL! ⚽ GOL!" else "⚽ GOL!"
-                val alt = buildString {
-                    append("$evAd $hs - $as_ $depAd")
-                    append('\n')
-                    append(ligAdi)
-                    if (dakika.isNotBlank()) append(" · ").append(dakika)
+                val fark = toplam(skorYazi) - toplam(onceki)
+                var detay = comp
+                if (golSayisi(comp) < toplam(skorYazi)) {
+                    // Golcü bilgisi skordan biraz geç gelebiliyor: bir kez 15 sn bekleyip tekrar bak.
+                    Thread.sleep(15_000)
+                    detay = runCatching {
+                        val ev2 = JSONObject(get("$BASE/$lig/scoreboard")).optJSONArray("events")
+                        (0 until (ev2?.length() ?: 0)).map { ev2!!.getJSONObject(it) }
+                            .firstOrNull { it.optString("id") == e.optString("id") }
+                            ?.optJSONArray("competitions")?.optJSONObject(0)
+                    }.getOrNull() ?: comp
                 }
-                Mesaj.goster(c, baslik, alt, 12_000)
+                val goller = sonGoller(detay, fark, evId, evAd, depAd)
+                val dakika = goller.lastOrNull()?.first?.ifBlank { null }
+                    ?: durum?.optString("displayClock").orEmpty()
+                val baslik = buildString {
+                    append(if (fark > 1) "⚽ GOL! GOL!" else "⚽ GOL!")
+                    if (dakika.isNotBlank()) append("  ").append(dakika)
+                    append("  ·  ").append(ligAdi)
+                }
+                val alt = "$evAd $hs - $as_ $depAd"
+                val ek = goller.joinToString("   ") { (dk, kim) -> if (goller.size > 1 && dk.isNotBlank()) "$kim $dk" else kim }
+                Mesaj.goster(c, baslik, alt, 12_000, kompakt = true, ek = ek)
                 if (ses(c)) GolSesi.cal(c)
             }
         }
@@ -214,6 +229,32 @@ object Goller {
         val adlar = yeni.keys().asSequence().toList().takeLast(300)
         adlar.forEach { temiz.put(it, yeni.opt(it)) }
         p(c).edit().putString("skorlar", temiz.toString()).apply()
+    }
+
+    /**
+     * Maçın son [adet] golü: (dakika, "⚽ Golcü (P)" / "Golcü (k.k.)" + takım adı).
+     * ESPN golcü bilgisini bazen skordan birkaç saniye sonra ekler; yoksa boş liste döner.
+     */
+    private fun sonGoller(comp: JSONObject, adet: Int, evId: String, evAd: String, depAd: String): List<Pair<String, String>> {
+        val d = comp.optJSONArray("details") ?: return emptyList()
+        val hepsi = mutableListOf<Pair<String, String>>()
+        for (i in 0 until d.length()) {
+            val x = d.optJSONObject(i) ?: continue
+            if (!x.optBoolean("scoringPlay")) continue
+            val dk = x.optJSONObject("clock")?.optString("displayValue").orEmpty()
+            val oyuncu = x.optJSONArray("athletesInvolved")?.optJSONObject(0)
+            var kim = oyuncu?.optString("shortName").orEmpty().ifBlank { oyuncu?.optString("displayName").orEmpty() }
+            if (kim.isBlank()) kim = "Gol"
+            if (x.optBoolean("ownGoal")) kim += " (k.k.)" else if (x.optBoolean("penaltyKick")) kim += " (P)"
+            val takim = if (x.optJSONObject("team")?.optString("id") == evId) evAd else depAd
+            hepsi.add(dk to "$kim · $takim")
+        }
+        return hepsi.takeLast(adet.coerceAtLeast(1))
+    }
+
+    private fun golSayisi(comp: JSONObject): Int {
+        val d = comp.optJSONArray("details") ?: return 0
+        return (0 until d.length()).count { d.optJSONObject(it)?.optBoolean("scoringPlay") == true }
     }
 
     private fun ad(t: JSONObject?): String = t?.optString("displayName").orEmpty()

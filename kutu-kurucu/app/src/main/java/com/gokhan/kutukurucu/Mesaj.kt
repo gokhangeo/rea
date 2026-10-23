@@ -27,19 +27,21 @@ object Mesaj {
     private var zamanlayici: Runnable? = null
 
     /** Mesajı gösterir. İzin yoksa false döner. */
-    fun goster(c: Context, baslik: String, metin: String, sureMs: Long = 8000): Boolean {
+    fun goster(c: Context, baslik: String, metin: String, sureMs: Long = 8000, kompakt: Boolean = false, ek: String = ""): Boolean {
         if (!Settings.canDrawOverlays(c)) return false
         val uygulama = c.applicationContext
         ana.post {
             val wm = pencere ?: (uygulama.getSystemService(Context.WINDOW_SERVICE) as WindowManager).also { pencere = it }
             gizle(hemen = true)
-            val kart = kart(uygulama, baslik, metin)
+            val kart = if (kompakt) kucukKart(uygulama, baslik, metin, ek) else kart(uygulama, baslik, metin)
             val dis = FrameLayout(uygulama).apply {
-                setPadding(dp(uygulama, 36), dp(uygulama, 28), dp(uygulama, 36), 0)
-                addView(kart, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT))
+                if (kompakt) setPadding(0, dp(uygulama, 8), dp(uygulama, 32), 0)
+                else setPadding(dp(uygulama, 36), dp(uygulama, 28), dp(uygulama, 36), 0)
+                val w = if (kompakt) FrameLayout.LayoutParams.WRAP_CONTENT else FrameLayout.LayoutParams.MATCH_PARENT
+                addView(kart, FrameLayout.LayoutParams(w, FrameLayout.LayoutParams.WRAP_CONTENT))
             }
             val p = WindowManager.LayoutParams(
-                WindowManager.LayoutParams.MATCH_PARENT,
+                if (kompakt) WindowManager.LayoutParams.WRAP_CONTENT else WindowManager.LayoutParams.MATCH_PARENT,
                 WindowManager.LayoutParams.WRAP_CONTENT,
                 WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
@@ -47,8 +49,8 @@ object Mesaj {
                     WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
                 android.graphics.PixelFormat.TRANSLUCENT,
             ).apply {
-                gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
-                y = dp(uygulama, 24)
+                gravity = if (kompakt) Gravity.TOP or Gravity.END else Gravity.TOP or Gravity.CENTER_HORIZONTAL
+                y = dp(uygulama, if (kompakt) 16 else 24)
             }
             if (runCatching { wm.addView(dis, p) }.isFailure) return@post
             dis.alpha = 0f
@@ -95,6 +97,40 @@ object Mesaj {
             setTextColor(Color.WHITE)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 24f)
             setPadding(0, dp(c, 4), 0, 0)
+        })
+    }
+
+    /** Gol için küçük kart: sağ üst köşe, ekranın en fazla ~%40'ı. */
+    private fun kucukKart(c: Context, baslik: String, metin: String, ek: String) = LinearLayout(c).apply {
+        orientation = LinearLayout.VERTICAL
+        setPadding(dp(c, 14), dp(c, 8), dp(c, 16), dp(c, 10))
+        background = GradientDrawable().apply {
+            cornerRadius = dp(c, 12).toFloat()
+            setColor(Color.parseColor("#E60B2E5C"))
+            setStroke(dp(c, 1), Color.parseColor("#FFD200"))
+        }
+        val enFazla = (c.resources.displayMetrics.widthPixels * 0.4).toInt()
+        addView(TextView(c).apply {
+            text = baslik
+            setTextColor(Color.parseColor("#FFD200"))
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+            typeface = Typeface.DEFAULT_BOLD
+            maxWidth = enFazla
+        })
+        addView(TextView(c).apply {
+            text = metin
+            setTextColor(Color.WHITE)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
+            typeface = Typeface.DEFAULT_BOLD
+            setPadding(0, dp(c, 2), 0, 0)
+            maxWidth = enFazla
+        })
+        if (ek.isNotBlank()) addView(TextView(c).apply {
+            text = ek
+            setTextColor(Color.parseColor("#D6E2F0"))
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+            setPadding(0, dp(c, 2), 0, 0)
+            maxWidth = enFazla
         })
     }
 
