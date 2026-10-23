@@ -75,6 +75,9 @@
         <input type="url" id="url" placeholder="https://… .apk ya da GitHub sürüm sayfası" style="flex:1">
         <button id="bagBtn">Kutuya indir ve kur</button>
       </div>
+      <div class="satir" style="margin-top:8px">
+        <button class="hazir" data-url="https://github.com/recloudstream/cloudstream/releases/latest">CloudStream (son sürüm)</button>
+      </div>
       <div id="isler" style="margin-top:12px"></div>
     </section>
 
@@ -302,6 +305,11 @@ $('bagBtn').onclick = async () => {
   try { await api('/api/bag?url=' + encodeURIComponent(url), { method: 'POST' }); $('url').value = ''; durum(); }
   catch (e) { if (e.message !== 'kod') alert(e.message); }
 };
+
+document.querySelectorAll('.hazir').forEach(b => b.onclick = async () => {
+  try { await api('/api/bag?url=' + encodeURIComponent(b.dataset.url), { method: 'POST' }); durum(); }
+  catch (e) { if (e.message !== 'kod') alert(e.message); }
+});
 
 $('guncelleBtn').onclick = async () => {
   try { const r = await api('/api/kendini-guncelle', { method: 'POST' }); if (r.mesaj) alert(r.mesaj); durum(); }
