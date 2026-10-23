@@ -66,5 +66,6 @@ if defined EV (
 %ADB% -s %K% shell pm grant com.gokhan.kutukurucu android.permission.WRITE_SECURE_SETTINGS
 %ADB% -s %K% shell appops set com.gokhan.kutukurucu SYSTEM_ALERT_WINDOW allow
 %ADB% -s %K% shell appops set com.gokhan.kutukurucu REQUEST_INSTALL_PACKAGES allow
+%ADB% -s %K% shell appops set com.gokhan.evekrani REQUEST_INSTALL_PACKAGES allow
 %ADB% -s %K% shell am start -n com.gokhan.kutukurucu/.MainActivity
 exit /b 0

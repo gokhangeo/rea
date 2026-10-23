@@ -74,6 +74,10 @@ object Updater {
         val p = prefs(context)
         val v = p.getInt("ready", 0)
         if (v <= currentVersion(context) || !apk(context, v).isFile) return null
+        // İzin ekranından izin verilip dönüldüyse pencere hemen yeniden gelir; verilmediyse ertelemede kalır.
+        if (p.getBoolean("izinIstendi", false) && (Build.VERSION.SDK_INT < 26 || context.packageManager.canRequestPackageInstalls())) {
+            p.edit().remove("izinIstendi").remove("snoozeUntil").apply()
+        }
         if (System.currentTimeMillis() < p.getLong("snoozeUntil", 0)) return null
         return Ready(v, p.getString("notes", "").orEmpty())
     }
@@ -168,7 +172,12 @@ object Updater {
     @JvmStatic
     fun install(context: Context, ready: Ready) {
         val c = context.applicationContext
+        // Güncelle'ye basıldıktan sonra pencere hemen yeniden çıkmasın: kurulum başarılıysa sürüm değişir,
+        // iptal edilir ya da başarısız olursa pencere 30 dakika sonra yeniden gelir.
+        prefs(c).edit().putLong("snoozeUntil", System.currentTimeMillis() + 30 * 60_000L).apply()
         if (Build.VERSION.SDK_INT >= 26 && !c.packageManager.canRequestPackageInstalls()) {
+            prefs(c).edit().putBoolean("izinIstendi", true)
+                .putLong("snoozeUntil", System.currentTimeMillis() + SNOOZE_MS).apply()
             val settings = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:${c.packageName}"))
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             try {
