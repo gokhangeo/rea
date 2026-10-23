@@ -1,0 +1,8 @@
+build/
+dist/
+*.spec
+icon.ico
+icon.png
+version.txt
+run.log
+__pycache__/

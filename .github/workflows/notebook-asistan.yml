@@ -1,0 +1,82 @@
+# Notebook Asistan - PyInstaller ile Windows'ta derlenir.
+# - notebook-v* etiketi gonderilince: exe'yi o etiketin Release'ine yukler (uygulama otomatik guncellenir).
+# - workflow_dispatch "surum" ile elle: o surumle derler + release olusturur.
+# - PR'da: sadece derler.
+name: Notebook Asistan
+
+on:
+  push:
+    tags: ['notebook-v*']
+  pull_request:
+    paths:
+      - "notebook-asistan/**"
+      - ".github/workflows/notebook-asistan.yml"
+  workflow_dispatch:
+    inputs:
+      surum:
+        description: "Yayınlanacak sürüm (ör. 1.1). Boş bırakılırsa yalnızca derlenir."
+        type: string
+        default: ""
+      notlar:
+        description: "Güncelleme notları (uygulamadaki güncelleme kartında görünür)"
+        type: string
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+        working-directory: notebook-asistan
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Sürüm
+        run: |
+          RAW="${{ (github.event_name == 'workflow_dispatch' && inputs.surum != '' && format('notebook-v{0}', inputs.surum)) || (startsWith(github.ref, 'refs/tags/notebook-v') && github.ref_name) || 'dev' }}"
+          VER="${RAW#notebook-v}"
+          echo "$VER" > version.txt
+          echo "VER=$VER" >> "$GITHUB_ENV"
+          echo "TAG=$RAW" >> "$GITHUB_ENV"
+
+      - name: Bağımlılıklar
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: İkon
+        run: python make_icon.py
+
+      - name: PyInstaller
+        run: |
+          python -m PyInstaller --noconfirm --onefile --windowed --name NotebookAsistan --icon icon.ico \
+            --add-data "ui;ui" --add-data "version.txt;." --add-data "icon.ico;." \
+            --collect-all notebooklm --collect-all webview --collect-all playwright --collect-data certifi \
+            app.py
+          ls -la dist/NotebookAsistan.exe
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: NotebookAsistan
+          path: notebook-asistan/dist/NotebookAsistan.exe
+          if-no-files-found: error
+
+      - name: Release'e yükle
+        if: ${{ env.TAG != 'dev' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NOTLAR: ${{ inputs.notlar }}
+        run: |
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            [ -z "$NOTLAR" ] && NOTLAR="$(git log -1 --pretty=%B)"
+            gh release create "$TAG" --target "$GITHUB_SHA" --title "Notebook Asistan $VER" --notes "$NOTLAR" --latest=false
+          fi
+          gh release upload "$TAG" dist/NotebookAsistan.exe --clobber

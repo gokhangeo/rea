@@ -1,0 +1,4 @@
+notebooklm-py[browser]
+pywebview
+pillow
+pyinstaller
