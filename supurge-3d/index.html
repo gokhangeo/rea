@@ -56,7 +56,7 @@
     <p class="hint">Dreamehome'daki harita ekranının görüntüsünü yükleyin. Önizlemede parmakla/fareyle
       bir dikdörtgen çizerek yalnızca haritayı seçin; duvarlar otomatik yükselir.</p>
     <div class="row">
-      <label class="file">Harita görüntüsü seç<input id="dosya" type="file" accept="image/*"></label>
+      <label class="file">Harita dosyası seç<input id="dosya" type="file" accept="image/*,.json,application/json"></label>
       <button id="ornek">Örnek ev</button>
     </div>
     <canvas id="onizleme" width="300" height="300"></canvas>
@@ -101,6 +101,7 @@ let kaynak = null;          // HTMLCanvasElement: yüklenen tam görüntü
 let kirp = null;            // {x,y,w,h} kaynak pikselinde
 let duvarRengi = null;      // [r,g,b]
 let duvarSecMod = false;
+let jsonHarita = null;     // harita-cek.py çıktısı (harita.json)
 
 // ---------- 3D sahne ----------
 const sahneEl = $('sahne');
@@ -251,10 +252,36 @@ function geometri(g) {
 const yeniG = () => ({ pos: [], nor: [], col: [], idx: [] });
 const srgb = c => new THREE.Color().setRGB(c[0] / 255, c[1] / 255, c[2] / 255, THREE.SRGBColorSpace);
 
+// harita.json: 0 dış, 255/251 duvar, 1-63 oda, 100+/200+ oda kenarı, 249-254 genel zemin
+const ODA_RENK = [[156, 199, 240], [246, 196, 143], [181, 227, 168], [233, 179, 214], [242, 227, 138], [180, 170, 240]];
+function jsonIzgara() {
+  const j = jsonHarita, W = j.genislik, H = j.yukseklik;
+  const ham = Uint8Array.from(atob(j.pikseller), ch => ch.charCodeAt(0));
+  const tip = new Uint8Array(W * H), renk = new Array(W * H);
+  for (let i = 0; i < W * H; i++) {
+    const v = ham[i];
+    if (v === 0) continue;
+    if (v === 255 || v === 251) { tip[i] = 2; continue; }
+    const oda = v < 100 ? v : v < 200 ? v - 100 : v < 249 ? v - 200 : 0;
+    tip[i] = 1;
+    renk[i] = oda ? ODA_RENK[oda % ODA_RENK.length] : [215, 215, 210];
+  }
+  // Haritada duvar pikseli yoksa zeminin dışa komşu kenarı duvar sayılır
+  if (!tip.includes(2)) {
+    const dis = (x, y) => x < 0 || y < 0 || x >= W || y >= H || ham[y * W + x] === 0;
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const i = y * W + x;
+      if (tip[i] === 1 && (dis(x - 1, y) || dis(x + 1, y) || dis(x, y - 1) || dis(x, y + 1))) tip[i] = 3;
+    }
+    for (let i = 0; i < W * H; i++) if (tip[i] === 3) tip[i] = 2;
+  }
+  return { W, H, tip, renk };
+}
+
 function modelKur() {
-  if (!kaynak) return;
-  const { W, H, tip, renk } = izgaraCikar();
-  const m = ayar.gen / W;                 // hücre başına metre
+  if (!kaynak && !jsonHarita) return;
+  const { W, H, tip, renk } = jsonHarita ? jsonIzgara() : izgaraCikar();
+  const m = jsonHarita ? jsonHarita.hucre_mm / 1000 : ayar.gen / W;   // hücre başına metre
   const ox = -W * m / 2, oz = -H * m / 2;
 
   // Zemin: rengi kabaca nicelendirip benzer hücreleri birleştir
@@ -345,6 +372,18 @@ function kaynakAyarla(cizilebilir) {
 $('dosya').addEventListener('change', e => {
   const f = e.target.files[0];
   if (!f) return;
+  if (/\.json$/i.test(f.name) || f.type === 'application/json') {
+    f.text().then(t => {
+      jsonHarita = JSON.parse(t);
+      kaynak = null;
+      oc.clearRect(0, 0, on.width, on.height);
+      modelKur();
+      ayar.gen = jsonHarita.genislik * jsonHarita.hucre_mm / 1000;
+      ustten(false);
+    }).catch(err => { $('durum').textContent = 'harita.json okunamadı: ' + err.message; });
+    return;
+  }
+  jsonHarita = null;
   const img = new Image();
   img.onload = () => { kaynakAyarla(img); URL.revokeObjectURL(img.src); };
   img.src = URL.createObjectURL(f);
@@ -371,7 +410,7 @@ function ornekEv() {
   return c;
 }
 
-$('ornek').onclick = () => kaynakAyarla(ornekEv());
+$('ornek').onclick = () => { jsonHarita = null; kaynakAyarla(ornekEv()); };
 $('kirpSifirla').onclick = () => { if (!kaynak) return; kirp = { x: 0, y: 0, w: kaynak.width, h: kaynak.height }; onizlemeCiz(); modelKur(); };
 $('duvarSec').onclick = () => { duvarSecMod = !duvarSecMod; $('duvarSec').setAttribute('aria-pressed', String(duvarSecMod)); };
 
