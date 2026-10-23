@@ -214,6 +214,13 @@ final class Config {
         // current theme without clearing choices from an older launcher version.
         SharedPreferences choices = ctx.getSharedPreferences(SETTINGS_NAME, Context.MODE_PRIVATE);
         syncThemeChoices(choices, dir, file);
+        // 0.2.23: the default moved from 4 to 6 columns. A stored 4 left over from the old default is
+        // dropped once so the new default shows; a different choice made on the TV is kept.
+        if (!choices.getBoolean("columns_default_6", false)) {
+            SharedPreferences.Editor e = choices.edit().putBoolean("columns_default_6", true);
+            if (choices.getInt("columns", -1) == 4) e.remove("columns");
+            e.commit();
+        }
         int chosenColumns = choices.getInt("columns", columns);
         if (chosenColumns >= 4 && chosenColumns <= 7) columns = chosenColumns;
         animations = choices.getBoolean("animations", animations);
