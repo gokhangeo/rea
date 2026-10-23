@@ -26,12 +26,14 @@ jobs:
           java-version: "17"
       - uses: gradle/actions/setup-gradle@v4
       - name: APK derle
-        run: ./gradlew --no-daemon assembleRelease
+        run: ./gradlew --no-daemon :app:assembleRelease :kurulum:assembleRelease
       - name: İmza anahtarını doğrula
         run: |
           "$JAVA_HOME/bin/keytool" -list -v -keystore kutu-kurucu.jks -storepass kutukurucu | grep -m1 SHA256
       - name: APK adını düzenle
-        run: cp app/build/outputs/apk/release/app-release.apk "KutuKurucu-1.${GITHUB_RUN_NUMBER}.apk"
+        run: |
+          cp app/build/outputs/apk/release/app-release.apk "KutuKurucu-1.${GITHUB_RUN_NUMBER}.apk"
+          cp kurulum/build/outputs/apk/release/kurulum-release.apk "KutuKurucu-Kurulum.apk"
       - name: Sürüm notu
         run: |
           git log -1 --format=%s > notlar.txt
@@ -50,6 +52,7 @@ jobs:
           make_latest: false
           files: |
             kutu-kurucu/KutuKurucu-*.apk
+            kutu-kurucu/KutuKurucu-Kurulum.apk
             kutu-kurucu/pc/Kutuya-Gonder.bat
             kutu-kurucu/pc/kutuya-gonder.ps1
             kutu-kurucu/pc/ilk-kurulum.bat

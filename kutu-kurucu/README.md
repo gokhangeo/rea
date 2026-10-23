@@ -27,6 +27,17 @@ Her kutuya ayrı kurulur; her kutunun kendi adresi ve kodu vardır.
 - **Kutu Kurucu'yu kaldır:** Sayfadaki bu düğme TV'de Android'in kaldırma penceresini açar. Yeni sürüm "başka anahtarla
   imzalı" diye kurulmuyorsa eski sürüm böyle kaldırılır; onaydan sonra panel kapanır, APK yeniden kurulur.
 - Sürümler depodaki `kutu-kurucu/kutu-kurucu.jks` anahtarıyla imzalanır; anahtar değişmedikçe yeni sürüm eskisinin üstüne kurulur.
+
+## Kutu Kurucu Kurulum (ayrı küçük uygulama, port 8091)
+
+Kutu Kurucu silindiğinde 8090'daki sayfa da gider; geri kuracak bir şey kalmaz. Bu yüzden ayrı paket
+(`com.gokhan.kutukurucu.kurulum`) bir yardımcı var:
+
+- `http://KUTU-IP:8091` adresinde tek sayfa: "Kur / güncelle", "Kaldır", "İzin ekranını aç".
+- Kutu Kurucu'yu GitHub'daki en yeni sürümden indirip kurar (TV'de "Yükle" onayı), gerekirse önce kaldırır.
+- Kutu Kurucu silinse de kutuda kalır; kutu açılınca kendini yeniden başlatır.
+- İlk kurulumda kutuda bu uygulamaya "bilinmeyen uygulama yükleme" izni verilir (sayfadaki "İzin ekranını aç").
+
 - Sayfa TV ekranında yazan 4 haneli kodu ister. Port 8090; Ev Ekranı'nın 8080'deki sayfasıyla çakışmaz.
 
 ## İlk kurulum (her kutuya bir kez)

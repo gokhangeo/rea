@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kutu Kurucu Kurulum</title>
+<style>
+  :root { --zemin:#0b2e5c; --kart:#123b70; --yazi:#fff; --soluk:#c8d6ea; --sari:#ffd200; --yesil:#7ce38b; --kirmizi:#ff8a80; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--zemin); color:var(--yazi); font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  header { padding:18px 18px 6px; }
+  h1 { margin:0; font-size:22px; }
+  .alt { color:var(--soluk); font-size:14px; }
+  main { padding:6px 18px 32px; max-width:640px; margin:0 auto; }
+  .kart { background:var(--kart); border-radius:14px; padding:16px; margin:14px 0; }
+  h2 { margin:0 0 10px; font-size:17px; }
+  button { width:100%; padding:14px; border-radius:10px; border:2px solid var(--sari); background:var(--sari); color:#10243f;
+           font-size:16px; font-weight:700; }
+  button:disabled { opacity:.5; }
+  button.ikinci { background:transparent; color:var(--yazi); border-color:#4d6fa0; }
+  button.tehlike { background:transparent; color:var(--kirmizi); border-color:var(--kirmizi); }
+  .satir { display:flex; gap:10px; margin-top:12px; }
+  .uyari { color:var(--sari); font-size:14px; min-height:20px; margin:10px 0 0; }
+  .ok { color:var(--yesil); }
+  .kotu { color:var(--kirmizi); }
+  .gizli { display:none; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Kutu Kurucu Kurulum</h1>
+  <div class="alt" id="cihaz">TV kutusu</div>
+</header>
+<main>
+  <section class="kart">
+    <h2>Durum</h2>
+    <div id="durum" class="alt">okunuyor…</div>
+  </section>
+
+  <section class="kart">
+    <h2>Kutu Kurucu'yu kur / güncelle</h2>
+    <p class="alt">GitHub'daki en yeni sürüm kutuya indirilir; kurulumu TV'de "Yükle" ile onaylarsınız.</p>
+    <div id="izinKutu" class="gizli">
+      <p class="uyari">Bu uygulamaya kutuda "bilinmeyen uygulama yükleme" izni verilmeli.</p>
+      <button class="ikinci" id="izinBtn">İzin ekranını aç</button>
+    </div>
+    <button id="kurBtn">Kur / güncelle</button>
+    <p class="uyari" id="kurUyari"></p>
+  </section>
+
+  <section class="kart">
+    <h2>Kutu Kurucu'yu kaldır</h2>
+    <p class="alt">Sürüm imzası değiştiğinde yeni APK eskisinin üstüne kurulamaz; önce kaldırmak gerekir.
+      Kaldırma TV'de onaylanır. Bu sayfa Kutu Kurucu silinse de çalışmaya devam eder.</p>
+    <button class="tehlike" id="kaldirBtn">Kaldır</button>
+    <p class="uyari" id="kaldirUyari"></p>
+  </section>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const DURUM = { hazirlaniyor:'hazırlanıyor…', indiriliyor:'kutuya iniyor…', onay:"TV'de \"Yükle\"ye basın", kuruldu:'kuruldu ✔', iptal:'iptal edildi', hata:'kurulamadı' };
+
+async function api(yol, secenek = {}) {
+  const r = await fetch(yol, secenek);
+  if (!r.ok) throw new Error((await r.text()) || ('HTTP ' + r.status));
+  return r.json();
+}
+
+let sonIs = 0;
+async function durum() {
+  try {
+    const d = await api('/api/durum');
+    $('cihaz').textContent = 'TV kutusu · ' + (d.adres || '?') + ':' + d.port;
+    const kurulu = d.kurulu ? ('Kutu Kurucu ' + d.kurulu) : 'Kutu Kurucu kurulu değil';
+    const son = d.sonSurum ? (' · GitHub\'daki son sürüm ' + d.sonSurum) : '';
+    $('durum').textContent = kurulu + son;
+    $('izinKutu').classList.toggle('gizli', d.yukleme !== false);
+    if (d.isler && d.isler.length) {
+      const i = d.isler[0];
+      const yazi = (DURUM[i.durum] || i.durum) + (i.mesaj ? ' · ' + i.mesaj : '');
+      $('kurUyari').textContent = yazi;
+      $('kurUyari').className = 'uyari' + (i.durum === 'kuruldu' ? ' ok' : (i.durum === 'hata' || i.durum === 'iptal' ? ' kotu' : ''));
+    }
+  } catch (e) { $('durum').textContent = 'Kutuya ulaşılamadı: ' + e.message; }
+}
+
+$('izinBtn').onclick = async () => {
+  try {
+    await api('/api/izin', { method: 'POST' });
+    $('kurUyari').textContent = "TV'de izin ekranı açıldı; bu uygulamaya izin verin.";
+  } catch (e) { $('kurUyari').textContent = e.message; }
+};
+
+$('kurBtn').onclick = async () => {
+  $('kurBtn').disabled = true;
+  try {
+    const r = await api('/api/kur', { method: 'POST' });
+    $('kurUyari').textContent = r.mesaj || 'Kurulum başlatıldı; TV'de onaylayın.';
+  } catch (e) { $('kurUyari').textContent = e.message; }
+  finally { $('kurBtn').disabled = false; durum(); }
+};
+
+$('kaldirBtn').onclick = async () => {
+  if (!confirm('Kutu Kurucu kutudan kaldırılacak. Sonra bu sayfadan yeniden kurabilirsiniz. Devam?')) return;
+  try {
+    await api('/api/kaldir', { method: 'POST' });
+    $('kaldirUyari').textContent = "TV'de kaldırma penceresi açıldı; kumandayla onaylayın.";
+  } catch (e) { $('kaldirUyari').textContent = e.message; }
+  durum();
+};
+
+durum();
+setInterval(durum, 3000);
+</script>
+</body>
+</html>

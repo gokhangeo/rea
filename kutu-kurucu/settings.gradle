@@ -13,4 +13,4 @@ dependencyResolutionManagement {
     }
 }
 rootProject.name = "kutu-kurucu"
-include ':app'
+include ':app', ':kurulum'

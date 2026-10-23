@@ -1,0 +1,51 @@
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+}
+
+android {
+    namespace 'com.gokhan.kutukurucu.kurulum'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'com.gokhan.kutukurucu.kurulum'
+        minSdk 26
+        targetSdk 34
+        versionCode 1
+        versionName "1.0"
+    }
+
+    // Kutu Kurucu ile aynı anahtar: bu uygulama da sürümler arasında üstüne kurulabilsin.
+    def keystore = rootProject.file('kutu-kurucu.jks')
+    def keystorePass = System.getenv('KUTU_KEYSTORE_PASS') ?: (keystore.exists() ? 'kutukurucu' : null)
+    if (keystore.exists() && keystorePass) {
+        signingConfigs {
+            kutu {
+                storeFile keystore
+                storePassword keystorePass
+                keyAlias System.getenv('KUTU_KEY_ALIAS') ?: 'kutukurucu'
+                keyPassword keystorePass
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.findByName('kutu') ?: signingConfigs.debug
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+kotlin {
+    jvmToolchain 17
+}
+
+dependencies {
+    implementation 'org.nanohttpd:nanohttpd:2.3.1'
+}
