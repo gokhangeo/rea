@@ -6,6 +6,8 @@ tek seferde başka yere taşı. Electron sürümüyle aynı görünümü hedefle
 antivirüslerin Electron paketlerine taktığı yanlış alarmlara takılmaz.
 
 **İndir:** [sürüm sayfası](https://github.com/gokhangeo/rea/releases) → `Atac.exe`
+
+> Bu uygulamanın Windows sürümü, kod imzalama için [SignPath Foundation](https://signpath.org)'ın ücretsiz açık kaynak programını kullanır (sertifika SignPath Foundation adına düzenlenir).
 (tek dosya, kurulum yok; çift tıkla çalışır).
 
 ## Kullanım
