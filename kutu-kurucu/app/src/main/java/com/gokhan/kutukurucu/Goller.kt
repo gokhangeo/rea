@@ -16,44 +16,121 @@ object Goller {
     private const val TAG = "KutuKurucu"
     private const val P = "gol"
     private const val BASE = "https://site.api.espn.com/apis/site/v2/sports/soccer"
-    private val LIGLER = linkedMapOf(
+    /** Sayfada seçilebilen ligler (ESPN kodu → ad). Takım listesi buradan gelir; elle yazılmaz. */
+    val SECILEBILIR = linkedMapOf(
         "tur.1" to "Süper Lig",
+        "eng.1" to "Premier League (İngiltere)",
+        "esp.1" to "LaLiga (İspanya)",
+        "ger.1" to "Bundesliga (Almanya)",
+        "ita.1" to "Serie A (İtalya)",
+        "fra.1" to "Ligue 1 (Fransa)",
+        "ned.1" to "Eredivisie (Hollanda)",
+        "por.1" to "Primeira Liga (Portekiz)",
+        "bel.1" to "Pro League (Belçika)",
+        "sco.1" to "Premiership (İskoçya)",
+        "uefa.champions" to "Şampiyonlar Ligi",
+        "uefa.europa" to "Avrupa Ligi",
+        "uefa.europa.conf" to "Konferans Ligi",
+        "fifa.world" to "Dünya Kupası (milli takımlar)",
+        "uefa.nations" to "Uluslar Ligi (milli takımlar)",
+    )
+
+    /** Takımın kendi liginden başka her zaman taranan kupalar (takımlar buralarda da oynar). */
+    private val KUPALAR = linkedMapOf(
         "uefa.champions" to "Şampiyonlar Ligi",
         "uefa.europa" to "Avrupa Ligi",
         "uefa.europa.conf" to "Konferans Ligi",
         "tur.cup" to "Türkiye Kupası",
     )
 
+    /** Seçili takım: ESPN takım kimliğiyle eşleşir (ad benzetmesi yok). */
+    data class Takim(val id: String, val ad: String, val lig: String) {
+        fun json(): JSONObject = JSONObject().put("id", id).put("ad", ad).put("lig", lig)
+            .put("ligAd", SECILEBILIR[lig] ?: lig)
+    }
+
+    private val takimOnbellek = HashMap<String, Pair<Long, JSONArray>>()
+
     @Volatile private var calisiyor = false
 
     private fun p(c: Context) = c.getSharedPreferences(P, Context.MODE_PRIVATE)
 
-    fun takimlar(c: Context): List<String> = p(c).getString("takimlar", "").orEmpty()
+    /** 1.6 ve öncesinde elle yazılmış adlar; sayfadan silinene kadar eskisi gibi ad benzetmesiyle izlenir. */
+    fun eskiAdlar(c: Context): List<String> = p(c).getString("takimlar", "").orEmpty()
         .split(",").map { it.trim() }.filter { it.isNotEmpty() }
+
+    fun secili(c: Context): List<Takim> {
+        val a = runCatching { JSONArray(p(c).getString("secili", "[]") ?: "[]") }.getOrDefault(JSONArray())
+        return (0 until a.length()).mapNotNull { i ->
+            val o = a.optJSONObject(i) ?: return@mapNotNull null
+            val id = o.optString("id"); val lig = o.optString("lig")
+            if (id.isBlank() || lig.isBlank()) null else Takim(id, o.optString("ad", id), lig)
+        }
+    }
 
     fun acik(c: Context) = p(c).getBoolean("acik", true)
 
-    fun ayarla(c: Context, ham: String, acik: Boolean) {
-        val liste = ham.split(",", "\n").map { it.trim() }.filter { it.isNotEmpty() }.distinct().take(20)
-        p(c).edit().putString("takimlar", liste.joinToString(", ")).putBoolean("acik", acik).apply()
-        if (!acik || liste.isEmpty()) p(c).edit().remove("skorlar").apply()
+    /**
+     * [secimJson]: [{"id":"134","ad":"VfB Stuttgart","lig":"ger.1"}, ...]. Yalnızca bilinen liglerden ve
+     * sayısal kimlikli takımlar kabul edilir. [eskiler]: tutulacak eski elle yazılmış adlar (silinenler düşer).
+     */
+    fun ayarla(c: Context, secimJson: String?, eskiler: String?, acik: Boolean): String? {
+        val liste = ArrayList<Takim>()
+        if (secimJson != null) {
+            val a = runCatching { JSONArray(secimJson) }.getOrNull() ?: return "Takım listesi okunamadı."
+            for (i in 0 until a.length()) {
+                val o = a.optJSONObject(i) ?: continue
+                val id = o.optString("id").trim(); val lig = o.optString("lig").trim()
+                if (!id.matches(Regex("\\d{1,9}")) || lig !in SECILEBILIR) continue
+                if (liste.any { it.id == id }) continue
+                liste.add(Takim(id, o.optString("ad", id).take(60), lig))
+            }
+        } else liste.addAll(secili(c))
+        val eski = if (eskiler != null) eskiler.split(",").map { it.trim() }.filter { it in eskiAdlar(c) } else eskiAdlar(c)
+        p(c).edit()
+            .putString("secili", JSONArray(liste.take(30).map { it.json() }).toString())
+            .putString("takimlar", eski.joinToString(", "))
+            .putBoolean("acik", acik).apply()
+        if (!acik || (liste.isEmpty() && eski.isEmpty())) p(c).edit().remove("skorlar").apply()
+        return null
     }
 
     fun json(c: Context) = JSONObject()
-        .put("takimlar", JSONArray(takimlar(c)))
+        .put("secili", JSONArray(secili(c).map { it.json() }))
+        .put("eskiler", JSONArray(eskiAdlar(c)))
         .put("acik", acik(c))
-        .put("ligler", JSONArray(LIGLER.values))
+        .put("ligler", JSONArray(SECILEBILIR.map { (k, v) -> JSONObject().put("kod", k).put("ad", v) }))
+
+    /** Bir ligin takımları (ESPN). 6 saat önbellekte tutulur. */
+    fun ligTakimlari(lig: String): JSONArray {
+        require(lig in SECILEBILIR) { "Bilinmeyen lig" }
+        synchronized(takimOnbellek) {
+            takimOnbellek[lig]?.let { (t, a) -> if (System.currentTimeMillis() - t < 6 * 3600_000L) return a }
+        }
+        val kok = JSONObject(get("$BASE/$lig/teams"))
+        val ham = kok.optJSONArray("sports")?.optJSONObject(0)?.optJSONArray("leagues")?.optJSONObject(0)
+            ?.optJSONArray("teams") ?: JSONArray()
+        val liste = (0 until ham.length()).mapNotNull { i ->
+            val t = ham.optJSONObject(i)?.optJSONObject("team") ?: return@mapNotNull null
+            val id = t.optString("id"); if (id.isBlank()) return@mapNotNull null
+            JSONObject().put("id", id).put("ad", ad(t))
+        }.sortedBy { sadeles(it.optString("ad")) }
+        val a = JSONArray(liste)
+        synchronized(takimOnbellek) { takimOnbellek[lig] = System.currentTimeMillis() to a }
+        return a
+    }
 
     /** SunucuServisi düzenli olarak çağırır; ağ işi ayrı iş parçacığında yapılır. */
     fun dongu(c: Context) {
         if (calisiyor || !acik(c)) return
-        val secili = takimlar(c)
-        if (secili.isEmpty()) return
+        val secili = secili(c)
+        val eski = eskiAdlar(c)
+        if (secili.isEmpty() && eski.isEmpty()) return
         calisiyor = true
         val uygulama = c.applicationContext
         Thread {
             try {
-                tara(uygulama, secili)
+                tara(uygulama, secili, eski)
             } catch (t: Throwable) {
                 Log.w(TAG, "gol servisi okunamadı", t)
             } finally {
@@ -62,10 +139,16 @@ object Goller {
         }.start()
     }
 
-    private fun tara(c: Context, secili: List<String>) {
+    private fun tara(c: Context, secili: List<Takim>, eskiAdlar: List<String>) {
         val eski = runCatching { JSONObject(p(c).getString("skorlar", "{}") ?: "{}") }.getOrDefault(JSONObject())
         val yeni = JSONObject()
-        for ((lig, ligAdi) in LIGLER) {
+        val idler = secili.map { it.id }.toSet()
+        // Taranacak ligler: seçili takımların ligleri + kupalar (+ eski adlar için Süper Lig).
+        val ligler = LinkedHashMap<String, String>()
+        secili.forEach { ligler[it.lig] = SECILEBILIR[it.lig] ?: it.lig }
+        if (eskiAdlar.isNotEmpty()) ligler["tur.1"] = "Süper Lig"
+        ligler.putAll(KUPALAR)
+        for ((lig, ligAdi) in ligler) {
             val kok = runCatching { JSONObject(get("$BASE/$lig/scoreboard")) }.getOrNull() ?: continue
             val olaylar = kok.optJSONArray("events") ?: continue
             for (k in 0 until olaylar.length()) {
@@ -87,7 +170,10 @@ object Goller {
                 val dep = deplasman ?: continue
                 val evAd = ad(ev.optJSONObject("team"))
                 val depAd = ad(dep.optJSONObject("team"))
-                val ilgili = secili.any { s -> benzer(s, evAd) || benzer(s, depAd) }
+                val evId = ev.optJSONObject("team")?.optString("id") ?: ev.optString("id")
+                val depId = dep.optJSONObject("team")?.optString("id") ?: dep.optString("id")
+                val ilgili = evId in idler || depId in idler ||
+                    eskiAdlar.any { s -> benzer(s, evAd) || benzer(s, depAd) }
                 if (!ilgili) continue
 
                 val hs = skor(ev)

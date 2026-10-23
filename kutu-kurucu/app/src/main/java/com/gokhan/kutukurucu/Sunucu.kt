@@ -76,11 +76,16 @@ class Sunucu(private val c: Context) : NanoHTTPD(PORT) {
                 } else tamam()
             }
             "/api/takimlar" -> if (post) {
-                val liste = s.parameters["takimlar"]?.firstOrNull().orEmpty()
                 val acik = (s.parameters["acik"]?.firstOrNull() ?: "1") != "0"
-                Goller.ayarla(c, liste, acik)
-                json(Goller.json(c))
+                Goller.ayarla(c, s.parameters["secili"]?.firstOrNull(), s.parameters["eskiler"]?.firstOrNull(), acik)
+                    ?.let { metin(Response.Status.BAD_REQUEST, it) } ?: json(Goller.json(c))
             } else json(Goller.json(c))
+            "/api/lig-takimlar" -> {
+                val lig = s.parameters["lig"]?.firstOrNull().orEmpty()
+                if (lig !in Goller.SECILEBILIR) metin(Response.Status.BAD_REQUEST, "Bilinmeyen lig")
+                else runCatching { json(JSONObject().put("lig", lig).put("takimlar", Goller.ligTakimlari(lig))) }
+                    .getOrElse { metin(Response.Status.BAD_GATEWAY, "Takım listesi alınamadı (ESPN): ${it.message}") }
+            }
             "/api/medya" -> {
                 if (!post) return metin(Response.Status.METHOD_NOT_ALLOWED, "")
                 val uzunluk = s.headers["content-length"]?.toLongOrNull() ?: -1L

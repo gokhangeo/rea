@@ -19,8 +19,11 @@ Her kutuya ayrı kurulur; her kutunun kendi adresi ve kodu vardır.
   kaldırılabilir. Sistem ve operatör (Turkcell/Skyworth) uygulamaları kaldırılamaz.
 - **Ekrana mesaj:** Sayfadan yazılan mesaj TV'de ne açık olursa olsun (kanal, film, uygulama) üstte görünür ve seçilen süre
   sonunda kendiliğinden kaybolur. `POST /api/mesaj?metin=...&sure=8000`.
-- **Gol bildirimleri:** Sayfada takım adları yazılır (örn. `Fenerbahçe, Galatasaray`); kutu 30 saniyede bir ESPN'in
-  herkese açık skor servisini yoklar, gol olunca skoru üstte 12 saniye gösterir. Kanal açıkken de görünür.
+- **Gol bildirimleri:** Takım elle yazılmaz: önce lig (Süper Lig, Premier League, LaLiga, Bundesliga, Serie A, Ligue 1,
+  Eredivisie, Primeira Liga, Belçika, İskoçya, Avrupa kupaları, milli takım turnuvaları), sonra o ligin takımı listeden seçilir
+  (liste ESPN'den gelir). Eşleşme ESPN takım kimliğiyle yapılır, ad benzerliğiyle değil. Kutu 20 saniyede bir takımın kendi
+  ligini, Avrupa kupalarını ve Türkiye Kupası'nı yoklar; gol olunca skoru üstte 12 saniye gösterir. Kanal açıkken de görünür.
+  Eski sürümde elle yazılmış adlar "elle yazılmış" etiketiyle görünür, silinene kadar eskisi gibi izlenir.
 - **Telefondan görüntü/video:** Telefondan seçilen fotoğraf ya da video kutuya gider ve tam ekran açılır; kumandada GERİ kapatır,
   video bitince kendiliğinden kapanır (`POST /api/medya`).
 - **Kendini güncelleme:** Sayfadaki "Kutu Kurucu'yu güncelle" düğmesi GitHub'daki son sürümü kurar.
