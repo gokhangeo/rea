@@ -75,6 +75,8 @@ SW_HIDE = 0
 SW_SHOWNOACTIVATE = 4
 
 WM_DESTROY = 0x0002
+WM_WINDOWPOSCHANGING = 0x0046
+SWP_NOZORDER = 0x0004
 WM_CLOSE = 0x0010
 WM_TIMER = 0x0113
 WM_LBUTTONDOWN = 0x0201
@@ -138,6 +140,11 @@ class BITMAPINFOHEADER(ctypes.Structure):
 class TRACKMOUSEEVENT(ctypes.Structure):
     _fields_ = [("cbSize", wt.DWORD), ("dwFlags", wt.DWORD), ("hwndTrack", wt.HWND),
                 ("dwHoverTime", wt.DWORD)]
+
+
+class WINDOWPOS(ctypes.Structure):
+    _fields_ = [("hwnd", wt.HWND), ("hwndInsertAfter", wt.HWND), ("x", ctypes.c_int),
+                ("y", ctypes.c_int), ("cx", ctypes.c_int), ("cy", ctypes.c_int), ("flags", wt.UINT)]
 
 
 class MONITORINFO(ctypes.Structure):
@@ -794,7 +801,9 @@ class Atac:
         self._drop_ref = None
         self._panel_cache = {}
         self._tracking = False
-        self.behind = (reg_get("Behind") == "1")   # arkada kal modu
+        # arkada kal modu VARSAYILAN: pencere/klasor acilinca atac altta kalir.
+        # Yalnizca tepsiden bilerek kapatildiysa ("0") hep ustte durur.
+        self.behind = (reg_get("Behind") != "0")
         self.front_until = 0.0                       # arkada moddayken gecici one-alma suresi
 
         a = load_anchor()
@@ -851,6 +860,7 @@ class Atac:
         if self.visible:
             self.render()
             user32.ShowWindow(self.hwnd, SW_SHOWNOACTIVATE)
+            self.apply_z()
 
     def _queue_drop(self, files):
         self.ole_drops.append(list(files))
@@ -1070,12 +1080,7 @@ class Atac:
         size = SIZE(w, h)
         ptsrc = POINT(0, 0)
         blend = BLENDFUNCTION(AC_SRC_OVER, 0, self.fade_alpha, AC_SRC_ALPHA)
-        if self.behind and time.time() >= self.front_until:
-            zpos = HWND_BOTTOM        # arkada kal: diger pencerelerin altina
-        else:
-            zpos = HWND_TOPMOST       # normal mod ya da gecici one-alma
-        user32.SetWindowPos(self.hwnd, zpos, 0, 0, 0, 0,
-                            SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE)
+        self.apply_z()   # arkada kal: diger pencerelerin altina; aksi halde hep ustte
         user32.UpdateLayeredWindow(self.hwnd, screen, ctypes.byref(ptdst), ctypes.byref(size),
                                    memdc, ctypes.byref(ptsrc), 0, ctypes.byref(blend), ULW_ALPHA)
         gdi32.SelectObject(memdc, old)
@@ -1097,8 +1102,21 @@ class Atac:
         self.idle = False
         self.fade_alpha = 255
         self.last_activity = time.time()
+
+    def _in_front(self):
+        return (not self.behind) or time.time() < self.front_until
+
+    def bring_front(self, seconds=8.0):
+        """Arkada kal modunda atacı kısa süreliğine öne getirir (kısayol ile)."""
         if self.behind:
-            self.front_until = self.last_activity + 4.0   # etkinlikte 4 sn one gel
+            self.front_until = time.time() + seconds
+        self.wake()
+        self.render()
+
+    def apply_z(self):
+        zpos = HWND_TOPMOST if self._in_front() else HWND_BOTTOM
+        user32.SetWindowPos(self.hwnd, zpos, 0, 0, 0, 0,
+                            SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE)
 
     def add_paths(self, paths, expand=True, skip_missing=False):
         eklendi = 0
@@ -1175,6 +1193,7 @@ class Atac:
         self.wake()
         self.render()
         user32.ShowWindow(self.hwnd, SW_SHOWNOACTIVATE)
+        self.apply_z()   # ShowWindow z-sirasini bozmasin
 
     def toggle_visible(self):
         if self.visible:
@@ -1196,6 +1215,11 @@ class Atac:
     # ---- WndProc ----
     def _wndproc(self, hwnd, msg, wp, lp):
         try:
+            if msg == WM_WINDOWPOSCHANGING and lp and not self._in_front():
+                # arkada kal: biri (Windows dahil) atacı one almaya calisirsa en alta zorla
+                wp_ = WINDOWPOS.from_address(lp)
+                if not (wp_.flags & SWP_NOZORDER):
+                    wp_.hwndInsertAfter = HWND_BOTTOM
             if msg == WM_TIMER:
                 self._on_timer()
                 return 0
@@ -1218,10 +1242,8 @@ class Atac:
             if msg == WM_HOTKEY:
                 if self.behind:
                     if not self.visible:
-                        self.show()      # gizliyse goster (wake one alir)
-                    else:
-                        self.wake()      # gorunuyorsa one getir
-                        self.render()
+                        self.show()
+                    self.bring_front()   # pencerelerin altindaysa 8 sn one getir
                 else:
                     self.toggle_visible()
                 return 0
@@ -1370,7 +1392,7 @@ def start_tray(app):
         pystray.MenuItem(f"Ataç — sürüm {APP_VERSION}", None, enabled=False),
         pystray.MenuItem("Ataç'ı göster / gizle", on_show, default=True),
         pystray.MenuItem("Windows açılışında başlat", on_autostart, checked=lambda it: autostart_enabled()),
-        pystray.MenuItem("Arkada kal (diğer pencerelerin altında)", on_behind, checked=lambda it: app.behind),
+        pystray.MenuItem("Arkada kal (pencerelerin altında) — önerilen", on_behind, checked=lambda it: app.behind),
         pystray.MenuItem("Güncellemeleri denetle", on_update),
         pystray.MenuItem("Çıkış", on_quit),
     )
