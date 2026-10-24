@@ -21,7 +21,8 @@ antivirüslerin Electron paketlerine taktığı yanlış alarmlara takılmaz.
   **Ctrl+V** ile yapıştır. (Doğrudan dışarı sürükleme bir sonraki sürümde eklenecek.)
 - Ataç'ı **tutup sürükleyerek** istediğin yere taşı; konumu hatırlanır.
 - Saat yanındaki **tepsi simgesi**: göster/gizle, Windows ile başlat, güncelleme denetle, çıkış.
-- Kısayol: **Ctrl+Shift+Boşluk** → göster/gizle.
+- **Arkada kal** (varsayılan): bir pencere ya da klasör açıldığında ataç onun altında kalır, işini engellemez. Öne almak için **Ctrl+Shift+Boşluk** (8 sn öne gelir). Hep üstte dursun istersen tepsiden "Arkada kal" işaretini kaldır.
+- Kısayol: **Ctrl+Shift+Boşluk** → göster (arkada kal modunda: öne getir).
 
 ## Otomatik güncelleme
 
