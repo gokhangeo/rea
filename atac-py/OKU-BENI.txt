@@ -16,7 +16,9 @@ takılmaz. Tek dosyadır, kurulum gerekmez.
    - Bir öğeye tek tıkla ya da "⇪ Tümü": dosyaları panoya kopyalar;
      hedef klasörde Ctrl+V ile yapıştır.
    - Ataçı tutup sürükleyerek taşı; konumu hatırlanır.
-   - Ctrl+Shift+Boşluk: göster/gizle.
+   - Pencere/klasör açılınca ataç ALTTA kalır (varsayılan).
+   - Ctrl+Shift+Boşluk: ataçı 8 saniyeliğine öne getirir.
+   - Hep üstte dursun istersen: tepsiden "Arkada kal" işaretini kaldır.
 
 3) TEPSİ SİMGESİ (saat yanı)
    - Göster/gizle, Windows açılışında başlat, Güncellemeleri denetle, Çıkış.
