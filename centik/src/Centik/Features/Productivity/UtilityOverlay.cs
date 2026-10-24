@@ -38,7 +38,7 @@ public sealed partial class OverlayWindow
     private string toolsMode="home";
     private string taskDraft="";
     private bool utilityMutating;
-    private static readonly (string mode,string title)[] toolChoices={ ("files","File shelf"),("notes","Notes"),("tasks","Tasks"),("clips","Clipboard"),("calendar","Calendar"),("awake","Keep awake"),("links","Clean links"),("weather","Weather") };
+    private static readonly (string mode,string title)[] toolChoices={ ("files","Dosya rafı"),("notes","Notlar"),("tasks","Görevler"),("clips","Pano"),("calendar","Takvim"),("awake","Uyanık tut"),("links","Bağlantıları temizle"),("weather","Hava durumu") };
     private bool ToolOn(string id)=>app.Settings.ToolEnabled(id) || app.Settings.HoverViews.Any(view=>view.Id==id && view.Enabled && HoverPagePolicy.Available(app.Settings,id));
     private readonly DispatcherTimer noteSave=new(){Interval=TimeSpan.FromMilliseconds(350)};
     private ContextMenu? audioMenu;
@@ -74,7 +74,7 @@ public sealed partial class OverlayWindow
             row.MouseEnter+=(_,_)=>Feedback();row.MouseLeave+=(_,_)=>Feedback();row.GotKeyboardFocus+=(_,_)=>Feedback();row.LostKeyboardFocus+=(_,_)=>Feedback();row.PreviewMouseLeftButtonDown+=(_,_)=>Feedback(true);row.PreviewMouseLeftButtonUp+=(_,_)=>Feedback();row.LostMouseCapture+=(_,_)=>Feedback();
             row.PreviewKeyDown+=(_,e)=>{if(e.Key is Key.Space or Key.Enter)Feedback(true);};row.PreviewKeyUp+=(_,_)=>Feedback();list.Children.Add(row);
         }
-        if(list.Children.Count==0){list.Children.Add(UI.Text("All tools are hidden. Enable them in Settings → Widgets.",12,UI.Muted));list.Children.Add(UI.Button("Open Settings",app.ShowSettings));}toolsContent.Children.Add(list);
+        if(list.Children.Count==0){list.Children.Add(UI.Text("Tüm araçlar gizli. Ayarlar → Bileşenler'den etkinleştirin.",12,UI.Muted));list.Children.Add(UI.Button("Ayarları aç",app.ShowSettings));}toolsContent.Children.Add(list);
     }
 
     private static FrameworkElement ToolIcon(string mode)
@@ -90,14 +90,14 @@ public sealed partial class OverlayWindow
     }
     private void BuildNotes()
     {
-        if(toolsMode=="tasks"){BuildVisualTasks();return;}var p=app.Productivity;var heading=UI.Heading(toolsMode=="tasks"?"Tasks":"Notes",19);heading.FontWeight=FontWeights.SemiBold;heading.Margin=new(0,0,0,12);toolsContent.Children.Add(heading);
+        if(toolsMode=="tasks"){BuildVisualTasks();return;}var p=app.Productivity;var heading=UI.Heading(toolsMode=="tasks"?"Görevler":"Notlar",19);heading.FontWeight=FontWeights.SemiBold;heading.Margin=new(0,0,0,12);toolsContent.Children.Add(heading);
         var write=new StackPanel();var tasks=new StackPanel();toolsContent.Children.Add(toolsMode=="notes"?write:tasks);
         mainNoteEditor=null;
         if(toolsMode=="notes")
         {
-            var note=UI.Input("Quick notes",p.Note);mainNoteEditor=note;note.AcceptsReturn=true;note.TextWrapping=TextWrapping.Wrap;note.Height=136;note.VerticalContentAlignment=VerticalAlignment.Top;note.VerticalScrollBarVisibility=ScrollBarVisibility.Auto;note.MaxLength=50000;note.Padding=new(13);note.Margin=new(0);
-            var editor=new Grid();editor.Children.Add(note);var placeholder=UI.Text("Capture a thought…",13,UI.Muted);placeholder.IsHitTestVisible=false;placeholder.VerticalAlignment=VerticalAlignment.Top;placeholder.Margin=new(14);editor.Children.Add(placeholder);write.Children.Add(editor);
-            var meta=UI.Text("Saved on this device",10,UI.Muted);meta.Margin=new(2,9,0,2);write.Children.Add(meta);
+            var note=UI.Input("Hızlı notlar",p.Note);mainNoteEditor=note;note.AcceptsReturn=true;note.TextWrapping=TextWrapping.Wrap;note.Height=136;note.VerticalContentAlignment=VerticalAlignment.Top;note.VerticalScrollBarVisibility=ScrollBarVisibility.Auto;note.MaxLength=50000;note.Padding=new(13);note.Margin=new(0);
+            var editor=new Grid();editor.Children.Add(note);var placeholder=UI.Text("Bir düşünceyi yakala…",13,UI.Muted);placeholder.IsHitTestVisible=false;placeholder.VerticalAlignment=VerticalAlignment.Top;placeholder.Margin=new(14);editor.Children.Add(placeholder);write.Children.Add(editor);
+            var meta=UI.Text("Bu cihazda kaydedildi",10,UI.Muted);meta.Margin=new(2,9,0,2);write.Children.Add(meta);
             void Placeholder()=>placeholder.Visibility=note.Text.Length==0?Visibility.Visible:Visibility.Collapsed;Placeholder();
             note.TextChanged+=(_,_)=>{if(!syncingNote)p.Note=note.Text;Placeholder();noteSave.Stop();noteSave.Start();};
             return;
@@ -128,7 +128,7 @@ public sealed partial class OverlayWindow
         toolsContent.Children.Clear();var p=app.Productivity;if(p==null)return;
         if(toolsMode!="home" && !Settings.ToolNames.ContainsKey(activePage))
         {
-            var back=UI.Button("All tools",()=>NavigateTool("home"));var label=UI.Text("‹   All tools",11,UI.Muted);back.Content=label;back.HorizontalAlignment=HorizontalAlignment.Left;back.Background=Brushes.Transparent;back.BorderThickness=new(0);back.Padding=new(1,0,8,0);back.MinHeight=24;back.Margin=new(0,0,0,10);toolsContent.Children.Add(back);
+            var back=UI.Button("Tüm araçlar",()=>NavigateTool("home"));var label=UI.Text("‹   Tüm araçlar",11,UI.Muted);back.Content=label;back.HorizontalAlignment=HorizontalAlignment.Left;back.Background=Brushes.Transparent;back.BorderThickness=new(0);back.Padding=new(1,0,8,0);back.MinHeight=24;back.Margin=new(0,0,0,10);toolsContent.Children.Add(back);
         }
         if(toolsMode=="home")BuildToolLauncher();
         else if(toolsMode=="files")
@@ -155,13 +155,13 @@ public sealed partial class OverlayWindow
     {
         audioMenu=new ContextMenu{Background=UI.Brush("#191A1E"),Foreground=Brushes.White,BorderBrush=UI.Brush("#42434B"),Padding=new(5),HasDropShadow=false};
         if(mediaControls?.IsVisible==true){audioMenu.PlacementTarget=mediaControls.VolumeButton;audioMenu.Placement=System.Windows.Controls.Primitives.PlacementMode.Top;}
-        var mixerItem=new MenuItem{Header="Volume mixer",Foreground=Brushes.White};mixerItem.Click+=(_,_)=>OpenMixer();audioMenu.Items.Add(mixerItem);audioMenu.Items.Add(new Separator{Style=(Style)FindResource(typeof(Separator))});
+        var mixerItem=new MenuItem{Header="Ses karıştırıcı",Foreground=Brushes.White};mixerItem.Click+=(_,_)=>OpenMixer();audioMenu.Items.Add(mixerItem);audioMenu.Items.Add(new Separator{Style=(Style)FindResource(typeof(Separator))});
         foreach(var device in app.Audio.Outputs())
         {
             var item=new MenuItem{Header=device.Name,IsCheckable=true,IsChecked=device.Id==app.Audio.DefaultOutputId,Foreground=Brushes.White};
-            item.Click+=(_,_)=>{if(!app.Audio.SetOutput(device.Id))app.Notify("Could not switch output",app.Audio.LastError??"Device unavailable.");Update();};audioMenu.Items.Add(item);
+            item.Click+=(_,_)=>{if(!app.Audio.SetOutput(device.Id))app.Notify("Çıkış değiştirilemedi",app.Audio.LastError??"Device unavailable.");Update();};audioMenu.Items.Add(item);
         }
-        if(audioMenu.Items.Count==0)audioMenu.Items.Add(new MenuItem{Header="No active output devices",IsEnabled=false});audioMenu.Items.Add(new Separator{Style=(Style)FindResource(typeof(Separator))});
-        var mic=new MenuItem{Header=(app.Audio.MicrophoneMuted?"Unmute":"Mute")+" microphone · "+app.Audio.MicrophoneName,IsEnabled=app.Audio.MicrophoneAvailable,Foreground=Brushes.White};mic.Click+=(_,_)=>{if(!app.Audio.ToggleMicrophoneMute())app.Notify("Could not change microphone",app.Audio.LastError??"Device unavailable.");};audioMenu.Items.Add(mic);audioMenu.Closed+=(_,_)=>{if(peeking && !DiagnosticRun && !PointerInside())leaveDelay.Start();};audioMenu.IsOpen=true;
+        if(audioMenu.Items.Count==0)audioMenu.Items.Add(new MenuItem{Header="Etkin çıkış aygıtı yok",IsEnabled=false});audioMenu.Items.Add(new Separator{Style=(Style)FindResource(typeof(Separator))});
+        var mic=new MenuItem{Header=(app.Audio.MicrophoneMuted?"Sesini aç":"Sessize al")+" mikrofon · "+app.Audio.MicrophoneName,IsEnabled=app.Audio.MicrophoneAvailable,Foreground=Brushes.White};mic.Click+=(_,_)=>{if(!app.Audio.ToggleMicrophoneMute())app.Notify("Mikrofon değiştirilemedi",app.Audio.LastError??"Device unavailable.");};audioMenu.Items.Add(mic);audioMenu.Closed+=(_,_)=>{if(peeking && !DiagnosticRun && !PointerInside())leaveDelay.Start();};audioMenu.IsOpen=true;
     }
 }

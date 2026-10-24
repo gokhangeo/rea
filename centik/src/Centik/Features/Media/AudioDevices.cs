@@ -15,7 +15,7 @@ public sealed partial class AudioService
     public string DefaultOutputId { get; private set; }="";
     public bool MicrophoneAvailable { get; private set; }
     public bool MicrophoneMuted { get; private set; }
-    public string MicrophoneName { get; private set; }="No microphone";
+    public string MicrophoneName { get; private set; }="Mikrofon yok";
 
     public IReadOnlyList<AudioOutput> Outputs()
     {
@@ -38,11 +38,11 @@ public sealed partial class AudioService
         if(!CheckAudioActive(AudioOperation.SetOutput))return false;
         try
         {
-            if(string.IsNullOrWhiteSpace(id))throw new ArgumentException("Choose an audio output device.",nameof(id));
+            if(string.IsNullOrWhiteSpace(id))throw new ArgumentException("Bir ses çıkış cihazı seçin.",nameof(id));
             // Reject stale or capture endpoint IDs before invoking Windows policy configuration.
             using(var device=EndpointEnumerator.GetDevice(id))
                 if(device.DataFlow!=DataFlow.Render || device.State!=DeviceState.Active)
-                    throw new InvalidOperationException("The audio output device is inactive.");
+                    throw new InvalidOperationException("Ses çıkış cihazı etkin değil.");
             AudioOutputPolicy.SetDefault(id);
             Read();Changed?.Invoke();return true;
         }
@@ -71,7 +71,7 @@ public sealed partial class AudioService
         }
         catch(Exception ex)
         {
-            ReleaseMicrophone();MicrophoneAvailable=false;MicrophoneMuted=false;MicrophoneName="No microphone";AudioError(ex,AudioOperation.ReadMicrophone);
+            ReleaseMicrophone();MicrophoneAvailable=false;MicrophoneMuted=false;MicrophoneName="Mikrofon yok";AudioError(ex,AudioOperation.ReadMicrophone);
         }
     }
 
@@ -109,9 +109,9 @@ internal static class AudioOutputPolicy
         foreach(var role in new[]{Role.Console,Role.Multimedia,Role.Communications})
         {
             try{apply(role);}
-            catch(Exception ex){errors.Add(new InvalidOperationException($"Could not change audio output for {role}: {ex.Message}",ex));}
+            catch(Exception ex){errors.Add(new InvalidOperationException($"{role} için ses çıkışı değiştirilemedi: {ex.Message}",ex));}
         }
-        if(errors.Count>0)throw new AggregateException("Some audio output roles could not be changed.",errors);
+        if(errors.Count>0)throw new AggregateException("Bazı ses çıkış rolleri değiştirilemedi.",errors);
     }
 
     [ComImport,Guid("870AF99C-171D-4F9E-AF0D-E63DF40C2BC9")]

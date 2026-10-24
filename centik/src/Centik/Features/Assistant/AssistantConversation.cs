@@ -32,7 +32,7 @@ internal sealed class AssistantConversation : IDisposable
         // an orphan tool result that makes the next provider request invalid.
         if(messages.Count>=48)messages.Clear();
         string Bound(string text,int limit)=>text.Length>limit?text[..limit]:text;
-        Add(new("assistant","Reviewed voice action outcome · "+Bound(call.Name,100)+" ["+Bound(call.Id,128)+"] "+Bound(call.Arguments,2000)+" → "+Bound(result,12000)));
+        Add(new("assistant","Sesli eylem sonucu incelendi · "+Bound(call.Name,100)+" ["+Bound(call.Id,128)+"] "+Bound(call.Arguments,2000)+" → "+Bound(result,12000)));
     }
     private void Add(AssistantMessage message)
     {
@@ -40,7 +40,7 @@ internal sealed class AssistantConversation : IDisposable
     }
     internal async Task Send(AssistantProvider provider,string? key,string instructions,string text,string? image,IReadOnlyList<AssistantTool> tools,Func<AssistantCall,CancellationToken,Task<string>> execute,CancellationToken cancellationToken=default,Func<CancellationToken,Task<string?>>? refreshScreen=null)
     {
-        if(Interlocked.CompareExchange(ref busy,1,0)!=0)throw new InvalidOperationException("Wait for the current reply, or stop it first.");
+        if(Interlocked.CompareExchange(ref busy,1,0)!=0)throw new InvalidOperationException("Önce mevcut yanıtı bekleyin veya durdurun.");
         LastTurnHasActionResults=false;var outcomes=new List<string>();
         int generation=epoch;
         if(provider.Backend=="Hermes")provider.HermesSessionId=hermesSession;
@@ -48,7 +48,7 @@ internal sealed class AssistantConversation : IDisposable
         int turnStart=messages.Count;
         try
         {
-            if(string.IsNullOrWhiteSpace(text) || text.Length>16000)throw new ArgumentException("Enter a message of up to 16,000 characters.");
+            if(string.IsNullOrWhiteSpace(text) || text.Length>16000)throw new ArgumentException("En fazla 16.000 karakter uzunluğunda bir mesaj girin.");
             // Keep complete tool-call turns together; never trim an orphan tool result.
             if(messages.Count>48 || messages.Sum(m=>m.Text.Length+(m.ProtocolItems?.Sum(p=>p.GetRawText().Length)??0)+(m.Calls?.Sum(c=>c.Arguments.Length)??0))>500000)messages.Clear();
             turnStart=messages.Count;
@@ -60,8 +60,8 @@ internal sealed class AssistantConversation : IDisposable
                 var input=new[]{new AssistantMessage("system",instructions)}.Concat(messages).ToArray();
                 var reply=await transport.Complete(provider,key,input,tools,run.Token);
                 run.Token.ThrowIfCancellationRequested();if(generation!=epoch)throw new OperationCanceledException(run.Token);
-                if(reply.Calls.Count>8)throw new InvalidOperationException("The provider requested too many actions in one reply.");
-                if(reply.Text.Length>64000 || (reply.ProtocolItems?.Sum(p=>p.GetRawText().Length)??0)>500000)throw new InvalidOperationException("The reply exceeded the conversation size limit.");
+                if(reply.Calls.Count>8)throw new InvalidOperationException("Sağlayıcı tek bir yanıtta çok fazla eylem istedi.");
+                if(reply.Text.Length>64000 || (reply.ProtocolItems?.Sum(p=>p.GetRawText().Length)??0)>500000)throw new InvalidOperationException("Yanıt, konuşma boyutu sınırını aştı.");
                 Add(new("assistant",reply.Text,Calls:reply.Calls,ProtocolItems:reply.ProtocolItems));
                 if(reply.Calls.Count==0)return;
                 foreach(var call in reply.Calls)
@@ -83,7 +83,7 @@ internal sealed class AssistantConversation : IDisposable
                     }
                 }
             }
-            throw new InvalidOperationException("Action limit reached. Review the result and send another message to continue.");
+            throw new InvalidOperationException("Eylem sınırına ulaşıldı. Sonucu gözden geçirin ve devam etmek için başka bir mesaj gönderin.");
         }
         catch
         {
@@ -94,7 +94,7 @@ internal sealed class AssistantConversation : IDisposable
                 if(outcomes.Count>0)
                 {
                     Add(new("user",text));
-                    Add(new("assistant","The reply was interrupted after action results arrived. Check these outcomes before repeating an action:\n"+string.Join("\n",outcomes)));
+                    Add(new("assistant","Yanıt, eylem sonuçları geldikten sonra kesildi. Bir eylemi tekrarlamadan önce şu sonuçları kontrol edin:\n"+string.Join("\n",outcomes)));
                 }
             }
             throw;

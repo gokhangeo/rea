@@ -12,7 +12,7 @@ public sealed partial class SettingsWindow
         WindowChrome.SetWindowChrome(this,new WindowChrome{CaptionHeight=42,ResizeBorderThickness=new(6),CornerRadius=new(10),GlassFrameThickness=new(0),UseAeroCaptionButtons=false});
         var frame=new Grid();frame.RowDefinitions.Add(new(){Height=new GridLength(42)});frame.RowDefinitions.Add(new());
         var bar=new Grid{Background=UI.Brush("#141517")};bar.ColumnDefinitions.Add(new());bar.ColumnDefinitions.Add(new(){Width=GridLength.Auto});
-        var logo=new Image{Source=Icon,Width=23,Height=23,HorizontalAlignment=HorizontalAlignment.Left,Margin=new(18,0,0,0),ToolTip="Centik Settings"};bar.Children.Add(logo);
+        var logo=new Image{Source=Icon,Width=23,Height=23,HorizontalAlignment=HorizontalAlignment.Left,Margin=new(18,0,0,0),ToolTip="Çentik Ayarları"};bar.Children.Add(logo);
         var actions=new StackPanel{Orientation=Orientation.Horizontal};Grid.SetColumn(actions,1);bar.Children.Add(actions);
         Button Caption(string name,string data,Action action)
         {

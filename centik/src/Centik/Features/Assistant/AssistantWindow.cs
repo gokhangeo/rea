@@ -10,11 +10,11 @@ internal sealed class AssistantWindow : Window
 {
     internal AssistantWindow(App app)
     {
-        Title="Centik · Companion";
+        Title="Centik · Yardımcı";
         AssistantWindowChrome.Place(this,app.Settings,480,690);
         var view=new AssistantView(app);
         var outer=new ScrollViewer{Content=view,VerticalScrollBarVisibility=ScrollBarVisibility.Auto,HorizontalScrollBarVisibility=ScrollBarVisibility.Disabled};
-        Content=AssistantWindowChrome.Frame(this,"Centik · AI companion",outer);
+        Content=AssistantWindowChrome.Frame(this,"Centik · AI yardımcısı",outer);
         AddHandler(Keyboard.KeyDownEvent,new KeyEventHandler((_,e)=>
         {if(e.Key==Key.Escape){app.Assistant.StopSession();e.Handled=true;}}),true);
         StateChanged+=(_,_)=>{if(WindowState==WindowState.Minimized)app.Assistant.StopSession();};

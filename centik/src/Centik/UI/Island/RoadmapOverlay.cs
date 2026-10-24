@@ -27,8 +27,8 @@ public sealed partial class OverlayWindow
         RefreshCompactOptionalVisibility();
         if(awakeStatus!=null)
         {
-            string detail=app.Awake.Until.HasValue?$"{Math.Max(0,Math.Ceiling((app.Awake.Until.Value-now).TotalMinutes)):0} min remaining":"Until Centik quits";
-            awakeStatus.Text=app.Awake.Active?$"Awake · {detail}\n"+(app.Awake.KeepDisplayOn?"Display stays on":"Display can turn off"):"Off · Windows power settings apply";
+            string detail=app.Awake.Until.HasValue?$"{Math.Max(0,Math.Ceiling((app.Awake.Until.Value-now).TotalMinutes)):0} dk kaldı":"Çentik kapanana kadar";
+            awakeStatus.Text=app.Awake.Active?$"Uyanık · {detail}\n"+(app.Awake.KeepDisplayOn?"Ekran açık kalır":"Ekran kapanabilir"):"Kapalı · Windows güç ayarları geçerli";
         }
     }
     private void ResizeToolPanel()
@@ -42,8 +42,8 @@ public sealed partial class OverlayWindow
     {if(!commandOpen)return;commandOpen=false;BuildBody();ResizeToolPanel();if(expanded)scroll.Focus();}
     private FrameworkElement BuildCommandPage()
     {
-        var panel=new StackPanel{HorizontalAlignment=HorizontalAlignment.Stretch,Margin=new(3,0,3,0)};var heading=new DockPanel();var back=UI.Button("Back",CloseCommands);back.FontSize=11;back.MinHeight=28;back.Margin=new(8,0,0,0);DockPanel.SetDock(back,Dock.Right);heading.Children.Add(back);heading.Children.Add(UI.Heading("Command bar",18));panel.Children.Add(heading);
-        commandInput=UI.Input("Search commands","","Search Centik actions and saved shortcuts. Enter runs the first match.");commandInput.Margin=new(0,14,0,12);commandInput.MaxLength=120;panel.Children.Add(commandInput);
+        var panel=new StackPanel{HorizontalAlignment=HorizontalAlignment.Stretch,Margin=new(3,0,3,0)};var heading=new DockPanel();var back=UI.Button("Geri",CloseCommands);back.FontSize=11;back.MinHeight=28;back.Margin=new(8,0,0,0);DockPanel.SetDock(back,Dock.Right);heading.Children.Add(back);heading.Children.Add(UI.Heading("Komut çubuğu",18));panel.Children.Add(heading);
+        commandInput=UI.Input("Search commands","","Çentik eylemlerini ve kayıtlı kısayolları ara. Enter ilk eşleşeni çalıştırır.");commandInput.Margin=new(0,14,0,12);commandInput.MaxLength=120;panel.Children.Add(commandInput);
         if(commandResults.Parent is Panel parent)parent.Children.Remove(commandResults);panel.Children.Add(commandResults);
         commandInput.TextChanged+=(_,_)=>RefreshCommands();
         commandInput.PreviewKeyDown+=(_,e)=>{if(e.Key==Key.Enter && commandButtons.Count>0){commandButtons[0].RaiseEvent(new RoutedEventArgs(Button.ClickEvent));e.Handled=true;}else if(e.Key==Key.Down && commandButtons.Count>0){commandButtons[0].Focus();e.Handled=true;}};
@@ -51,23 +51,23 @@ public sealed partial class OverlayWindow
     }
     private IEnumerable<(string title,string detail,Action run)> Commands()
     {
-        yield return ("AI companion","Chat, voice and reviewed actions · configure your own provider",app.ShowAssistant);
-        yield return ("Notifications","View pending notifications and Downloads · Enter",()=>{CloseCommands();OpenNotice(true);});
-        if(app.Settings.ActivitiesEnabled)yield return ("Activities","Run or edit your workspace routines",()=>ShowActivities());
-        foreach(var definition in app.Activities.Definitions.Where(_=>app.Settings.ActivitiesEnabled)){var action=definition;yield return ("Activity · "+action.Name,"Open activity controls",()=>ShowActivities());}
-        yield return ("Tuck / Return to automatic","Toggle the manual tuck latch; hover the edge to preview",()=>{CloseCommands();ToggleTuck();});
-        yield return ("Open Settings","Appearance, widgets, and interaction",app.ShowSettings);
-        foreach(var pair in new[]{("media","Media controls"),("focus","Timers & focus"),("status","System status"),("access","Quick launch")})
+        yield return ("Yapay zeka arkadaşı","Sohbet, ses ve onaylı eylemler · kendi sağlayıcını yapılandır",app.ShowAssistant);
+        yield return ("Bildirimler","Bekleyen bildirimleri ve İndirilenler'i görüntüle · Enter",()=>{CloseCommands();OpenNotice(true);});
+        if(app.Settings.ActivitiesEnabled)yield return ("Etkinlikler","Çalışma alanı rutinlerini çalıştır ya da düzenle",()=>ShowActivities());
+        foreach(var definition in app.Activities.Definitions.Where(_=>app.Settings.ActivitiesEnabled)){var action=definition;yield return ("Etkinlik · "+action.Name,"Etkinlik kontrollerini aç",()=>ShowActivities());}
+        yield return ("Gizle / Otomatiğe dön","Manuel gizleme kilidini aç/kapat; önizleme için kenara gel",()=>{CloseCommands();ToggleTuck();});
+        yield return ("Ayarları aç","Görünüm, bileşenler ve etkileşim",app.ShowSettings);
+        foreach(var pair in new[]{("media","Medya kontrolleri"),("focus","Zamanlayıcılar ve odak"),("status","Sistem durumu"),("access","Hızlı başlat")})
         {
             var page=pair.Item1;if(!app.Settings.Widgets.Any(w=>w.Enabled && PageFor(w.Id)==page))continue;
-            yield return (pair.Item2,"Open this island page",()=>{CloseCommands();if(app.Settings.CompactLayout)SelectPage(page);});
+            yield return (pair.Item2,"Bu ada sayfasını aç",()=>{CloseCommands();if(app.Settings.CompactLayout)SelectPage(page);});
         }
         if(Settings.ToolNames.Keys.Any(ToolOn))
         {
-            foreach(var pair in new[]{("calendar","Calendar"),("awake","Keep awake"),("links","Clean links"),("files","File shelf"),("notes","Notes"),("tasks","Tasks"),("clips","Clipboard")})
-            {string mode=pair.Item1;if(!ToolOn(mode))continue;yield return(pair.Item2,"Open everyday tool",()=>ShowTools(mode));}
+            foreach(var pair in new[]{("calendar","Takvim"),("awake","Uyanık tut"),("links","Bağlantıları temizle"),("files","Dosya rafı"),("notes","Notlar"),("tasks","Görevler"),("clips","Pano")})
+            {string mode=pair.Item1;if(!ToolOn(mode))continue;yield return(pair.Item2,"Günlük aracı aç",()=>ShowTools(mode));}
         }
-        if(app.Awake.Active)yield return("Stop keep awake","Restore normal Windows idle behavior",()=>{app.Awake.Stop();RefreshCommands();});
+        if(app.Awake.Active)yield return("Uyanık tutmayı durdur","Normal Windows boşta davranışını geri getir",()=>{app.Awake.Stop();RefreshCommands();});
         foreach(var shortcut in app.Settings.Shortcuts.Where(_=>WidgetOn("shortcuts")))
         {var item=shortcut;yield return(item.Name,item.Target,()=>{ShortcutService.Open(item);Collapse();});}
     }
@@ -77,38 +77,38 @@ public sealed partial class OverlayWindow
         var matches=Commands().Where(c=>tokens.All(t=>(c.title+" "+c.detail).Contains(t,StringComparison.OrdinalIgnoreCase))).ToArray();
         foreach(var command in matches)
         {
-            var item=command;var button=UI.Button(item.title,()=>{try{item.run();}catch(Exception ex){app.Store.Log(ex);app.Notify("Could not run command",ex.Message);}});button.HorizontalContentAlignment=HorizontalAlignment.Stretch;button.Padding=new(12,9,12,9);button.Margin=new(0,0,0,7);button.BorderThickness=new(1);button.BorderBrush=Brushes.Transparent;
+            var item=command;var button=UI.Button(item.title,()=>{try{item.run();}catch(Exception ex){app.Store.Log(ex);app.Notify("Komut çalıştırılamadı",ex.Message);}});button.HorizontalContentAlignment=HorizontalAlignment.Stretch;button.Padding=new(12,9,12,9);button.Margin=new(0,0,0,7);button.BorderThickness=new(1);button.BorderBrush=Brushes.Transparent;
             var content=new StackPanel();content.Children.Add(UI.Text(item.title,12));var detail=UI.Text(item.detail,10,UI.Muted);detail.TextWrapping=TextWrapping.NoWrap;detail.TextTrimming=TextTrimming.CharacterEllipsis;detail.Margin=new(0,4,0,0);content.Children.Add(detail);button.Content=content;
             button.PreviewKeyDown+=(_,e)=>{if(e.Key is not (Key.Up or Key.Down))return;int index=commandButtons.IndexOf(button)+(e.Key==Key.Down?1:-1);if(index<0)commandInput?.Focus();else if(index<commandButtons.Count)commandButtons[index].Focus();e.Handled=true;};commandButtons.Add(button);commandResults.Children.Add(button);
         }
-        if(matches.Length==0)commandResults.Children.Add(UI.Text("No matching commands or shortcuts.",12,UI.Muted));
+        if(matches.Length==0)commandResults.Children.Add(UI.Text("Eşleşen komut ya da kısayol yok.",12,UI.Muted));
         if(commandOpen)ResizeToolPanel();
     }
     private void BuildAwake(StackPanel panel)
     {
-        panel.Children.Add(UI.Heading("Keep awake",18));var hint=UI.Text("Temporarily prevent automatic sleep. Your normal power settings return when this stops or Centik quits.",12,UI.Muted);hint.Margin=new(0,8,0,14);panel.Children.Add(hint);
+        panel.Children.Add(UI.Heading("Uyanık tut",18));var hint=UI.Text("Otomatik uykuyu geçici olarak engelle. Bu durduğunda ya da Çentik kapandığında normal güç ayarların geri döner.",12,UI.Muted);hint.Margin=new(0,8,0,14);panel.Children.Add(hint);
         awakeStatus=UI.Text("",14);awakeStatus.Margin=new(0,0,0,16);panel.Children.Add(awakeStatus);UpdateRoadmapStatus(DateTimeOffset.UtcNow);
-        if(app.Awake.Active){panel.Children.Add(UI.Button("Stop keep awake",()=>MutateUtility(app.Awake.Stop),true));return;}
-        var durations=new ComboBox();foreach(string item in new[]{"30 minutes","1 hour","2 hours","Until Centik quits"})durations.Items.Add(item);durations.SelectedIndex=0;UI.Named(durations,"Keep awake duration");panel.Children.Add(durations);
-        var display=new CheckBox{Content="Keep the display on too",IsChecked=false,Margin=new(0,10,0,12)};panel.Children.Add(display);
-        panel.Children.Add(UI.Button("Start keep awake",()=>MutateUtility(()=>app.Awake.Start(durations.SelectedIndex==3?null:TimeSpan.FromMinutes(new[]{30,60,120}[Math.Clamp(durations.SelectedIndex,0,2)]),display.IsChecked==true,DateTimeOffset.UtcNow)),true));
-        panel.Children.Add(UI.Text("Explicit sleep, locking, and closing the lid remain under Windows control.",11,UI.Muted));
+        if(app.Awake.Active){panel.Children.Add(UI.Button("Uyanık tutmayı durdur",()=>MutateUtility(app.Awake.Stop),true));return;}
+        var durations=new ComboBox();foreach(string item in new[]{"30 dakika","1 saat","2 saat","Çentik kapanana kadar"})durations.Items.Add(item);durations.SelectedIndex=0;UI.Named(durations,"Keep awake duration");panel.Children.Add(durations);
+        var display=new CheckBox{Content="Ekranı da açık tut",IsChecked=false,Margin=new(0,10,0,12)};panel.Children.Add(display);
+        panel.Children.Add(UI.Button("Uyanık tutmayı başlat",()=>MutateUtility(()=>app.Awake.Start(durations.SelectedIndex==3?null:TimeSpan.FromMinutes(new[]{30,60,120}[Math.Clamp(durations.SelectedIndex,0,2)]),display.IsChecked==true,DateTimeOffset.UtcNow)),true));
+        panel.Children.Add(UI.Text("Elle uyku, kilitleme ve kapağı kapatma Windows denetiminde kalır.",11,UI.Muted));
     }
     private void BuildCleanLinks(StackPanel panel)
     {
-        panel.Children.Add(UI.Heading("Clean links",18));var hint=UI.Text("Preview a link without common tracking. Copy it when you're ready.",11,UI.Muted);hint.Margin=new(0,8,0,8);panel.Children.Add(hint);
-        var input=UI.Input("Link to clean","","Paste an http or https URL");input.MaxLength=8192;input.Height=36;input.MinHeight=0;input.Padding=new(10,3,10,3);input.Margin=new(0,0,0,4);panel.Children.Add(input);
+        panel.Children.Add(UI.Heading("Bağlantıları temizle",18));var hint=UI.Text("Bir bağlantıyı yaygın takip olmadan önizle. Hazır olduğunda kopyala.",11,UI.Muted);hint.Margin=new(0,8,0,8);panel.Children.Add(hint);
+        var input=UI.Input("Link to clean","","Bir http ya da https URL'si yapıştır");input.MaxLength=8192;input.Height=36;input.MinHeight=0;input.Padding=new(10,3,10,3);input.Margin=new(0,0,0,4);panel.Children.Add(input);
         var status=UI.Text("",11,UI.Muted);status.Margin=new(0,8,0,8);panel.Children.Add(status);
         var result=UI.Input("Cleaned link","");result.IsReadOnly=true;result.TextWrapping=TextWrapping.Wrap;result.Height=44;result.Padding=new(10,3,10,3);result.Margin=new(0,0,0,4);result.VerticalScrollBarVisibility=ScrollBarVisibility.Auto;panel.Children.Add(result);
-        var copy=UI.Button("Copy cleaned link",()=>{try{Clipboard.SetText(result.Text);status.Text="Copied cleaned link.";}catch(Exception ex){app.Store.Log(ex);status.Text="Could not copy. Try again.";}finally{ResizeToolPanel();}},true);copy.IsEnabled=false;panel.Children.Add(copy);
-        input.TextChanged+=(_,_)=>{try{if(string.IsNullOrWhiteSpace(input.Text)){result.Text="";status.Text="";copy.IsEnabled=false;return;}result.Text=CleanLink.Clean(input.Text);copy.IsEnabled=true;status.Text=result.Text==input.Text.Trim()?"Unchanged · already clean or signature protected":"Tracking parameters removed · check the result below";}catch(ArgumentException){result.Text="";copy.IsEnabled=false;status.Text=$"Enter a complete HTTP or HTTPS URL without credentials (up to {input.MaxLength} characters).";}finally{ResizeToolPanel();}};
+        var copy=UI.Button("Temizlenen bağlantıyı kopyala",()=>{try{Clipboard.SetText(result.Text);status.Text="Temizlenen bağlantı kopyalandı.";}catch(Exception ex){app.Store.Log(ex);status.Text="Kopyalanamadı. Tekrar dene.";}finally{ResizeToolPanel();}},true);copy.IsEnabled=false;panel.Children.Add(copy);
+        input.TextChanged+=(_,_)=>{try{if(string.IsNullOrWhiteSpace(input.Text)){result.Text="";status.Text="";copy.IsEnabled=false;return;}result.Text=CleanLink.Clean(input.Text);copy.IsEnabled=true;status.Text=result.Text==input.Text.Trim()?"Değişmedi · zaten temiz ya da imzayla korumalı":"Takip parametreleri kaldırıldı · aşağıdaki sonucu kontrol et";}catch(ArgumentException){result.Text="";copy.IsEnabled=false;status.Text=$"Kimlik bilgisi olmadan tam bir HTTP ya da HTTPS URL'si gir (en fazla {input.MaxLength} karakter).";}finally{ResizeToolPanel();}};
     }
     private void BuildCalendar(StackPanel panel)
     {
         if(calendarEditing){BuildEventEditor(panel);return;}
         panel.Children.Add(CalendarToolbar());
         var grid=new Grid{Margin=new(0,10,0,10),Visibility=calendarMonthExpanded?Visibility.Visible:Visibility.Collapsed};for(int i=0;i<7;i++)grid.ColumnDefinitions.Add(new());for(int i=0;i<7;i++)grid.RowDefinitions.Add(new(){Height=new GridLength(i==0?20:24)});
-        for(int i=0;i<7;i++){var label=UI.Text(new[]{"Mon","Tue","Wed","Thu","Fri","Sat","Sun"}[i],10,UI.Muted);label.HorizontalAlignment=HorizontalAlignment.Center;Grid.SetColumn(label,i);grid.Children.Add(label);}
+        for(int i=0;i<7;i++){var label=UI.Text(new[]{"Pzt","Sal","Çar","Per","Cum","Cmt","Paz"}[i],10,UI.Muted);label.HorizontalAlignment=HorizontalAlignment.Center;Grid.SetColumn(label,i);grid.Children.Add(label);}
         int offset=((int)calendarMonth.DayOfWeek+6)%7;
         for(int i=0;calendarMonthExpanded && i<42;i++)
         {
@@ -116,7 +116,7 @@ public sealed partial class OverlayWindow
             DateTime day=new(ticks);var button=UI.Button(day.Day.ToString(),()=>{calendarDay=day;calendarMonth=new(day.Year,day.Month,1);calendarMonthExpanded=false;RefreshTools();});button.FontSize=10;button.MinHeight=0;button.Padding=new(0);button.Margin=new(1);button.Tag=new CornerRadius(7);button.Foreground=day==calendarDay?Brushes.Black:day.Month==calendarMonth.Month?Brushes.White:UI.Muted;button.Background=day==calendarDay?Brushes.White:DayEvents(day).Any()?UI.Brush("#2BFFFFFF"):Brushes.Transparent;UI.Named(button,day.ToString("dddd, MMMM d, yyyy"));Grid.SetColumn(button,i%7);Grid.SetRow(button,1+i/7);grid.Children.Add(button);
         }
         panel.Children.Add(grid);if(!calendarMonthExpanded)panel.Children.Add(CalendarWeek());
-        var events=DayEvents(calendarDay).ToArray();if(events.Length==0)panel.Children.Add(UI.Text("No events for this day.",12,UI.Muted));
+        var events=DayEvents(calendarDay).ToArray();if(events.Length==0)panel.Children.Add(UI.Text("Bu gün için etkinlik yok.",12,UI.Muted));
         foreach(var item in events)panel.Children.Add(CalendarAgendaEvent(item));
     }
     private IEnumerable<CalendarEvent> DayEvents(DateTime day)
@@ -126,17 +126,17 @@ public sealed partial class OverlayWindow
     }
     internal static DateTimeOffset EventTime(string date,string time,TimeZoneInfo zone)
     {
-        if(!DateOnly.TryParseExact(date,"yyyy-MM-dd",CultureInfo.InvariantCulture,DateTimeStyles.None,out var day) || !TimeOnly.TryParseExact(time,"HH:mm",CultureInfo.InvariantCulture,DateTimeStyles.None,out var clock))throw new ArgumentException("Use YYYY-MM-DD dates and HH:mm times.");
-        var value=day.ToDateTime(clock,DateTimeKind.Unspecified);if(zone.IsInvalidTime(value) || zone.IsAmbiguousTime(value))throw new ArgumentException("This time is skipped or repeated by daylight saving. Choose a different time.");return new(value,zone.GetUtcOffset(value));
+        if(!DateOnly.TryParseExact(date,"yyyy-MM-dd",CultureInfo.InvariantCulture,DateTimeStyles.None,out var day) || !TimeOnly.TryParseExact(time,"HH:mm",CultureInfo.InvariantCulture,DateTimeStyles.None,out var clock))throw new ArgumentException("YYYY-MM-DD tarihleri ve HH:mm saatleri kullan.");
+        var value=day.ToDateTime(clock,DateTimeKind.Unspecified);if(zone.IsInvalidTime(value) || zone.IsAmbiguousTime(value))throw new ArgumentException("Bu saat, yaz saati uygulaması nedeniyle atlanıyor ya da tekrarlanıyor. Farklı bir saat seç.");return new(value,zone.GetUtcOffset(value));
     }
     private void BuildEventEditor(StackPanel panel)
     {
-        panel.Children.Add(UI.Heading("New local event",18));var hint=UI.Text("Saved on this device. Times use your Windows time zone.",11,UI.Muted);hint.Margin=new(0,8,0,12);panel.Children.Add(hint);
-        var title=UI.Input("Event title","");title.MaxLength=120;panel.Children.Add(UI.Text("Title",11,UI.Muted));panel.Children.Add(title);
+        panel.Children.Add(UI.Heading("Yeni yerel etkinlik",18));var hint=UI.Text("Bu cihazda kaydedildi. Saatler Windows saat dilimini kullanır.",11,UI.Muted);hint.Margin=new(0,8,0,12);panel.Children.Add(hint);
+        var title=UI.Input("Event title","");title.MaxLength=120;panel.Children.Add(UI.Text("Başlık",11,UI.Muted));panel.Children.Add(title);
         TextBox startDate=UI.Input("Event start date",calendarDay.ToString("yyyy-MM-dd")),startTime=UI.Input("Event start time","09:00"),endDate=UI.Input("Event end date",calendarDay.ToString("yyyy-MM-dd")),endTime=UI.Input("Event end time","10:00");
         void DateRow(string label,TextBox date,TextBox time){panel.Children.Add(UI.Text(label+" · YYYY-MM-DD / HH:mm",11,UI.Muted));var row=new Grid();row.ColumnDefinitions.Add(new());row.ColumnDefinitions.Add(new(){Width=new GridLength(83)});date.Margin=new(0,4,10,8);time.Margin=new(0,4,0,8);Grid.SetColumn(time,1);row.Children.Add(date);row.Children.Add(time);panel.Children.Add(row);}
-        DateRow("Start",startDate,startTime);DateRow("End",endDate,endTime);panel.Children.Add(UI.Text("Meeting URL · optional http(s)",11,UI.Muted));var url=UI.Input("Meeting URL","");url.MaxLength=2048;panel.Children.Add(url);var status=UI.Text("",11,UI.Muted);panel.Children.Add(status);
-        var save=UI.Button("Save event",()=>{try{var start=EventTime(startDate.Text,startTime.Text,TimeZoneInfo.Local);var end=EventTime(endDate.Text,endTime.Text,TimeZoneInfo.Local);app.Calendar.Add(title.Text,start,end,url.Text);calendarEditing=false;calendarDay=start.LocalDateTime.Date;calendarMonth=new(calendarDay.Year,calendarDay.Month,1);RefreshTools();}catch(Exception ex){app.Store.Log(ex);status.Text=ex.Message;}},true);
-        panel.Children.Add(UI.Row(save,UI.Button("Cancel",()=>{calendarEditing=false;RefreshTools();})));
+        DateRow("Başlangıç",startDate,startTime);DateRow("Bitiş",endDate,endTime);panel.Children.Add(UI.Text("Toplantı URL'si · isteğe bağlı http(s)",11,UI.Muted));var url=UI.Input("Meeting URL","");url.MaxLength=2048;panel.Children.Add(url);var status=UI.Text("",11,UI.Muted);panel.Children.Add(status);
+        var save=UI.Button("Etkinliği kaydet",()=>{try{var start=EventTime(startDate.Text,startTime.Text,TimeZoneInfo.Local);var end=EventTime(endDate.Text,endTime.Text,TimeZoneInfo.Local);app.Calendar.Add(title.Text,start,end,url.Text);calendarEditing=false;calendarDay=start.LocalDateTime.Date;calendarMonth=new(calendarDay.Year,calendarDay.Month,1);RefreshTools();}catch(Exception ex){app.Store.Log(ex);status.Text=ex.Message;}},true);
+        panel.Children.Add(UI.Row(save,UI.Button("İptal",()=>{calendarEditing=false;RefreshTools();})));
     }
 }

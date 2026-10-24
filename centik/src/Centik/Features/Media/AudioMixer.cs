@@ -15,7 +15,7 @@ internal sealed record MixerItem(MixerTarget Target,string Name,string OutputNam
 internal sealed record MixerSnapshot(IReadOnlyList<MixerItem> Outputs,IReadOnlyList<MixerItem> Apps,IReadOnlyList<string> Errors);
 internal sealed record MixerResult(int Changed,int Failed,IReadOnlyList<string> Errors)
 {
-    public string Summary=>$"{Changed} changed · {Failed} failed"+(Errors.Count>0?" · "+string.Join("; ",Errors):"");
+    public string Summary=>$"{Changed} değişti · {Failed} başarısız"+(Errors.Count>0?" · "+string.Join("; ",Errors):"");
 }
 
 internal sealed class AudioMixer
@@ -47,7 +47,7 @@ internal sealed class AudioMixer
             {
                 using(device)
                 {
-                    string id="",name="Output";
+                    string id="",name="Çıkış";
                     try
                     {
                         id=device.ID;name=device.FriendlyName;
@@ -64,11 +64,11 @@ internal sealed class AudioMixer
                                 Check(session.GetState(out int state));if(!IsControllableSession(state))return;
                                 Check(session.GetSessionInstanceIdentifier(out string instance));
                                 Check(session.GetDisplayName(out string display));Check(session.GetProcessId(out uint pid));
-                                if(session.IsSystemSoundsSession()==0)display="System sounds";
+                                if(session.IsSystemSoundsSession()==0)display="Sistem sesleri";
                                 else if(string.IsNullOrWhiteSpace(display))
                                 {
                                     try{using var process=Process.GetProcessById((int)pid);display=process.ProcessName;}
-                                    catch{display="App (PID "+pid+")";}
+                                    catch{display="Uygulama (PID "+pid+")";}
                                 }
                                 string pathKey=pid+"|"+instance;
                                 if(!processPaths.TryGetValue(pathKey,out string? processPath))
@@ -87,7 +87,7 @@ internal sealed class AudioMixer
                 }
             }
         }
-        catch(Exception ex){errors.Add("Audio unavailable: "+ex.Message);}
+        catch(Exception ex){errors.Add("Ses kullanılamıyor: "+ex.Message);}
         return new(outputs.OrderBy(x=>x.Name).ToArray(),apps.OrderBy(x=>x.Name).ThenBy(x=>x.OutputName).ToArray(),errors);
     }
 
@@ -121,7 +121,7 @@ internal sealed class AudioMixer
         {
             if(level.HasValue)level=BoundedVolume(level.Value);
             using var enumerator=new MMDeviceEnumerator();using var device=enumerator.GetDevice(target.OutputId);
-            if(device.State!=DeviceState.Active || device.DataFlow!=DataFlow.Render)throw new InvalidOperationException("Output disconnected. Refresh and try again.");
+            if(device.State!=DeviceState.Active || device.DataFlow!=DataFlow.Render)throw new InvalidOperationException("Çıkış bağlantısı kesildi. Yenileyin ve tekrar deneyin.");
             if(target.Scope==MixerScope.Outputs)
             {
                 if(level.HasValue)device.AudioEndpointVolume.MasterVolumeLevelScalar=(float)level.Value;
@@ -138,7 +138,7 @@ internal sealed class AudioMixer
                     if(level.HasValue)Check(volume.SetMasterVolume((float)level.Value,ref context));
                     if(muted.HasValue)Check(volume.SetMute(muted.Value,ref context));
                 },_=>{});
-                if(!found)throw new InvalidOperationException("App session ended. Refresh and try again.");
+                if(!found)throw new InvalidOperationException("Uygulama oturumu sona erdi. Yenileyin ve tekrar deneyin.");
             }
             return null;
         }

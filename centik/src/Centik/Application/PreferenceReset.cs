@@ -30,23 +30,23 @@ internal static class PreferenceReset
     {
         string Detail(string name)=>name switch
         {
-            "Appearance"=>"dock shape, colors and text style",
-            "Ambience"=>"ambient colors, light shape, audio response and closed-dock glow",
-            "Motion"=>"animation, reduced motion and performance preferences",
-            "Clipboard"=>"clipboard capture preferences",
-            "Weather"=>"weather city and temperature units",
-            "Visibility"=>"hide, tuck, automatic previews and visibility shortcuts",
-            "Notifications"=>"notification delivery, sounds, quiet hours and download alerts",
-            "Layout"=>"island position, display and panel sizes",
-            "Content"=>"widget/tool order, hover pages and focus durations",
-            "Controls"=>"hover timing, gestures, tuck rules and global shortcuts",
-            "Audio"=>"closed media display, waveform and feedback",
-            "System"=>"clock format and monitor readings",
-            "Launch"=>"launch appearance and Activities availability",
-            _=>"update checks, notification delivery and download monitoring"
+            "Appearance"=>"dock şekli, renkler ve yazı stili",
+            "Ambience"=>"atmosfer renkleri, ışık şekli, ses tepkisi ve kapalı dock parıltısı",
+            "Motion"=>"animasyon, azaltılmış hareket ve performans tercihleri",
+            "Clipboard"=>"pano yakalama tercihleri",
+            "Weather"=>"hava durumu şehri ve sıcaklık birimleri",
+            "Visibility"=>"gizleme, kenara alma, otomatik önizlemeler ve görünürlük kısayolları",
+            "Notifications"=>"bildirim iletimi, sesler, sessiz saatler ve indirme uyarıları",
+            "Layout"=>"ada konumu, ekran ve panel boyutları",
+            "Content"=>"bileşen/araç sırası, üzerine gelme sayfaları ve odak süreleri",
+            "Controls"=>"üzerine gelme zamanlaması, hareketler, kenara alma kuralları ve genel kısayollar",
+            "Audio"=>"kapalı medya gösterimi, dalga formu ve geri bildirim",
+            "System"=>"saat biçimi ve monitör okumaları",
+            "Launch"=>"başlatma görünümü ve Etkinlikler kullanılabilirliği",
+            _=>"güncelleme denetimleri, bildirim iletimi ve indirme izleme"
         };
         string detail=category==null?string.Join("; ",Categories.Where(pair=>pair.Value.Length>0).Select(pair=>pair.Key+": "+Detail(pair.Key))):Detail(category);
-        return $"Reset {(category??"all preferences")} to defaults ({Keys(category).Length} preferences): {detail}. Startup, clipboard capture/history, shortcuts, Notes, Tasks, shelf, calendar and activity targets are kept. A preference backup is saved first.";
+        return $"{(category??"tüm tercihler")} varsayılanlara sıfırlandı ({Keys(category).Length} tercih): {detail}. Başlangıç, pano yakalama/geçmişi, kısayollar, Notlar, Görevler, raf, takvim ve etkinlik hedefleri korunur. Önce bir tercih yedeği kaydedilir.";
     }
     private static string[] Keys(string? category)=>category==null?Categories.Values.SelectMany(v=>v).Distinct().ToArray():Categories[category];
     internal static void Reset(Store store,Settings target,string? category)
@@ -62,9 +62,9 @@ internal static class PreferenceReset
     {
         string file=Path.Combine(store.DirectoryPath,"preference-backup.json");
         using var json=JsonDocument.Parse(File.ReadAllText(file));
-        if(json.RootElement.ValueKind!=JsonValueKind.Object || !json.RootElement.TryGetProperty(nameof(Settings.Width),out _))throw new InvalidDataException("The preference backup is invalid.");
-        foreach(string key in Keys(null))if(!PremiumPreferences.Keys.Contains(key) && key!="DisplayMode" && key!="SettingsMaterial" && !Categories["Application"].Contains(key) && (!json.RootElement.TryGetProperty(key,out var value) || value.ValueKind==JsonValueKind.Null))throw new InvalidDataException("The preference backup is incomplete: "+key);
-        var restored=json.RootElement.Deserialize<Settings>()??throw new InvalidDataException("The preference backup is empty.");
+        if(json.RootElement.ValueKind!=JsonValueKind.Object || !json.RootElement.TryGetProperty(nameof(Settings.Width),out _))throw new InvalidDataException("Tercih yedeği geçersiz.");
+        foreach(string key in Keys(null))if(!PremiumPreferences.Keys.Contains(key) && key!="DisplayMode" && key!="SettingsMaterial" && !Categories["Application"].Contains(key) && (!json.RootElement.TryGetProperty(key,out var value) || value.ValueKind==JsonValueKind.Null))throw new InvalidDataException("Tercih yedeği eksik: "+key);
+        var restored=json.RootElement.Deserialize<Settings>()??throw new InvalidDataException("Tercih yedeği boş.");
         var candidate=Clone(target);
         foreach(string key in Keys(null))Copy(restored,candidate,key);
         candidate.Normalize();Commit(store,target,candidate);
@@ -85,6 +85,6 @@ internal static class HotkeyPolicy
         var shortcuts=new[]{("Panel",s.HotkeyEnabled,s.HotkeyModifiers,s.HotkeyKey),("Visibility",s.VisibilityHotkeyEnabled,s.VisibilityHotkeyModifiers,s.VisibilityHotkeyKey),("Tuck",s.TuckHotkeyEnabled,s.TuckHotkeyModifiers,s.TuckHotkeyKey)};
         var own=shortcuts.First(v=>v.Item1==action);
         var other=shortcuts.FirstOrDefault(v=>v.Item1!=action && own.Item2 && v.Item2 && v.Item3==own.Item3 && v.Item4==own.Item4);
-        return other.Item1==null?"":$"{action} shortcut conflicts with {other.Item1}. Choose a different key or modifiers.";
+        return other.Item1==null?"":$"{action} kısayolu {other.Item1} ile çakışıyor. Farklı bir tuş veya değiştirici seçin.";
     }
 }

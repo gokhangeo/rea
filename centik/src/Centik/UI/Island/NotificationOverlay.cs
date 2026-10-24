@@ -25,7 +25,7 @@ public sealed partial class OverlayWindow
     {
         if(!IsLoaded)return;
         RefreshNoticeEdge();
-        if(noticeQueue!=null)noticeQueue.Text=app.Notifications.Count>1?app.Notifications.Count+" queued":"";
+        if(noticeQueue!=null)noticeQueue.Text=app.Notifications.Count>1?app.Notifications.Count+" kuyrukta":"";
         if(noticeNext!=null)noticeNext.IsEnabled=app.Notifications.Count>1;
         if(app.Notifications.Current==null && noticeShowing)Collapse();
         // Never replace controls under a pointer, keyboard editor, or active drag.
@@ -43,8 +43,8 @@ public sealed partial class OverlayWindow
         StopHoverTimers();SetTucked(false);peeking=true;noticeShowing=true;peekPanel.Visibility=Visibility.Collapsed;SyncAssistantVisibility();
         var content=new StackPanel();
         var header=new DockPanel{Margin=new(0,0,0,12)};
-        noticeQueue=UI.Text(app.Notifications.Count>1?app.Notifications.Count+" queued":"",10,UI.Muted);DockPanel.SetDock(noticeQueue,Dock.Right);header.Children.Add(noticeQueue);
-        var kind=UI.Text(notice.Kind switch{"timer"=>"TIMER","focus"=>"FOCUS","downloads"=>"DOWNLOADS","updates"=>"UPDATE",_=>"NABYSCAPE"},10,UI.Muted);
+        noticeQueue=UI.Text(app.Notifications.Count>1?app.Notifications.Count+" kuyrukta":"",10,UI.Muted);DockPanel.SetDock(noticeQueue,Dock.Right);header.Children.Add(noticeQueue);
+        var kind=UI.Text(notice.Kind switch{"timer"=>"ZAMANLAYICI","focus"=>"ODAK","downloads"=>"İNDİRİLENLER","updates"=>"GÜNCELLEME",_=>"ÇENTİK"},10,UI.Muted);
         var icon=new Border{Width=28,Height=28,CornerRadius=new(9),Background=UI.Brush("#19FFFFFF"),Margin=new(0,0,9,0),Child=Icons.Create(notice.Kind switch{"timer"=>"timer","focus"=>"focus","downloads"=>"shelf","updates"=>"settings",_=>"nav-status"},14)};
         header.Children.Add(icon);header.Children.Add(kind);content.Children.Add(header);
         var noticeTitle=UI.Heading(notice.Title,18);noticeTitle.FontWeight=FontWeights.SemiBold;noticeTitle.Margin=new(0,0,0,6);content.Children.Add(noticeTitle);
@@ -54,7 +54,7 @@ public sealed partial class OverlayWindow
         if(paths.Length>0)
         {
             var row=new DockPanel{Margin=new(0,10,0,8)};var image=new Image{Width=32,Height=32,Margin=new(0,0,10,0)};row.Children.Add(image);_=LoadShelfThumbnail(paths[0],image);
-            var drag=UI.Button(Path.GetFileName(paths[0])+(paths.Length>1?$" +{paths.Length-1}":""),()=>{});drag.Content=new TextBlock{Text=Path.GetFileName(paths[0])+(paths.Length>1?$" +{paths.Length-1}":""),TextWrapping=TextWrapping.NoWrap,TextTrimming=TextTrimming.CharacterEllipsis};drag.ToolTip="Drag original files · use Show in folder or Add to shelf with keyboard";row.Children.Add(drag);content.Children.Add(row);
+            var drag=UI.Button(Path.GetFileName(paths[0])+(paths.Length>1?$" +{paths.Length-1}":""),()=>{});drag.Content=new TextBlock{Text=Path.GetFileName(paths[0])+(paths.Length>1?$" +{paths.Length-1}":""),TextWrapping=TextWrapping.NoWrap,TextTrimming=TextTrimming.CharacterEllipsis};drag.ToolTip="Orijinal dosyaları sürükle · veya klavyeyle Klasörde göster ya da Rafa ekle kullan";row.Children.Add(drag);content.Children.Add(row);
             Point? down=null;drag.PreviewMouseLeftButtonDown+=(_,e)=>down=e.GetPosition(drag);
             drag.PreviewMouseMove+=(_,e)=>
             {
@@ -65,18 +65,18 @@ public sealed partial class OverlayWindow
                 finally{fileDragActive=false;down=null;}
             };
             drag.PreviewMouseLeftButtonUp+=(_,e)=>{down=null;e.Handled=true;};
-            content.Children.Add(UI.Row(UI.Button("Show in folder",()=>
+            content.Children.Add(UI.Row(UI.Button("Klasörde göster",()=>
             {
                 try{if(!File.Exists(paths[0]))return;var info=new System.Diagnostics.ProcessStartInfo("explorer.exe"){UseShellExecute=false};info.ArgumentList.Add("/select,");info.ArgumentList.Add(paths[0]);System.Diagnostics.Process.Start(info);}
-                catch(Exception ex){app.Store.Log(ex);app.Notify("Could not show file",ex.Message);}
-            }),UI.Button("Add to shelf",()=>{try{app.Productivity.AddFiles(paths.Where(File.Exists));}catch(Exception ex){app.Store.Log(ex);app.Notify("Could not stage files",ex.Message);}})));
+                catch(Exception ex){app.Store.Log(ex);app.Notify("Dosya gösterilemedi",ex.Message);}
+            }),UI.Button("Rafa ekle",()=>{try{app.Productivity.AddFiles(paths.Where(File.Exists));}catch(Exception ex){app.Store.Log(ex);app.Notify("Dosyalar hazırlanamadı",ex.Message);}})));
         }
-        else if(notice.Kind=="downloads")content.Children.Add(UI.Text("These files are no longer available.",11,UI.Muted));
-        if(notice.Kind=="updates")content.Children.Add(UI.Button("Open Settings",app.ShowSettings));
+        else if(notice.Kind=="downloads")content.Children.Add(UI.Text("Bu dosyalar artık mevcut değil.",11,UI.Muted));
+        if(notice.Kind=="updates")content.Children.Add(UI.Button("Ayarları aç",app.ShowSettings));
         var actions=new WrapPanel{Margin=new(0,10,0,0)};
-        var dismiss=UI.Button("Dismiss",()=>{Collapse();app.Notifications.Dismiss();});
-        noticeNext=UI.Button("Next",()=>{Collapse();app.Notifications.Dismiss();OpenNotice(true);});noticeNext.IsEnabled=app.Notifications.Count>1;
-        var clear=UI.Button("Clear all",()=>{Collapse();app.Notifications.Clear();});
+        var dismiss=UI.Button("Kapat",()=>{Collapse();app.Notifications.Dismiss();});
+        noticeNext=UI.Button("Sonraki",()=>{Collapse();app.Notifications.Dismiss();OpenNotice(true);});noticeNext.IsEnabled=app.Notifications.Count>1;
+        var clear=UI.Button("Tümünü temizle",()=>{Collapse();app.Notifications.Clear();});
         foreach(var action in new[]{dismiss,noticeNext,clear}){action.FontSize=11;action.MinHeight=30;action.Padding=new(9,4,9,4);action.Margin=new(0,0,6,0);actions.Children.Add(action);}content.Children.Add(actions);
         var screen=Native.ChooseScreen(app.Settings);double scale=Native.Scale(screen);
         double width=Math.Min(Math.Min(370,app.Settings.HoverWidth),Math.Max(180,screen.WorkingArea.Width/scale-24));

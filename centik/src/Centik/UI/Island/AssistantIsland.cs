@@ -13,7 +13,7 @@ public sealed partial class OverlayWindow
     private readonly Grid assistantCharacterHost=new(),assistantPeek=new();
     private readonly Border assistantHeaderSpace=new();
     private readonly AssistantOrb closedAssistant=new(){Width=32,Height=32,TrackPointerLocally=false},peekAssistant=new(){Width=72,Height=72,TrackPointerLocally=false};
-    private readonly TextBlock assistantGreeting=UI.Text("Hey, I'm here.",17),assistantCaption=UI.Text("Chat or talk, right from your island.",11,UI.Muted);
+    private readonly TextBlock assistantGreeting=UI.Text("Selam, buradayım.",17),assistantCaption=UI.Text("Adandan hemen yaz ya da konuş.",11,UI.Muted);
     private readonly DispatcherTimer assistantHover=new();
     private readonly DispatcherTimer assistantReplyDismiss=new(){Interval=TimeSpan.FromSeconds(8)};
     private AssistantMessage? assistantLastReply;
@@ -57,7 +57,7 @@ public sealed partial class OverlayWindow
     {
         header.ColumnDefinitions.Add(new(){Width=GridLength.Auto});Grid.SetColumn(assistantHeaderSpace,5);header.Children.Add(assistantHeaderSpace);
         assistantCharacterHost.HorizontalAlignment=HorizontalAlignment.Center;assistantCharacterHost.VerticalAlignment=VerticalAlignment.Top;
-        assistantCharacterButton=AssistantOrb.Launcher("AI character on island",()=>OpenAssistant(),closedAssistant);assistantCharacterButton.MinHeight=24;assistantCharacterButton.Margin=new(0,0,9,0);assistantCharacterButton.HorizontalAlignment=HorizontalAlignment.Right;assistantCharacterButton.VerticalAlignment=VerticalAlignment.Center;assistantCharacterButton.ToolTip="AI companion · hover to meet · click to chat";
+        assistantCharacterButton=AssistantOrb.Launcher("AI character on island",()=>OpenAssistant(),closedAssistant);assistantCharacterButton.MinHeight=24;assistantCharacterButton.Margin=new(0,0,9,0);assistantCharacterButton.HorizontalAlignment=HorizontalAlignment.Right;assistantCharacterButton.VerticalAlignment=VerticalAlignment.Center;assistantCharacterButton.ToolTip="Yapay zeka arkadaşın · tanışmak için üzerine gel · sohbet için tıkla";
         assistantCharacterButton.MouseEnter+=(_,_)=>{hoverDelay.Stop();assistantHover.Interval=TimeSpan.FromMilliseconds(app.Settings.HoverDelayMs);assistantHover.Start();};
         assistantCharacterButton.MouseLeave+=(_,_)=>assistantHover.Stop();
         assistantCharacterButton.PreviewMouseLeftButtonDown+=(_,_)=>assistantHover.Stop();
@@ -70,7 +70,7 @@ public sealed partial class OverlayWindow
         assistantPeek.RowDefinitions.Add(new());assistantPeek.RowDefinitions.Add(new(){Height=GridLength.Auto});
         var hero=new Grid();hero.ColumnDefinitions.Add(new(){Width=GridLength.Auto});hero.ColumnDefinitions.Add(new());hero.Children.Add(peekAssistant);
         var words=new StackPanel{VerticalAlignment=VerticalAlignment.Center,Margin=new(12,0,0,0)};assistantGreeting.FontWeight=FontWeights.SemiBold;assistantGreeting.TextWrapping=TextWrapping.NoWrap;assistantGreeting.TextTrimming=TextTrimming.CharacterEllipsis;words.Children.Add(assistantGreeting);assistantCaption.Margin=new(0,5,0,0);assistantCaption.MaxHeight=46;words.Children.Add(assistantCaption);Grid.SetColumn(words,1);hero.Children.Add(words);assistantPeek.Children.Add(hero);
-        var chat=AssistantWindow.Pill("Chat here",()=>OpenAssistant(),true);assistantTalk=AssistantWindow.Pill("Talk",()=>{if(app.Assistant.VoiceConnected)app.Assistant.StopSession();else{OpenAssistant();_=app.Assistant.StartVoice();}});
+        var chat=AssistantWindow.Pill("Burada sohbet et",()=>OpenAssistant(),true);assistantTalk=AssistantWindow.Pill("Konuş",()=>{if(app.Assistant.VoiceConnected)app.Assistant.StopSession();else{OpenAssistant();_=app.Assistant.StartVoice();}});
         var actions=new WrapPanel{Margin=new(0,6,0,0)};actions.Children.Add(chat);actions.Children.Add(assistantTalk);Grid.SetRow(actions,1);assistantPeek.Children.Add(actions);visuals.Children.Add(assistantPeek);
         assistantHover.Tick+=(_,_)=>{assistantHover.Stop();if(assistantCharacterButton.IsMouseOver && !expanded && !userHidden)PreviewAssistant();};
         assistantReplyDismiss.Tick+=(_,_)=>{assistantReplyDismiss.Stop();if(assistantPeeking && !PointerInside())Collapse();};
@@ -83,9 +83,9 @@ public sealed partial class OverlayWindow
     {
         RefreshAssistantCharacter();RefreshAssistantVisuals();
         if(!AssistantCharacterAvailable && assistantPeeking)CloseAssistant();
-        assistantGreeting.Text=app.Assistant.State switch{AssistantState.Listening=>"I'm listening.",AssistantState.Thinking=>"Let me think…",AssistantState.Speaking=>"Let's talk.",AssistantState.Approval=>"Your call.",AssistantState.Connecting=>"Connecting…",AssistantState.Error=>"Let's check that.",_=>"Hey, I'm here."};
-        assistantCaption.Text=!app.Assistant.Options.Enabled?"Set up your companion in Settings → AI.":app.Assistant.Pending!=null?"Review this action in your island.":app.Assistant.State==AssistantState.Idle?"Chat or talk, right from your island.":app.Assistant.Status;
-        assistantTalk.Content=app.Assistant.VoiceConnected?"End voice":"Talk";assistantTalk.IsEnabled=!app.Assistant.Busy;
+        assistantGreeting.Text=app.Assistant.State switch{AssistantState.Listening=>"Dinliyorum.",AssistantState.Thinking=>"Düşüneyim…",AssistantState.Speaking=>"Konuşalım.",AssistantState.Approval=>"Sana kalmış.",AssistantState.Connecting=>"Bağlanıyor…",AssistantState.Error=>"Şuna bir bakalım.",_=>"Selam, buradayım."};
+        assistantCaption.Text=!app.Assistant.Options.Enabled?"Arkadaşını Ayarlar → Yapay Zeka'dan kur.":app.Assistant.Pending!=null?"Bu eylemi adanda incele.":app.Assistant.State==AssistantState.Idle?"Adandan hemen yaz ya da konuş.":app.Assistant.Status;
+        assistantTalk.Content=app.Assistant.VoiceConnected?"Sesi bitir":"Konuş";assistantTalk.IsEnabled=!app.Assistant.Busy;
         var reply=app.Assistant.Conversation.Messages.LastOrDefault(m=>m.Role=="assistant" && !string.IsNullOrWhiteSpace(m.Text) && !m.Text.StartsWith("Reviewed voice action outcome") && !m.Text.StartsWith("The reply was interrupted"));
         bool fresh=reply!=null && !ReferenceEquals(reply,assistantLastReply);assistantLastReply=reply;
         if(reply!=null && app.Assistant.Options.Enabled && app.Assistant.State is AssistantState.Idle or AssistantState.Listening or AssistantState.Speaking)assistantCaption.Text=reply.Text.Length>180?reply.Text[..180]+"…":reply.Text;
@@ -97,13 +97,13 @@ public sealed partial class OverlayWindow
         void Apply(AssistantOrb orb){if(!orb.IsVisible)return;orb.State=app.Assistant.State;orb.Level=app.Assistant.Level;orb.Live=app.Assistant.VoiceConnected;orb.ReduceMotion=app.Settings.ReduceMotion;orb.Music=spotify;}
         Apply(closedAssistant);Apply(peekAssistant);
         if(lastAssistantVisualState==app.Assistant.State)return;lastAssistantVisualState=app.Assistant.State;
-        assistantGreeting.Text=app.Assistant.State switch{AssistantState.Listening=>"I'm listening.",AssistantState.Thinking=>"Let me think…",AssistantState.Speaking=>"Let's talk.",AssistantState.Approval=>"Your call.",AssistantState.Connecting=>"Connecting…",AssistantState.Error=>"Let's check that.",_=>"Hey, I'm here."};
+        assistantGreeting.Text=app.Assistant.State switch{AssistantState.Listening=>"Dinliyorum.",AssistantState.Thinking=>"Düşüneyim…",AssistantState.Speaking=>"Konuşalım.",AssistantState.Approval=>"Sana kalmış.",AssistantState.Connecting=>"Bağlanıyor…",AssistantState.Error=>"Şuna bir bakalım.",_=>"Selam, buradayım."};
     }
     private void RefreshAssistantCharacter()
     {
         if(assistantCharacterButton==null)return;
         bool enabled=AssistantCharacterAvailable;
-        assistantCharacterButton.ToolTip=app.Assistant.VoiceConnected?"Microphone on · click for voice controls":app.Assistant.Desktop.Sharing?"Screen sharing on · click for controls":"AI companion · hover to meet · click to chat";
+        assistantCharacterButton.ToolTip=app.Assistant.VoiceConnected?"Mikrofon açık · ses kontrolleri için tıkla":app.Assistant.Desktop.Sharing?"Ekran paylaşımı açık · kontroller için tıkla":"Yapay zeka arkadaşın · tanışmak için üzerine gel · sohbet için tıkla";
         double size=Math.Clamp(app.Settings.Height-4,24,32);assistantCharacterButton.MinHeight=size;assistantCharacterButton.Width=assistantCharacterButton.Height=size;closedAssistant.Width=closedAssistant.Height=size;
         assistantHeaderSpace.Width=size+9;assistantHeaderSpace.Visibility=enabled && !FeedbackVisible?Visibility.Visible:Visibility.Collapsed;
         assistantCharacterHost.Width=Math.Max(120,Math.Min(app.Settings.Width,expandedWidth)-(surface.Notch?32:12));assistantCharacterHost.Height=app.Settings.Height;

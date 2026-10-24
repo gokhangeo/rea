@@ -36,25 +36,25 @@ internal sealed class AssistantDesktop : IDisposable
     internal IReadOnlyList<AssistantScreenTarget> Targets()=>backend.Targets();
     internal void Start(string id,IntPtr owner)
     {
-        Stop();selected=Targets().SingleOrDefault(t=>t.Id==id)??throw new InvalidOperationException("Choose an available display.");
+        Stop();selected=Targets().SingleOrDefault(t=>t.Id==id)??throw new InvalidOperationException("Kullanılabilir bir ekran seçin.");
         try{backend.Begin(owner);}catch{selected=null;backend.End();throw;}
     }
     internal async Task<AssistantScreenFrame> Capture(CancellationToken cancellationToken)
     {
-        var target=selected??throw new InvalidOperationException("Screen sharing is off.");int generation=epoch;
+        var target=selected??throw new InvalidOperationException("Ekran paylaşımı kapalı.");int generation=epoch;
         await captureLock.WaitAsync(cancellationToken);
         try
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if(generation!=epoch || selected!=target)throw new OperationCanceledException("Screen sharing stopped.",cancellationToken);
+            if(generation!=epoch || selected!=target)throw new OperationCanceledException("Ekran paylaşımı durduruldu.",cancellationToken);
             var frame=await Task.Run(()=>
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                if(generation!=Volatile.Read(ref epoch))throw new OperationCanceledException("Screen sharing stopped.",cancellationToken);
+                if(generation!=Volatile.Read(ref epoch))throw new OperationCanceledException("Ekran paylaşımı durduruldu.",cancellationToken);
                 return backend.Capture(target);
             },cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
-            if(generation!=epoch || selected!=target)throw new OperationCanceledException("Screen sharing stopped.",cancellationToken);
+            if(generation!=epoch || selected!=target)throw new OperationCanceledException("Ekran paylaşımı durduruldu.",cancellationToken);
             Frame=frame;capturedAt=DateTimeOffset.UtcNow;return frame;
         }
         finally{captureLock.Release();}
@@ -81,13 +81,13 @@ internal sealed class AssistantDesktopNative : IAssistantDesktopBackend
     private bool affinityChanged;
     private readonly ForegroundEvent foregroundEvent;
     internal AssistantDesktopNative()=>foregroundEvent=Foreground;
-    public IReadOnlyList<AssistantScreenTarget> Targets()=>Forms.Screen.AllScreens.Select((s,i)=>new AssistantScreenTarget(s.DeviceName,$"Display {i+1} · {s.Bounds.Width} × {s.Bounds.Height}",s.Bounds)).ToArray();
+    public IReadOnlyList<AssistantScreenTarget> Targets()=>Forms.Screen.AllScreens.Select((s,i)=>new AssistantScreenTarget(s.DeviceName,$"Ekran {i+1} · {s.Bounds.Width} × {s.Bounds.Height}",s.Bounds)).ToArray();
     public void Begin(IntPtr owner)
     {
         this.owner=owner;RememberForeground();
         if(owner!=IntPtr.Zero && GetWindowDisplayAffinity(owner,out previousAffinity))affinityChanged=SetWindowDisplayAffinity(owner,0x11);
         hook=SetWinEventHook(3,3,IntPtr.Zero,foregroundEvent,0,0,0);
-        if(hook==IntPtr.Zero)throw new InvalidOperationException("Windows could not observe the active application.");
+        if(hook==IntPtr.Zero)throw new InvalidOperationException("Windows etkin uygulamayı gözlemleyemedi.");
     }
     public void End(){if(hook!=IntPtr.Zero)UnhookWinEvent(hook);if(affinityChanged && IsWindow(owner))SetWindowDisplayAffinity(owner,previousAffinity);affinityChanged=false;previousAffinity=0;hook=IntPtr.Zero;owner=targetWindow=IntPtr.Zero;}
     private void Foreground(IntPtr handle,uint type,IntPtr window,int obj,int child,uint thread,uint time)
@@ -95,7 +95,7 @@ internal sealed class AssistantDesktopNative : IAssistantDesktopBackend
     private void RememberForeground(){var window=GetForegroundWindow();if(window!=IntPtr.Zero && window!=owner)targetWindow=window;}
     public AssistantScreenFrame Capture(AssistantScreenTarget target)
     {
-        if(!Targets().Any(t=>t.Id==target.Id && t.Bounds==target.Bounds))throw new InvalidOperationException("The selected display changed. Select it again.");
+        if(!Targets().Any(t=>t.Id==target.Id && t.Bounds==target.Bounds))throw new InvalidOperationException("Seçili ekran değişti. Yeniden seçin.");
         double scale=Math.Min(1,1280d/Math.Max(target.Bounds.Width,target.Bounds.Height));
         int width=Math.Max(1,(int)Math.Round(target.Bounds.Width*scale)),height=Math.Max(1,(int)Math.Round(target.Bounds.Height*scale));
         using var bitmap=new Bitmap(width,height,PixelFormat.Format32bppArgb);
@@ -104,7 +104,7 @@ internal sealed class AssistantDesktopNative : IAssistantDesktopBackend
         try
         {
             SetStretchBltMode(destination,4);
-            if(source==IntPtr.Zero || !StretchBlt(destination,0,0,width,height,source,target.Bounds.Left,target.Bounds.Top,target.Bounds.Width,target.Bounds.Height,0x40CC0020))throw new InvalidOperationException("Windows could not capture this display.");
+            if(source==IntPtr.Zero || !StretchBlt(destination,0,0,width,height,source,target.Bounds.Left,target.Bounds.Top,target.Bounds.Width,target.Bounds.Height,0x40CC0020))throw new InvalidOperationException("Windows bu ekranı yakalayamadı.");
         }
         finally{graphics.ReleaseHdc(destination);if(source!=IntPtr.Zero)ReleaseDC(IntPtr.Zero,source);}
         using var output=new MemoryStream();bitmap.Save(output,ImageFormat.Jpeg);

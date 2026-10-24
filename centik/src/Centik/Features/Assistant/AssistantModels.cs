@@ -11,7 +11,7 @@ internal enum AssistantState { Idle,Connecting,Listening,Thinking,Speaking,Appro
 internal sealed class AssistantProvider
 {
     public string Id {get;set;}=Guid.NewGuid().ToString("N");
-    public string Name {get;set;}="Custom provider";
+    public string Name {get;set;}="Özel sağlayıcı";
     public string Protocol {get;set;}="ChatCompletions";
     public string Backend {get;set;}="";
     [System.Text.Json.Serialization.JsonIgnore] public string HermesSessionId {get;set;}="";

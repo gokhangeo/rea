@@ -31,8 +31,8 @@ internal sealed class LyricsView : Grid
         foreach(var text in new[]{current,highlight}){text.FontWeight=FontWeights.SemiBold;text.VerticalAlignment=VerticalAlignment.Center;text.MaxHeight=52;text.TextTrimming=TextTrimming.CharacterEllipsis;}
         highlight.IsHitTestVisible=false;highlight.Clip=sweep;line.Children.Add(current);line.Children.Add(highlight);
         Children.Add(previous);SetRow(line,1);Children.Add(line);SetRow(next,2);Children.Add(next);
-        var footer=new DockPanel();retry=UI.Button("Retry lyrics",()=>{app.Lyrics.Retry();Refresh();});retry.Content="Retry";retry.MinHeight=22;retry.FontSize=9;retry.Padding=new(4,0,4,0);retry.Margin=new(6,0,0,0);retry.Background=Brushes.Transparent;DockPanel.SetDock(retry,Dock.Right);footer.Children.Add(retry);
-        var local=UI.Button("Load local timed lyrics",()=>{credit.Text=LyricsFiles.Import(app,Window.GetWindow(this));});local.Content="Local LRC…";local.MinHeight=22;local.FontSize=9;local.Padding=new(4,0,4,0);local.Margin=new(6,0,0,0);local.Background=Brushes.Transparent;DockPanel.SetDock(local,Dock.Right);footer.Children.Add(local);footer.Children.Add(credit);SetRow(footer,3);Children.Add(footer);
+        var footer=new DockPanel();retry=UI.Button("Retry lyrics",()=>{app.Lyrics.Retry();Refresh();});retry.Content="Yeniden";retry.MinHeight=22;retry.FontSize=9;retry.Padding=new(4,0,4,0);retry.Margin=new(6,0,0,0);retry.Background=Brushes.Transparent;DockPanel.SetDock(retry,Dock.Right);footer.Children.Add(retry);
+        var local=UI.Button("Load local timed lyrics",()=>{credit.Text=LyricsFiles.Import(app,Window.GetWindow(this));});local.Content="Yerel LRC…";local.MinHeight=22;local.FontSize=9;local.Padding=new(4,0,4,0);local.Margin=new(6,0,0,0);local.Background=Brushes.Transparent;DockPanel.SetDock(local,Dock.Right);footer.Children.Add(local);footer.Children.Add(credit);SetRow(footer,3);Children.Add(footer);
         Loaded+=(_,_)=>Attach();Unloaded+=(_,_)=>Detach();IsVisibleChanged+=(_,_)=>{if(IsVisible)Attach();else Detach();};
         tick.Tick+=(_,_)=>Paint();
     }
@@ -60,7 +60,7 @@ internal sealed class LyricsView : Grid
         credit.Text=result.Status;retry.Visibility=lines.Length==0 && !result.Status.StartsWith("Finding")?Visibility.Visible:Visibility.Collapsed;
         if(change)
         {
-            previous.Text=now>0?lines[now-1].Text:"";current.Text=highlight.Text=now>=0?lines[now].Text:lines.Length>0?"♪":"Lyrics";next.Text=now+1<lines.Length?lines[now+1].Text:"";
+            previous.Text=now>0?lines[now-1].Text:"";current.Text=highlight.Text=now>=0?lines[now].Text:lines.Length>0?"♪":"Şarkı sözleri";next.Text=now+1<lines.Length?lines[now+1].Text:"";
             current.Foreground=style=="Karaoke"?UI.Muted:Brushes.White;highlight.Visibility=style=="Karaoke" && now>=0?Visibility.Visible:Visibility.Collapsed;
             if(Motion.Enabled && !app.Settings.ReduceMotion)
             {
@@ -88,14 +88,14 @@ internal static class LyricsFiles
 {
     internal static string Import(App app,Window? owner)
     {
-        if(!LyricTiming.IsSpotify(app.Media.Selected?.SourceAppUserModelId))return "Select a Spotify track first.";
-        var dialog=new Microsoft.Win32.OpenFileDialog{Title="Timed lyrics for the current Spotify track",Filter="Timed lyrics (*.lrc)|*.lrc"};if(dialog.ShowDialog(owner)!=true)return "No file chosen.";
+        if(!LyricTiming.IsSpotify(app.Media.Selected?.SourceAppUserModelId))return "Önce bir Spotify parçası seçin.";
+        var dialog=new Microsoft.Win32.OpenFileDialog{Title="Geçerli Spotify parçası için zamanlı şarkı sözleri",Filter="Zamanlı şarkı sözleri (*.lrc)|*.lrc"};if(dialog.ShowDialog(owner)!=true)return "Dosya seçilmedi.";
         try
         {
-            if(new System.IO.FileInfo(dialog.FileName).Length>512*1024)return "Choose an LRC file under 512 KB.";
-            app.Lyrics.Import(app.Media.Title,app.Media.Artist,app.Media.Timeline().duration,System.IO.File.ReadAllText(dialog.FileName));app.Settings.LyricsEnabled=true;app.ChangeSettings();return "Local timed lyrics loaded for this session.";
+            if(new System.IO.FileInfo(dialog.FileName).Length>512*1024)return "512 KB'tan küçük bir LRC dosyası seçin.";
+            app.Lyrics.Import(app.Media.Title,app.Media.Artist,app.Media.Timeline().duration,System.IO.File.ReadAllText(dialog.FileName));app.Settings.LyricsEnabled=true;app.ChangeSettings();return "Bu oturum için yerel zamanlı şarkı sözleri yüklendi.";
         }
-        catch(Exception ex) when(ex is System.IO.IOException or UnauthorizedAccessException or System.Text.RegularExpressions.RegexMatchTimeoutException){return "Could not load this timed lyric file.";}
+        catch(Exception ex) when(ex is System.IO.IOException or UnauthorizedAccessException or System.Text.RegularExpressions.RegexMatchTimeoutException){return "Bu zamanlı şarkı sözü dosyası yüklenemedi.";}
     }
 }
 
@@ -109,7 +109,7 @@ public sealed partial class OverlayWindow
         bool spotify=LyricTiming.IsSpotify(app.Media.Selected?.SourceAppUserModelId);
         bool changed=false;
         if(mediaLyrics!=null){var visible=app.Settings.LyricsEnabled && spotify?Visibility.Visible:Visibility.Collapsed;changed=mediaLyrics.Visibility!=visible;mediaLyrics.Visibility=visible;}
-        if(lyricsButton!=null){lyricsButton.Visibility=spotify?Visibility.Visible:Visibility.Collapsed;lyricsButton.Background=app.Settings.LyricsEnabled?UI.Brush(app.Settings.SelectionFill):Brushes.Transparent;lyricsButton.ToolTip=app.Settings.LyricsEnabled?"Hide lyrics":"Show synced lyrics · looks up track details with LRCLIB";System.Windows.Automation.AutomationProperties.SetItemStatus(lyricsButton,app.Settings.LyricsEnabled?"On":"Off");}
+        if(lyricsButton!=null){lyricsButton.Visibility=spotify?Visibility.Visible:Visibility.Collapsed;lyricsButton.Background=app.Settings.LyricsEnabled?UI.Brush(app.Settings.SelectionFill):Brushes.Transparent;lyricsButton.ToolTip=app.Settings.LyricsEnabled?"Şarkı sözlerini gizle":"Eşzamanlı şarkı sözlerini göster · parça bilgilerini LRCLIB ile arar";System.Windows.Automation.AutomationProperties.SetItemStatus(lyricsButton,app.Settings.LyricsEnabled?"On":"Off");}
         if(changed && mediaLyricsLayout?.IsLoaded==true)ResizeToolPanel();
     }
 }

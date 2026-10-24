@@ -50,7 +50,7 @@ internal sealed class LyricsService : IDisposable
     private CancellationTokenSource? pending;
     private string key="";
     private bool disposed;
-    internal LyricResult Result {get;private set;}=new(Array.Empty<LyricLine>(),"Lyrics are off.");
+    internal LyricResult Result {get;private set;}=new(Array.Empty<LyricLine>(),"Şarkı sözleri kapalı.");
     internal event Action? Changed;
     private static string TrackKey(string title,string artist,double duration)=>title+"\n"+artist+"\n"+Math.Round(duration);
     internal LyricsService(HttpMessageHandler? handler=null)
@@ -58,7 +58,7 @@ internal sealed class LyricsService : IDisposable
     internal async Task Load(string title,string artist,double duration,bool enabled,bool spotify)
     {
         if(disposed)return;
-        if(!enabled || !spotify){Cancel();key="";Set(new(Array.Empty<LyricLine>(),enabled?"Select Spotify to show lyrics.":"Lyrics are off."));return;}
+        if(!enabled || !spotify){Cancel();key="";Set(new(Array.Empty<LyricLine>(),enabled?"Şarkı sözlerini göstermek için Spotify'ı seçin.":"Şarkı sözleri kapalı."));return;}
         string next=TrackKey(title,artist,duration);if(next==key)return;Cancel();key=next;
         if(cache.TryGetValue(next,out var found)){Set(found);return;}
         var request=new CancellationTokenSource();pending=request;Set(new(Array.Empty<LyricLine>(),"Finding synced lyrics…"));
@@ -69,7 +69,7 @@ internal sealed class LyricsService : IDisposable
             if(duration>=1 && duration<=3600)query+="&duration="+Math.Round(duration).ToString(CultureInfo.InvariantCulture);
             using var response=await client.GetAsync(query,HttpCompletionOption.ResponseHeadersRead,request.Token);
             LyricResult result;
-            if(response.StatusCode==HttpStatusCode.NotFound)result=new(Array.Empty<LyricLine>(),"No synced lyrics for this track.");
+            if(response.StatusCode==HttpStatusCode.NotFound)result=new(Array.Empty<LyricLine>(),"Bu parça için eşzamanlı şarkı sözü yok.");
             else
             {
                 response.EnsureSuccessStatusCode();if(response.Content.Headers.ContentLength>1024*1024)throw new InvalidDataException("Lyrics response is too large.");
@@ -79,21 +79,21 @@ internal sealed class LyricsService : IDisposable
                 bool instrumental=data.TryGetProperty("instrumental",out var ins) && ins.ValueKind==JsonValueKind.True;
                 string? lrc=data.TryGetProperty("syncedLyrics",out var value) && value.ValueKind==JsonValueKind.String?value.GetString():null;
                 var lines=lrc==null?Array.Empty<LyricLine>():LyricTiming.Parse(lrc);
-                result=new(lines,lines.Length>0?"Synced lyrics · LRCLIB":instrumental?"Instrumental track":"No synced lyrics for this track.");
+                result=new(lines,lines.Length>0?"Eşzamanlı şarkı sözleri · LRCLIB":instrumental?"Enstrümantal parça":"Bu parça için eşzamanlı şarkı sözü yok.");
             }
             if(request.IsCancellationRequested || disposed || key!=next)return;
             if(cache.Count>=20)cache.Remove(cache.Keys.First());cache[next]=result;Set(result);
         }
-        catch(OperationCanceledException){if(!request.IsCancellationRequested && !disposed && key==next)Set(new(Array.Empty<LyricLine>(),"Lyrics request timed out. Tap Retry."));}
+        catch(OperationCanceledException){if(!request.IsCancellationRequested && !disposed && key==next)Set(new(Array.Empty<LyricLine>(),"Şarkı sözü isteği zaman aşımına uğradı. Yeniden'e dokunun."));}
         catch(Exception ex) when(ex is HttpRequestException or IOException or JsonException or RegexMatchTimeoutException)
-        {if(!request.IsCancellationRequested && !disposed && key==next)Set(new(Array.Empty<LyricLine>(),"Lyrics unavailable. Tap Retry."));}
+        {if(!request.IsCancellationRequested && !disposed && key==next)Set(new(Array.Empty<LyricLine>(),"Şarkı sözleri kullanılamıyor. Yeniden'e dokunun."));}
         finally{if(ReferenceEquals(pending,request))pending=null;request.Dispose();}
     }
     private void Set(LyricResult result){if(Result==result)return;Result=result;Changed?.Invoke();}
     internal void Import(string title,string artist,double duration,string lrc)
     {
         var lines=LyricTiming.Parse(lrc);if(lines.Length==0)throw new InvalidDataException("Choose an LRC file with [mm:ss] line timestamps.");
-        Cancel();key=TrackKey(title,artist,duration);var result=new LyricResult(lines,"Local LRC · this session");if(cache.Count>=20)cache.Remove(cache.Keys.First());cache[key]=result;Set(result);
+        Cancel();key=TrackKey(title,artist,duration);var result=new LyricResult(lines,"Yerel LRC · bu oturum");if(cache.Count>=20)cache.Remove(cache.Keys.First());cache[key]=result;Set(result);
     }
     internal void Retry(){cache.Remove(key);key="";}
     internal void Cancel(){if(pending!=null){pending.Cancel();pending=null;key="";}}

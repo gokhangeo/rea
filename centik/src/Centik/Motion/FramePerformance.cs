@@ -24,7 +24,7 @@ internal static class FrameTelemetry
     internal static void Sample(TimeSpan time){if(last.HasValue){double ms=(time-last.Value).TotalMilliseconds;if(ms>0 && ms<250){Observe?.Invoke(ms);samples.Enqueue(ms);while(samples.Count>240)samples.Dequeue();}}last=time;}
     internal static string Status
     {
-        get{if(samples.Count<2)return "Waiting for animation activity…";var s=samples.OrderBy(x=>x).ToArray();double mean=s.Average(),p95=s[Math.Min(s.Length-1,(int)(s.Length*.95))];int late=s.Count(x=>x>1000d/Motion.FrameLimit*1.8);return $"{1000/mean:0} updates/s · p95 {p95:0.0} ms\n{late}/{s.Length} late intervals · cap {Motion.FrameLimit} FPS\nMeasured WPF render callbacks, not GPU presentation.";}
+        get{if(samples.Count<2)return "Animasyon etkinliği bekleniyor…";var s=samples.OrderBy(x=>x).ToArray();double mean=s.Average(),p95=s[Math.Min(s.Length-1,(int)(s.Length*.95))];int late=s.Count(x=>x>1000d/Motion.FrameLimit*1.8);return $"{1000/mean:0} güncelleme/sn · p95 {p95:0.0} ms\n{late}/{s.Length} geç aralık · üst sınır {Motion.FrameLimit} FPS\nGPU sunumu değil, WPF render geri çağırmaları ölçüldü.";}
     }
 }
 public sealed partial class OverlayWindow

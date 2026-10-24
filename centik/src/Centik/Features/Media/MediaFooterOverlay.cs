@@ -24,9 +24,9 @@ public sealed partial class OverlayWindow
     {
         DetachMediaControl(volume);DetachMediaControl(volumeText);
         var panel=new StackPanel();var header=new DockPanel{Margin=new(0,0,0,7)};
-        var devices=Icons.Button("chevron","Audio devices and microphone",()=>{mediaControls?.Close(false);OpenAudioMenu();},false,22);devices.Background=Brushes.Transparent;devices.Margin=new(6,0,0,0);devices.ToolTip="Output devices & microphone";DockPanel.SetDock(devices,Dock.Right);header.Children.Add(devices);DockPanel.SetDock(volumeText,Dock.Right);header.Children.Add(volumeText);header.Children.Add(UI.Text("Volume",12));panel.Children.Add(header);
-        mute=Icons.Button("volume","Mute or unmute",()=>{app.Audio.ToggleMute();Update();},false,28);mute.Background=Brushes.Transparent;mute.Margin=new(0);muteIcon="";
-        var row=new DockPanel();var mixer=Icons.Button("mixer","Open volume mixer",OpenMixer,false,28);mixer.Margin=new(7,0,0,0);mixer.Background=Brushes.Transparent;DockPanel.SetDock(mixer,Dock.Right);row.Children.Add(mixer);DockPanel.SetDock(mute,Dock.Left);row.Children.Add(mute);volume.Margin=new(8,0,5,0);UI.Named(volume,"Windows volume");row.Children.Add(volume);panel.Children.Add(row);
+        var devices=Icons.Button("chevron","Ses cihazları ve mikrofon",()=>{mediaControls?.Close(false);OpenAudioMenu();},false,22);devices.Background=Brushes.Transparent;devices.Margin=new(6,0,0,0);devices.ToolTip="Çıkış cihazları ve mikrofon";DockPanel.SetDock(devices,Dock.Right);header.Children.Add(devices);DockPanel.SetDock(volumeText,Dock.Right);header.Children.Add(volumeText);header.Children.Add(UI.Text("Ses düzeyi",12));panel.Children.Add(header);
+        mute=Icons.Button("volume","Sessize al veya aç",()=>{app.Audio.ToggleMute();Update();},false,28);mute.Background=Brushes.Transparent;mute.Margin=new(0);muteIcon="";
+        var row=new DockPanel();var mixer=Icons.Button("mixer","Ses karıştırıcıyı aç",OpenMixer,false,28);mixer.Margin=new(7,0,0,0);mixer.Background=Brushes.Transparent;DockPanel.SetDock(mixer,Dock.Right);row.Children.Add(mixer);DockPanel.SetDock(mute,Dock.Left);row.Children.Add(mute);volume.Margin=new(8,0,5,0);UI.Named(volume,"Windows volume");row.Children.Add(volume);panel.Children.Add(row);
         Update();return panel;
     }
     private static void DetachMediaControl(FrameworkElement control)

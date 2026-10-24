@@ -25,7 +25,7 @@ public sealed partial class SettingsWindow
                 grip.PreviewMouseLeftButtonDown+=(_,e)=>start=e.GetPosition(grip);grip.PreviewMouseMove+=(_,e)=>{if(e.LeftButton!=MouseButtonState.Pressed || (e.GetPosition(grip)-start).Length<SystemParameters.MinimumVerticalDragDistance)return;card.Opacity=.45;try{DragDrop.DoDragDrop(grip,new DataObject(format,item),DragDropEffects.Move);}finally{card.Opacity=1;}};
                 card.DragOver+=(_,e)=>{if(!e.Data.GetDataPresent(format)){e.Effects=DragDropEffects.None;return;}e.Effects=DragDropEffects.Move;card.BorderBrush=UI.Brush("#8099B7");double edge=e.GetPosition(settingsScroll).Y;if(edge<40)settingsScroll.LineUp();else if(edge>settingsScroll.ActualHeight-40)settingsScroll.LineDown();e.Handled=true;};card.DragLeave+=(_,_)=>card.BorderBrush=Brushes.Transparent;
                 card.Drop+=(_,e)=>{card.BorderBrush=Brushes.Transparent;if(e.Data.GetData(format) is not WidgetSetting dragged)return;int index=items.IndexOf(item)+(e.GetPosition(card).Y>card.ActualHeight/2?1:0);if(items.IndexOf(dragged)<index)index--;MoveTo(dragged,index);e.Handled=true;};
-                grip.PreviewKeyDown+=(_,e)=>{if(Keyboard.Modifiers!=ModifierKeys.Alt || e.Key is not (Key.Up or Key.Down))return;MoveTo(item,items.IndexOf(item)+(e.Key==Key.Up?-1:1));e.Handled=true;};grip.ToolTip="Drag to reorder · Alt+↑ / Alt+↓ with keyboard";
+                grip.PreviewKeyDown+=(_,e)=>{if(Keyboard.Modifiers!=ModifierKeys.Alt || e.Key is not (Key.Up or Key.Down))return;MoveTo(item,items.IndexOf(item)+(e.Key==Key.Up?-1:1));e.Handled=true;};grip.ToolTip="Yeniden sıralamak için sürükle · klavyeyle Alt+↑ / Alt+↓";
             }
         }
         Build();return list;

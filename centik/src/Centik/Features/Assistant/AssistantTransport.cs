@@ -59,7 +59,7 @@ internal sealed class AssistantTransport : IAssistantTransport, IDisposable
                 catch (OperationCanceledException) { socket.Dispose(); throw; }
                 catch (SocketException) { socket.Dispose(); }
             }
-            throw new HttpRequestException("The provider destination is unavailable or disallowed.");
+            throw new HttpRequestException("Sağlayıcı hedefi kullanılamıyor veya izin verilmiyor.");
         }
     };
 
@@ -69,12 +69,12 @@ internal sealed class AssistantTransport : IAssistantTransport, IDisposable
             || uri.UserInfo.Length != 0 || uri.Fragment.Length != 0 || uri.Query.Length != 0
             || (uri.Scheme != "https" && !(uri.Scheme == "http" && IsLocalHost(uri.Host)))
             || uri.Host.Length == 0 || uri.Host.EndsWith('.') || uri.Host.Contains('%'))
-            throw new InvalidOperationException("Use a public HTTPS provider base URL or localhost HTTP URL without credentials, query, or fragment.");
+            throw new InvalidOperationException("Kimlik bilgisi, sorgu veya parça içermeyen genel bir HTTPS sağlayıcı temel URL'si ya da localhost HTTP URL'si kullanın.");
         string host = uri.IdnHost.Trim('[', ']');
         if (!IsLocalHost(host) && (IPAddress.TryParse(host, out var ip) ? !IsPublicAddress(ip)
             : uri.HostNameType != UriHostNameType.Dns || !host.Contains('.') || host.EndsWith(".local", StringComparison.OrdinalIgnoreCase)
               || host.EndsWith(".internal", StringComparison.OrdinalIgnoreCase) || host.EndsWith(".localhost", StringComparison.OrdinalIgnoreCase)))
-            throw new InvalidOperationException("The provider destination must be public or localhost.");
+            throw new InvalidOperationException("Sağlayıcı hedefi genel veya localhost olmalıdır.");
         return new Uri(uri.AbsoluteUri.TrimEnd('/') + "/", UriKind.Absolute);
     }
 
@@ -104,16 +104,16 @@ internal sealed class AssistantTransport : IAssistantTransport, IDisposable
         ArgumentNullException.ThrowIfNull(provider);
         var endpoint = ValidateEndpoint(provider.BaseUrl);
         ValidateInput(provider, messages, tools);
-        if (apiKey is { Length: > 4096 } || apiKey?.Any(char.IsControl) == true) throw new InvalidOperationException("The API key is invalid.");
+        if (apiKey is { Length: > 4096 } || apiKey?.Any(char.IsControl) == true) throw new InvalidOperationException("API anahtarı geçersiz.");
         var activeTools = provider.Tools && provider.Backend!="Hermes" ? tools : Array.Empty<AssistantTool>();
         var body = Build(provider, messages, activeTools);
         byte[] bytes = JsonSerializer.SerializeToUtf8Bytes(body);
-        if (bytes.Length > MaximumBodyBytes) throw new InvalidOperationException("The assistant request is too large. Reduce the conversation or image size.");
+        if (bytes.Length > MaximumBodyBytes) throw new InvalidOperationException("Asistan isteği çok büyük. Konuşmayı veya görüntü boyutunu küçültün.");
         string route = provider.Protocol switch
         {
             "ChatCompletions" => "chat/completions", "Responses" => "responses", "Anthropic" => "messages",
             "Gemini" => "models/" + Uri.EscapeDataString(provider.Model) + ":generateContent",
-            _ => throw new InvalidOperationException("Select a supported assistant protocol.")
+            _ => throw new InvalidOperationException("Desteklenen bir asistan protokolü seçin.")
         };
         using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(endpoint, route));
         request.Content = new ByteArrayContent(bytes);
@@ -121,10 +121,10 @@ internal sealed class AssistantTransport : IAssistantTransport, IDisposable
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
         if(provider.Backend=="Hermes")
         {
-            if(provider.Protocol!="ChatCompletions")throw new InvalidOperationException("Hermes Agent uses Chat Completions. Select that protocol.");
+            if(provider.Protocol!="ChatCompletions")throw new InvalidOperationException("Hermes Agent, Chat Completions kullanır. O protokolü seçin.");
             if(provider.HermesSessionId.Length>0)
             {
-                if(!Guid.TryParseExact(provider.HermesSessionId,"N",out _))throw new InvalidOperationException("The Hermes session is invalid. Clear chat and try again.");
+                if(!Guid.TryParseExact(provider.HermesSessionId,"N",out _))throw new InvalidOperationException("Hermes oturumu geçersiz. Sohbeti temizleyip yeniden deneyin.");
                 request.Headers.Add("X-Hermes-Session-Id","nabyscape-"+provider.HermesSessionId);
             }
             request.Headers.Add("Idempotency-Key",Guid.NewGuid().ToString("N"));
@@ -142,16 +142,16 @@ internal sealed class AssistantTransport : IAssistantTransport, IDisposable
         {
             using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, deadline.Token).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
-                throw new IOException((int)response.StatusCode is >= 300 and < 400 ? "Provider redirects are blocked. Check the configured base URL."
-                    : $"The provider rejected the request (HTTP {(int)response.StatusCode}). Check its settings, access, and model support.");
-            if (response.Content.Headers.ContentLength > MaximumBodyBytes) throw new IOException("The provider response exceeded the size limit.");
+                throw new IOException((int)response.StatusCode is >= 300 and < 400 ? "Sağlayıcı yönlendirmeleri engellendi. Yapılandırılan temel URL'yi denetleyin."
+                    : $"Sağlayıcı isteği reddetti (HTTP {(int)response.StatusCode}). Ayarlarını, erişimini ve model desteğini denetleyin.");
+            if (response.Content.Headers.ContentLength > MaximumBodyBytes) throw new IOException("Sağlayıcı yanıtı boyut sınırını aştı.");
             await using var stream = await response.Content.ReadAsStreamAsync(deadline.Token).ConfigureAwait(false);
             using var buffer = new MemoryStream();
             byte[] chunk = new byte[16 * 1024];
             int count;
             while ((count = await stream.ReadAsync(chunk, deadline.Token).ConfigureAwait(false)) != 0)
             {
-                if (buffer.Length + count > MaximumBodyBytes) throw new IOException("The provider response exceeded the size limit.");
+                if (buffer.Length + count > MaximumBodyBytes) throw new IOException("Sağlayıcı yanıtı boyut sınırını aştı.");
                 buffer.Write(chunk, 0, count);
             }
             deadline.Token.ThrowIfCancellationRequested();
@@ -161,20 +161,20 @@ internal sealed class AssistantTransport : IAssistantTransport, IDisposable
                 return Parse(provider.Protocol, document.RootElement, activeTools);
             }
             catch (Exception ex) when (ex is JsonException or InvalidOperationException or KeyNotFoundException or FormatException)
-            { throw new IOException("The provider returned an invalid or unsupported response."); }
+            { throw new IOException("Sağlayıcı geçersiz veya desteklenmeyen bir yanıt döndürdü."); }
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-        { throw new TimeoutException("The assistant request timed out. Try again or check the provider."); }
-        catch (HttpRequestException) { throw new IOException("The assistant could not connect securely to the configured provider."); }
+        { throw new TimeoutException("Asistan isteği zaman aşımına uğradı. Yeniden deneyin veya sağlayıcıyı denetleyin."); }
+        catch (HttpRequestException) { throw new IOException("Asistan, yapılandırılan sağlayıcıya güvenli şekilde bağlanamadı."); }
     }
 
     private static void ValidateInput(AssistantProvider provider, IReadOnlyList<AssistantMessage> messages, IReadOnlyList<AssistantTool> tools)
     {
         ArgumentNullException.ThrowIfNull(messages); ArgumentNullException.ThrowIfNull(tools);
         if (string.IsNullOrWhiteSpace(provider.Model) || provider.Model.Length > 256 || provider.Model.Any(char.IsControl))
-            throw new InvalidOperationException("Enter the model identifier supplied by your provider.");
-        if (provider.Protocol is not ("ChatCompletions" or "Responses" or "Anthropic" or "Gemini")) throw new InvalidOperationException("Select a supported assistant protocol.");
-        if (messages.Count is < 1 or > 100 || tools.Count > 32) throw new InvalidOperationException("The assistant conversation or tool list is too large.");
+            throw new InvalidOperationException("Sağlayıcınızın sağladığı model tanımlayıcısını girin.");
+        if (provider.Protocol is not ("ChatCompletions" or "Responses" or "Anthropic" or "Gemini")) throw new InvalidOperationException("Desteklenen bir asistan protokolü seçin.");
+        if (messages.Count is < 1 or > 100 || tools.Count > 32) throw new InvalidOperationException("Asistan konuşması veya araç listesi çok büyük.");
         int textLength = 0, callCount = 0;
         long payloadCharacters = 0;
         var known = new HashSet<string>(StringComparer.Ordinal);
@@ -184,43 +184,43 @@ internal sealed class AssistantTransport : IAssistantTransport, IDisposable
         {
             if (tool == null || !ValidName(tool.Name) || !names.Add(tool.Name) || tool.Description == null || tool.Description.Length > 4096
                 || tool.Parameters.ValueKind != JsonValueKind.Object || tool.Parameters.GetRawText().Length > 32768)
-                throw new InvalidOperationException("The assistant tool definition is invalid.");
+                throw new InvalidOperationException("Asistan aracı tanımı geçersiz.");
             payloadCharacters += tool.Description.Length + tool.Parameters.GetRawText().Length;
         }
         foreach (var message in messages)
         {
-            if (message == null || message.Text == null || message.Role is not ("system" or "user" or "assistant" or "tool")) throw new InvalidOperationException("The assistant message is invalid.");
+            if (message == null || message.Text == null || message.Role is not ("system" or "user" or "assistant" or "tool")) throw new InvalidOperationException("Asistan mesajı geçersiz.");
             textLength += message.Text.Length;
             payloadCharacters += message.Text.Length;
-            if (textLength > MaximumTextCharacters) throw new InvalidOperationException("The conversation text is too large. Start a new chat.");
+            if (textLength > MaximumTextCharacters) throw new InvalidOperationException("Konuşma metni çok büyük. Yeni bir sohbet başlatın.");
             if (message.ImageDataUrl != null)
             {
-                if (!provider.Vision || message.Role != "user") throw new InvalidOperationException("Enable vision only for a model that supports user images.");
+                if (!provider.Vision || message.Role != "user") throw new InvalidOperationException("Görüntü desteğini yalnızca kullanıcı görüntülerini destekleyen bir model için etkinleştirin.");
                 Image(message.ImageDataUrl);
                 payloadCharacters += message.ImageDataUrl.Length;
             }
             if (message.Calls is { Count: > 0 })
             {
-                if (!provider.Tools || message.Role != "assistant" || message.Calls.Count > MaximumCalls) throw new InvalidOperationException("Tool calls are not enabled or valid for this message.");
+                if (!provider.Tools || message.Role != "assistant" || message.Calls.Count > MaximumCalls) throw new InvalidOperationException("Bu mesaj için araç çağrıları etkin veya geçerli değil.");
                 foreach (var call in message.Calls)
                 {
                     ValidateCall(call);
                     payloadCharacters += call.Arguments.Length + (call.ThoughtSignature?.Length ?? 0);
-                    if (++callCount > 128 || !known.Add(call.Id)) throw new InvalidOperationException("Duplicate or excessive tool calls in conversation.");
+                    if (++callCount > 128 || !known.Add(call.Id)) throw new InvalidOperationException("Konuşmada yinelenen veya aşırı araç çağrıları var.");
                     pending.Add(call.Id);
                 }
             }
-            if (message.Role == "tool" && (message.CallId == null || !pending.Remove(message.CallId))) throw new InvalidOperationException("A tool result must match an earlier assistant call exactly once.");
+            if (message.Role == "tool" && (message.CallId == null || !pending.Remove(message.CallId))) throw new InvalidOperationException("Bir araç sonucu, daha önceki bir asistan çağrısıyla tam olarak bir kez eşleşmelidir.");
             if (message.ProtocolItems != null)
             {
-                if (message.Role != "assistant" || message.ProtocolItems.Count > 128) throw new InvalidOperationException("Invalid provider continuation items.");
+                if (message.Role != "assistant" || message.ProtocolItems.Count > 128) throw new InvalidOperationException("Geçersiz sağlayıcı devam öğeleri.");
                 foreach (var item in message.ProtocolItems)
                 {
-                    if (item.ValueKind != JsonValueKind.Object) throw new InvalidOperationException("Invalid provider continuation item.");
+                    if (item.ValueKind != JsonValueKind.Object) throw new InvalidOperationException("Geçersiz sağlayıcı devam öğesi.");
                     payloadCharacters += item.GetRawText().Length;
                 }
             }
-            if (payloadCharacters > MaximumBodyBytes) throw new InvalidOperationException("The assistant request is too large. Start a new chat or reduce the image size.");
+            if (payloadCharacters > MaximumBodyBytes) throw new InvalidOperationException("Asistan isteği çok büyük. Yeni bir sohbet başlatın veya görüntü boyutunu küçültün.");
         }
     }
 
@@ -228,19 +228,19 @@ internal sealed class AssistantTransport : IAssistantTransport, IDisposable
     private static void ValidateCall(AssistantCall call)
     {
         if (call == null || call.Id is not { Length: > 0 and <= 256 } || call.Id.Any(char.IsControl) || !ValidName(call.Name)
-            || call.Arguments is not { Length: > 0 and <= 32768 } || call.ThoughtSignature?.Length > MaximumBodyBytes) throw new InvalidOperationException("The provider returned an invalid tool call.");
+            || call.Arguments is not { Length: > 0 and <= 32768 } || call.ThoughtSignature?.Length > MaximumBodyBytes) throw new InvalidOperationException("Sağlayıcı geçersiz bir araç çağrısı döndürdü.");
         using var args = JsonDocument.Parse(call.Arguments, new JsonDocumentOptions { MaxDepth = 32 });
-        if (args.RootElement.ValueKind != JsonValueKind.Object) throw new InvalidOperationException("Tool arguments must be a JSON object.");
+        if (args.RootElement.ValueKind != JsonValueKind.Object) throw new InvalidOperationException("Araç bağımsız değişkenleri bir JSON nesnesi olmalıdır.");
     }
 
     private static (string Mime, string Data) Image(string value)
     {
         int split = value.IndexOf(',');
-        if (split < 0 || value.Length > 3 * 1024 * 1024) throw new InvalidOperationException("The screenshot is invalid or too large.");
+        if (split < 0 || value.Length > 3 * 1024 * 1024) throw new InvalidOperationException("Ekran görüntüsü geçersiz veya çok büyük.");
         string mime = value[..split] switch { "data:image/jpeg;base64" => "image/jpeg", "data:image/png;base64" => "image/png", _ => "" };
         string data = value[(split + 1)..];
-        if (mime.Length == 0 || data.Length == 0 || data.Any(c => !(char.IsAsciiLetterOrDigit(c) || c is '+' or '/' or '='))) throw new InvalidOperationException("Use an inline PNG or JPEG screenshot.");
-        try { Convert.FromBase64String(data); } catch (FormatException) { throw new InvalidOperationException("The screenshot encoding is invalid."); }
+        if (mime.Length == 0 || data.Length == 0 || data.Any(c => !(char.IsAsciiLetterOrDigit(c) || c is '+' or '/' or '='))) throw new InvalidOperationException("Satır içi bir PNG veya JPEG ekran görüntüsü kullanın.");
+        try { Convert.FromBase64String(data); } catch (FormatException) { throw new InvalidOperationException("Ekran görüntüsü kodlaması geçersiz."); }
         return (mime, data);
     }
 

@@ -31,14 +31,14 @@ public sealed partial class App : Application
         int epoch=downloadEpoch;Dispatcher.BeginInvoke(()=>
         {
             if(epoch!=downloadEpoch || !Settings.DownloadsEnabled || Downloads?.Running!=true || paths.Length==0 || !string.Equals(Path.GetDirectoryName(paths[0]),Downloads.Folder,StringComparison.OrdinalIgnoreCase))return;
-            PostNotice(new("downloads",paths.Length==1?"Download ready":$"{paths.Length} downloads ready","Folder arrival inferred · drag originals or add to shelf",paths));
+            PostNotice(new("downloads",paths.Length==1?"İndirme hazır":$"{paths.Length} indirme hazır","Klasöre gelen çıkarsandı · özgünleri sürükleyin veya rafa ekleyin",paths));
         });
     }
     private void DownloadFailed(string error)
     {
         int epoch=downloadEpoch;Dispatcher.BeginInvoke(()=>
         {
-            if(epoch==downloadEpoch && Settings.DownloadsEnabled)Notify("Downloads unavailable",error);
+            if(epoch==downloadEpoch && Settings.DownloadsEnabled)Notify("İndirmeler kullanılamıyor",error);
         });
     }
     internal void OpenNotifications()=>overlay?.OpenNotice(true);
@@ -48,7 +48,7 @@ public sealed partial class App : Application
         string key=Settings.DownloadsEnabled+"|"+Settings.DownloadsFolder;if(key==downloadConfiguration)return;downloadConfiguration=key;
         Downloads?.Configure(false,"");downloadEpoch++;
         try{Downloads?.Configure(Settings.DownloadsEnabled,Settings.DownloadsEnabled?(Settings.DownloadsFolder.Length==0?DownloadArrivals.KnownFolder():Settings.DownloadsFolder):"");}
-        catch(Exception ex){Notify("Downloads unavailable",ex.Message);}
+        catch(Exception ex){Notify("İndirmeler kullanılamıyor",ex.Message);}
     }
     internal void PostNotice(InternalNotice notice)
     {
@@ -61,7 +61,7 @@ public sealed partial class App : Application
     public SessionState Session { get; private set; }=null!;
     public MediaService Media { get; private set; }=null!;
     public BrightnessService Brightness { get; private set; }=null!;
-    public string BrightnessStatus=>Brightness?.Status??"Brightness feedback unavailable";
+    public string BrightnessStatus=>Brightness?.Status??"Parlaklık geri bildirimi kullanılamıyor";
     public AudioService Audio { get; private set; }=null!;
     internal AmbientAudioDriver AmbientAudio {get;private set;}=null!;
     public ProductivityService Productivity {get;private set;}=null!;
@@ -69,9 +69,9 @@ public sealed partial class App : Application
     internal DetachedPreviewManager Previews {get;private set;}=null!;
     public CalendarService Calendar {get;private set;}=null!;
     public KeepAwakeService Awake {get;private set;}=null!;
-    public string HotkeyStatus=>!Settings.HotkeyEnabled?"Hotkey off":overlay?.HotkeyError.Length>0?overlay.HotkeyError:$"Active · {Settings.HotkeyModifiers}+{Settings.HotkeyKey}";
-    public string VisibilityHotkeyStatus=>!Settings.VisibilityHotkeyEnabled?"Visibility shortcut off":overlay?.VisibilityHotkeyError.Length>0?overlay.VisibilityHotkeyError:$"Hide / show · {Settings.VisibilityHotkeyModifiers}+{Settings.VisibilityHotkeyKey}";
-    public string TuckHotkeyStatus=>!Settings.TuckHotkeyEnabled?"Tuck shortcut off":overlay?.TuckHotkeyError.Length>0?overlay.TuckHotkeyError:$"Tuck / return to automatic · {Settings.TuckHotkeyModifiers}+{Settings.TuckHotkeyKey}";
+    public string HotkeyStatus=>!Settings.HotkeyEnabled?"Kısayol kapalı":overlay?.HotkeyError.Length>0?overlay.HotkeyError:$"Etkin · {Settings.HotkeyModifiers}+{Settings.HotkeyKey}";
+    public string VisibilityHotkeyStatus=>!Settings.VisibilityHotkeyEnabled?"Görünürlük kısayolu kapalı":overlay?.VisibilityHotkeyError.Length>0?overlay.VisibilityHotkeyError:$"Gizle / göster · {Settings.VisibilityHotkeyModifiers}+{Settings.VisibilityHotkeyKey}";
+    public string TuckHotkeyStatus=>!Settings.TuckHotkeyEnabled?"Kenara alma kısayolu kapalı":overlay?.TuckHotkeyError.Length>0?overlay.TuckHotkeyError:$"Kenara al / otomatiğe dön · {Settings.TuckHotkeyModifiers}+{Settings.TuckHotkeyKey}";
     internal void FlushPreferenceEditors()=>overlay?.FlushPreferenceEditors();
     // Countdown completions route through the shared notification manager.
     public event Action? SettingsChanged;
@@ -115,7 +115,7 @@ public sealed partial class App : Application
         UI.ResourceBrush("Accent",UI.Brush(Settings.Accent));UI.ApplyControlTheme(Settings);
         Motion.Configure(Settings);
         Session=diagnosticPath==null?Store.Load<SessionState>("session"):new SessionState();Session.Timer??=new();Session.Focus??=new();Session.Stopwatch??=new();Session.Stopwatch.Recover();
-        DispatcherUnhandledException+=(_,args)=> { Store.Log(args.Exception);args.Handled=true;Notify("Something went wrong", "The operation failed. Details were saved to errors.log."); };
+        DispatcherUnhandledException+=(_,args)=> { Store.Log(args.Exception);args.Handled=true;Notify("Bir şeyler ters gitti", "İşlem başarısız oldu. Ayrıntılar errors.log dosyasına kaydedildi."); };
         Audio=new(Store.Log){SpectrumEnabled=Settings.WaveformSource=="Spectrum"};Media=new(Store.Log);Productivity=new(Store,Store.Log,diagnosticPath==null);Productivity.SetClipboardEnabled(Settings.ClipboardHistory);
         AmbientAudio=new(this);Weather=new(Store);
         Brightness=new();Brightness.Start(diagnosticPath==null);
@@ -124,19 +124,19 @@ public sealed partial class App : Application
         tray=new Forms.NotifyIcon{Text="Çentik",Visible=diagnosticPath==null};
         using(var stream=GetResourceStream(new Uri("pack://application:,,,/Assets/island.ico")).Stream) tray.Icon=new System.Drawing.Icon(stream);
         var menu=new Forms.ContextMenuStrip();
-        menu.Items.Add("Open island",null,(_,_)=>Dispatcher.Invoke(()=>overlay?.Reveal()));
-        menu.Items.Add("Command bar",null,(_,_)=>Dispatcher.Invoke(()=>overlay?.ShowCommands()));
-        menu.Items.Add("Settings",null,(_,_)=>Dispatcher.Invoke(ShowSettings));
-        menu.Items.Add("Move & resize island",null,(_,_)=>Dispatcher.Invoke(()=>overlay?.ToggleDockEditing()));
-        menu.Items.Add("AI companion",null,(_,_)=>Dispatcher.Invoke(ShowAssistant));
-        menu.Items.Add("Tuck / Return to automatic",null,(_,_)=>Dispatcher.Invoke(()=>overlay?.ToggleTuck()));
-        menu.Items.Add("Hide / show",null,(_,_)=>Dispatcher.Invoke(()=>overlay?.ToggleVisibility()));
+        menu.Items.Add("Adayı aç",null,(_,_)=>Dispatcher.Invoke(()=>overlay?.Reveal()));
+        menu.Items.Add("Komut çubuğu",null,(_,_)=>Dispatcher.Invoke(()=>overlay?.ShowCommands()));
+        menu.Items.Add("Ayarlar",null,(_,_)=>Dispatcher.Invoke(ShowSettings));
+        menu.Items.Add("Adayı taşı ve yeniden boyutlandır",null,(_,_)=>Dispatcher.Invoke(()=>overlay?.ToggleDockEditing()));
+        menu.Items.Add("AI yardımcısı",null,(_,_)=>Dispatcher.Invoke(ShowAssistant));
+        menu.Items.Add("Kenara al / Otomatiğe dön",null,(_,_)=>Dispatcher.Invoke(()=>overlay?.ToggleTuck()));
+        menu.Items.Add("Gizle / göster",null,(_,_)=>Dispatcher.Invoke(()=>overlay?.ToggleVisibility()));
         menu.Items.Add(new Forms.ToolStripSeparator());
-        menu.Items.Add("Quit",null,(_,_)=>Dispatcher.Invoke(Quit));
+        menu.Items.Add("Çık",null,(_,_)=>Dispatcher.Invoke(Quit));
         tray.ContextMenuStrip=menu;tray.DoubleClick+=(_,_)=>Dispatcher.Invoke(ShowSettings);
         overlay=new OverlayWindow(this);MainWindow=overlay;StartupTrace.Attach(overlay,e.Args,Store.Log);overlay.Show();Previews=new(this,overlay.OpenFeaturePage);
         Notifications.Changed+=()=>overlay.RefreshNotice();
-        Updates.UpdateAvailable+=release=>Dispatcher.BeginInvoke(()=>PostNotice(new("updates","Update available",release.Version+" · Open Settings > Application to review.")));
+        Updates.UpdateAvailable+=release=>Dispatcher.BeginInvoke(()=>PostNotice(new("updates","Güncelleme var",release.Version+" · İncelemek için Ayarlar > Uygulama'yı açın.")));
         Downloads=new(DownloadReady,DownloadFailed);
         ConfigureDownloads();
         Media.Changed+=()=>PublishUpdate(RuntimeChange.Media);
@@ -149,7 +149,7 @@ public sealed partial class App : Application
         tick.Tick+=(_,_)=>
         {
             CheckCountdowns();if(NotificationPolicy.Quiet(Settings,DateTimeOffset.UtcNow) && Notifications.Count>0 && Notifications.Current?.Kind!="preview")Notifications.Clear();else Notifications.Tick(DateTimeOffset.UtcNow,overlay.NotificationBusy,Settings.NotificationSeconds);
-            try{Awake.Tick(DateTimeOffset.UtcNow);}catch(Exception ex){Store.Log(ex);Notify("Could not update keep awake",ex.Message);}
+            try{Awake.Tick(DateTimeOffset.UtcNow);}catch(Exception ex){Store.Log(ex);Notify("Uyanık tutma güncellenemedi",ex.Message);}
             var changed=RuntimeChange.Clock;
             if(Session.Timer.Running || Session.Focus.Running || Session.Stopwatch.Running)changed|=RuntimeChange.Countdown;
             if(++counter%2==0)
@@ -163,8 +163,8 @@ public sealed partial class App : Application
             PublishUpdate(changed);
         };
         tick.Start();CheckCountdowns();
-        if(Store.Warning!=null) Notify("Settings recovered",Store.Warning);
-        if(!Array.Exists(e.Args,a=>a=="--background")) Notify("Centik is ready", "Click the island for your widgets. Right-click the tray icon for settings.");
+        if(Store.Warning!=null) Notify("Ayarlar kurtarıldı",Store.Warning);
+        if(!Array.Exists(e.Args,a=>a=="--background")) Notify("Centik hazır", "Bileşenleriniz için adaya tıklayın. Ayarlar için tepsi simgesine sağ tıklayın.");
         Microsoft.Win32.SystemEvents.PowerModeChanged+=PowerChanged;
         if(diagnosticPath==null) _=Updates.Check(false,Settings.AutoCheckUpdates);
         if(diagnosticPath!=null) _=Diagnostics.Run(this,overlay,diagnosticPath);
@@ -175,7 +175,7 @@ public sealed partial class App : Application
     public void CheckCountdowns()
     {
         var now=DateTimeOffset.UtcNow;bool changed=false;
-        if(Session.Timer.Complete(now)) { changed=true;PostNotice(new("timer","Timer finished","Your timer has finished."));if(Settings.NotifyTimer && !NotificationPolicy.Quiet(Settings,now))CountdownAudio.Play(Settings); }
+        if(Session.Timer.Complete(now)) { changed=true;PostNotice(new("timer","Zamanlayıcı bitti","Zamanlayıcınız bitti."));if(Settings.NotifyTimer && !NotificationPolicy.Quiet(Settings,now))CountdownAudio.Play(Settings); }
         var focusDeadline=Session.Focus.Deadline;
         if(Session.Focus.Complete(now))
         {
@@ -185,21 +185,21 @@ public sealed partial class App : Application
             {
                 // The break starts at the actual work deadline, even across sleep, so a long sleep never starts a fresh break.
                 var end=focusDeadline!.Value.AddMinutes(Settings.BreakMinutes);
-                if(end>now) { Session.Focus.Start((end-now).TotalSeconds,now,"break",preserveRunId:true);Session.Focus.DurationSeconds=Settings.BreakMinutes*60; PostNotice(new("focus","Focus complete","Time for a short break.")); }
-                else { Session.Focus.Reset();PostNotice(new("focus","Focus session complete","Your focus session and break have finished.")); }
+                if(end>now) { Session.Focus.Start((end-now).TotalSeconds,now,"break",preserveRunId:true);Session.Focus.DurationSeconds=Settings.BreakMinutes*60; PostNotice(new("focus","Odak tamamlandı","Kısa bir mola zamanı.")); }
+                else { Session.Focus.Reset();PostNotice(new("focus","Odak oturumu tamamlandı","Odak oturumunuz ve molanız bitti.")); }
             }
-            else { Session.Focus.Reset();PostNotice(new("focus","Break finished","Ready for your next focus session.")); }
+            else { Session.Focus.Reset();PostNotice(new("focus","Mola bitti","Bir sonraki odak oturumunuza hazır.")); }
             if(Settings.NotifyFocus && !NotificationPolicy.Quiet(Settings,now))CountdownAudio.Play(Settings);
         }
         if(changed) SaveSession();
     }
     internal void OpenMixer()=>overlay?.OpenMixer();
-    public void SaveSession() { try { Session.Stopwatch.Checkpoint();Store.Save("session",Session); } catch(Exception ex) { Store.Log(ex);Notify("Not saved yet", "Could not save the timer state."); } PublishUpdate(RuntimeChange.Countdown); }
+    public void SaveSession() { try { Session.Stopwatch.Checkpoint();Store.Save("session",Session); } catch(Exception ex) { Store.Log(ex);Notify("Henüz kaydedilmedi", "Zamanlayıcı durumu kaydedilemedi."); } PublishUpdate(RuntimeChange.Countdown); }
     public void ChangeSettings()
     {
         Settings.Normalize();Audio.SpectrumEnabled=Settings.WaveformSource=="Spectrum";if(!Settings.ActivitiesEnabled)Activities?.Stop();UI.ResourceBrush("Accent",UI.Brush(Settings.Accent));UI.ApplyControlTheme(Settings);Motion.Configure(Settings);
         Productivity?.SetClipboardEnabled(Settings.ClipboardHistory);
-        try { Store.Save("settings",Settings); } catch(Exception ex) { Store.Log(ex);Notify("Not saved yet","These settings will apply until you close the app."); }
+        try { Store.Save("settings",Settings); } catch(Exception ex) { Store.Log(ex);Notify("Henüz kaydedilmedi","Bu ayarlar, uygulamayı kapatana kadar geçerli olacak."); }
         ConfigureDownloads();if(Settings.NotificationDelivery is "Off" or "Windows" || NotificationPolicy.Quiet(Settings,DateTimeOffset.UtcNow))Notifications.Clear();
         Previews?.ApplySettings();SettingsChanged?.Invoke();PublishUpdate(RuntimeChange.Settings);
     }

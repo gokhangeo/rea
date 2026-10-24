@@ -55,9 +55,9 @@ public sealed partial class OverlayWindow : Window
         activity.Margin=new(0,0,9,0);header.Children.Add(activity);closedCover.Child=WrapArtwork(closedCoverImage);header.Children.Add(closedCover);header.Children.Add(feedbackIcon);
         header.ColumnDefinitions.Add(new(){Width=GridLength.Auto});Grid.SetColumn(feedbackLevel,3);header.Children.Add(feedbackLevel);
         summary.TextWrapping=TextWrapping.NoWrap;summary.TextTrimming=TextTrimming.CharacterEllipsis;summary.FontWeight=FontWeights.Medium;
-        Grid.SetColumn(summary,1);header.Children.Add(summary);Grid.SetColumn(closedTitleWave,1);header.Children.Add(closedTitleWave);Grid.SetColumn(awakeMark,2);awakeMark.Margin=new(8,0,0,0);awakeMark.ToolTip="Keep awake is active";UI.Named(awakeMark,"Keep awake is active");awakeMark.Visibility=Visibility.Collapsed;header.Children.Add(awakeMark);Grid.SetColumn(compactClock,4);compactClock.Margin=new(12,0,0,0);compactClock.FontWeight=FontWeights.SemiBold;header.Children.Add(compactClock);
+        Grid.SetColumn(summary,1);header.Children.Add(summary);Grid.SetColumn(closedTitleWave,1);header.Children.Add(closedTitleWave);Grid.SetColumn(awakeMark,2);awakeMark.Margin=new(8,0,0,0);awakeMark.ToolTip="Uyanık tut etkin";UI.Named(awakeMark,"Keep awake is active");awakeMark.Visibility=Visibility.Collapsed;header.Children.Add(awakeMark);Grid.SetColumn(compactClock,4);compactClock.Margin=new(12,0,0,0);compactClock.FontWeight=FontWeights.SemiBold;header.Children.Add(compactClock);
         compact=new Button{Content=header,Padding=new(14,0,14,0),Margin=new(0),Background=Brushes.Transparent,BorderThickness=new(0),HorizontalContentAlignment=HorizontalAlignment.Stretch,HorizontalAlignment=HorizontalAlignment.Center,VerticalAlignment=VerticalAlignment.Top};
-        UI.Named(compact,"Open or close island");compact.ToolTip="Click to open · Esc to close";
+        UI.Named(compact,"Open or close island");compact.ToolTip="Açmak için tıkla · kapatmak için Esc";
         Motion.Button(compact);
         compact.Click+=(_,_)=> {if(app.Notifications.Current!=null && !expanded){OpenNotice();return;}if(expanded)Collapse();else{LeaveAssistantPanel();Reveal();}};
         scroll=UI.Scroll(body);scroll.VerticalScrollBarVisibility=ScrollBarVisibility.Hidden;scroll.HorizontalScrollBarVisibility=ScrollBarVisibility.Disabled;scroll.VerticalAlignment=VerticalAlignment.Top;scroll.HorizontalAlignment=HorizontalAlignment.Center;scroll.Visibility=Visibility.Collapsed;scroll.Opacity=0;scroll.RenderTransform=bodySlide;
@@ -141,9 +141,9 @@ public sealed partial class OverlayWindow : Window
         if(commandOpen){body.Children.Add(BuildCommandPage());return;}
         if(app.Settings.CompactLayout){BuildCompactBody();return;}
         if(classicMixerOpen){var mixer=BuildMixerPage();body.Children.Add(mixer);return;}
-        if(hoverPanelWidget!=null){if(Settings.ToolNames.ContainsKey(hoverPanelWidget)){toolsMode=hoverPanelWidget;body.Children.Add(UI.Button("Back to widgets",()=>{hoverPanelWidget=null;BuildBody();ResizeToolPanel();}));body.Children.Add(BuildToolsPage());}else body.Children.Add(BuildCompactPage(PageFor(hoverPanelWidget)));return;}
-        var heading=new DockPanel{Margin=new(2,0,4,12)};var settings=Icons.Button("settings","Settings",app.ShowSettings,false,32);settings.Margin=new(0);settings.Background=UI.Brush("#1C1C1E");
-        DockPanel.SetDock(settings,Dock.Right);heading.Children.Add(settings);var name=UI.Heading("Activity",18);name.FontWeight=FontWeights.SemiBold;heading.Children.Add(name);body.Children.Add(heading);body.Children.Add(widgets);
+        if(hoverPanelWidget!=null){if(Settings.ToolNames.ContainsKey(hoverPanelWidget)){toolsMode=hoverPanelWidget;body.Children.Add(UI.Button("Bileşenlere dön",()=>{hoverPanelWidget=null;BuildBody();ResizeToolPanel();}));body.Children.Add(BuildToolsPage());}else body.Children.Add(BuildCompactPage(PageFor(hoverPanelWidget)));return;}
+        var heading=new DockPanel{Margin=new(2,0,4,12)};var settings=Icons.Button("settings","Ayarlar",app.ShowSettings,false,32);settings.Margin=new(0);settings.Background=UI.Brush("#1C1C1E");
+        DockPanel.SetDock(settings,Dock.Right);heading.Children.Add(settings);var name=UI.Heading("Etkinlik",18);name.FontWeight=FontWeights.SemiBold;heading.Children.Add(name);body.Children.Add(heading);body.Children.Add(widgets);
         double full=bodyWidth,half=(full-10)/2;widgets.Width=full+10;
         foreach(var widget in app.Settings.Widgets.Where(w=>w.Enabled))
         {
@@ -154,22 +154,22 @@ public sealed partial class OverlayWindow : Window
                     var info=new StackPanel{VerticalAlignment=VerticalAlignment.Center};title.TextWrapping=TextWrapping.NoWrap;title.TextTrimming=TextTrimming.CharacterEllipsis;artist.TextWrapping=TextWrapping.NoWrap;artist.TextTrimming=TextTrimming.CharacterEllipsis;artist.Margin=new(0,4,0,0);info.Children.Add(WrapTitle(title));info.Children.Add(WrapTitle(artist));
                     var art=new Border{CornerRadius=new(13),Child=WrapArtwork(artwork),ClipToBounds=true,Margin=new(0,0,14,0)};art.SizeChanged+=(_,_)=>art.Clip=new RectangleGeometry(new Rect(0,0,art.ActualWidth,art.ActualHeight),13,13);
                     var mediaGrid=new Grid();mediaGrid.ColumnDefinitions.Add(new(){Width=GridLength.Auto});mediaGrid.ColumnDefinitions.Add(new());mediaGrid.Children.Add(art);Grid.SetColumn(info,1);mediaGrid.Children.Add(info);
-                    previous=Icons.Button("previous","Previous track",()=>_=app.Media.Command("previous"),false,42);play=Icons.Button("play","Play or pause",()=>_=app.Media.Command("toggle"),true,50);playIcon="";next=Icons.Button("next","Next track",()=>_=app.Media.Command("next"),false,42);previous.Background=next.Background=Brushes.Transparent;
-                    var transport=UI.Row(previous,play,next);transport.HorizontalAlignment=HorizontalAlignment.Center;transport.Margin=new(0,10,0,2);UI.Named(sessions,"Media session");sessions.ToolTip="Choose a media app";sessions.Margin=new(0,6,0,0);
-                    card=UI.Card("Now playing",mediaGrid,transport,sessions);break;
+                    previous=Icons.Button("previous","Önceki parça",()=>_=app.Media.Command("previous"),false,42);play=Icons.Button("play","Oynat ya da duraklat",()=>_=app.Media.Command("toggle"),true,50);playIcon="";next=Icons.Button("next","Sonraki parça",()=>_=app.Media.Command("next"),false,42);previous.Background=next.Background=Brushes.Transparent;
+                    var transport=UI.Row(previous,play,next);transport.HorizontalAlignment=HorizontalAlignment.Center;transport.Margin=new(0,10,0,2);UI.Named(sessions,"Media session");sessions.ToolTip="Bir medya uygulaması seç";sessions.Margin=new(0,6,0,0);
+                    card=UI.Card("Şimdi çalıyor",mediaGrid,transport,sessions);break;
                 case "volume":
-                    UI.Named(volume,"Windows volume");volume.Margin=new(12,0,10,0);mute=Icons.Button("volume","Mute or unmute",()=> {app.Audio.ToggleMute();Update();},false,30);mute.Background=Brushes.Transparent;mute.Padding=new(4);mute.Margin=new(0);muteIcon="";
-                    var audioOutput=UI.Button("",OpenAudioMenu);audioOutput.Content=volumeText;audioOutput.MinHeight=28;audioOutput.Padding=new(5);UI.Named(audioOutput,"Audio devices and microphone");var audioRow=new DockPanel();DockPanel.SetDock(mute,Dock.Left);audioRow.Children.Add(mute);DockPanel.SetDock(audioOutput,Dock.Right);audioRow.Children.Add(audioOutput);audioRow.Children.Add(volume);card=UI.Card("Volume",audioRow);break;
-                case "stopwatch":card=UI.Card("Stopwatch",new StopwatchView(app));break;
-                case "timer":small=true;card=UI.Card("Timer",new CountdownView(app,false,false));break;
-                case "focus":small=true;card=UI.Card("Focus",new CountdownView(app,true,false));break;
-                case "clock":small=true;date.Margin=new(0,6,0,2);card=UI.Card("Local time",clock,date);break;
-                case "system":small=true;cpuBar.Foreground=ramBar.Foreground=Brushes.White;cpuBar.Background=ramBar.Background=UI.Brush("#3A3A3C");card=UI.Card("System",cpu,cpuBar,ram,ramBar);break;
-                case "battery":small=true;card=UI.Card("Battery",battery);batteryCard=card;break;
+                    UI.Named(volume,"Windows volume");volume.Margin=new(12,0,10,0);mute=Icons.Button("volume","Sessize al ya da aç",()=> {app.Audio.ToggleMute();Update();},false,30);mute.Background=Brushes.Transparent;mute.Padding=new(4);mute.Margin=new(0);muteIcon="";
+                    var audioOutput=UI.Button("",OpenAudioMenu);audioOutput.Content=volumeText;audioOutput.MinHeight=28;audioOutput.Padding=new(5);UI.Named(audioOutput,"Audio devices and microphone");var audioRow=new DockPanel();DockPanel.SetDock(mute,Dock.Left);audioRow.Children.Add(mute);DockPanel.SetDock(audioOutput,Dock.Right);audioRow.Children.Add(audioOutput);audioRow.Children.Add(volume);card=UI.Card("Ses düzeyi",audioRow);break;
+                case "stopwatch":card=UI.Card("Kronometre",new StopwatchView(app));break;
+                case "timer":small=true;card=UI.Card("Zamanlayıcı",new CountdownView(app,false,false));break;
+                case "focus":small=true;card=UI.Card("Odak",new CountdownView(app,true,false));break;
+                case "clock":small=true;date.Margin=new(0,6,0,2);card=UI.Card("Yerel saat",clock,date);break;
+                case "system":small=true;cpuBar.Foreground=ramBar.Foreground=Brushes.White;cpuBar.Background=ramBar.Background=UI.Brush("#3A3A3C");card=UI.Card("Sistem",cpu,cpuBar,ram,ramBar);break;
+                case "battery":small=true;card=UI.Card("Pil",battery);batteryCard=card;break;
                 case "shortcuts":
-                    var shortcuts=new WrapPanel();foreach(var shortcut in app.Settings.Shortcuts){var button=LaunchButton(shortcut);shortcuts.Children.Add(button);}card=UI.Card("Quick launch",UI.Button("Search commands  ·  Ctrl+K",()=>ShowCommands()),UI.Button("Activities",()=>ShowActivities()),shortcuts);break;
-                case "tools":card=UI.Card("Tools",BuildToolsPage());break;
-                default:if(Settings.ToolNames.ContainsKey(widget.Id)){string toolId=widget.Id;card=UI.Card(Settings.ToolNames[toolId],UI.Button("Open "+Settings.ToolNames[toolId],()=>ShowTools(toolId)));}else continue;break;
+                    var shortcuts=new WrapPanel();foreach(var shortcut in app.Settings.Shortcuts){var button=LaunchButton(shortcut);shortcuts.Children.Add(button);}card=UI.Card("Hızlı başlat",UI.Button("Komutları ara  ·  Ctrl+K",()=>ShowCommands()),UI.Button("Etkinlikler",()=>ShowActivities()),shortcuts);break;
+                case "tools":card=UI.Card("Araçlar",BuildToolsPage());break;
+                default:if(Settings.ToolNames.ContainsKey(widget.Id)){string toolId=widget.Id;card=UI.Card(Settings.ToolNames[toolId],UI.Button("Aç "+Settings.ToolNames[toolId],()=>ShowTools(toolId)));}else continue;break;
             }
             card.Width=small?half:full;card.Margin=new(0,0,small?10:0,10);
             if(small)card.MinHeight=widget.Id is "timer" or "focus"?184:120;
@@ -263,7 +263,7 @@ public sealed partial class OverlayWindow : Window
         if(!IsVisible || userHidden || IsTucked)return;
         var change=app.CurrentUpdate;if(change is RuntimeChange.Productivity or RuntimeChange.Calendar){if(peeking)UpdatePeek();if(change==RuntimeChange.Calendar)UpdateSatellite();return;}var now=DateTimeOffset.Now;if((change&(RuntimeChange.Media|RuntimeChange.Countdown|RuntimeChange.Settings))!=0)CheckSmartActivities();if((change&(RuntimeChange.Media|RuntimeChange.Settings))!=0)UpdateAlbumTint();ConfigurePerformance();UpdateAmbientMotion();UpdateAudioFeedback();bool On(string id)=>app.Settings.Widgets.Any(w=>w.Id==id && w.Enabled);
         UpdateSatellite();UpdateClosedMediaIcon();if((change&(RuntimeChange.Media|RuntimeChange.Settings))!=0)RefreshAssistantVisuals();Motion.Text(compactClock,now.ToString(app.Settings.Clock24Hour?"HH:mm":"h:mm tt"));UpdateRoadmapStatus(now);
-        Motion.Text(summary,FeedbackVisible?feedbackText:app.Notifications.Current is InternalNotice notice?"● "+notice.Title:!ShowMediaPrimary && On("focus") && app.Session.Focus.Remaining(now)>0?(app.Session.Focus.Phase=="break"?"Break  ":"Focus  ")+app.Session.Focus.Display(now):!ShowMediaPrimary && On("timer") && app.Session.Timer.Remaining(now)>0?"Timer  "+app.Session.Timer.Display(now):On("media") && app.Media.Available?app.Media.Title:"");
+        Motion.Text(summary,FeedbackVisible?feedbackText:app.Notifications.Current is InternalNotice notice?"● "+notice.Title:!ShowMediaPrimary && On("focus") && app.Session.Focus.Remaining(now)>0?(app.Session.Focus.Phase=="break"?"Mola  ":"Odak  ")+app.Session.Focus.Display(now):!ShowMediaPrimary && On("timer") && app.Session.Timer.Remaining(now)>0?"Zamanlayıcı  "+app.Session.Timer.Display(now):On("media") && app.Media.Available?app.Media.Title:"");
         if(!liveRendering && !AudioVisualDemand){var session=ActiveCountdown();activity.Sample(0,1,session?.Progress(now)??0,session!=null,session==app.Session.Focus,false,0);}
         WakeLiveRendering();ApplyTitleTypography(!FeedbackVisible && (ShowMediaPrimary || !(On("focus") && app.Session.Focus.Remaining(now)>0) && !(On("timer") && app.Session.Timer.Remaining(now)>0)) && On("media") && app.Media.Available);UpdatePeek();UpdateMixer();UpdateSystemMonitor();if(!expanded)return;updating=true;
         try{
@@ -278,7 +278,7 @@ public sealed partial class OverlayWindow : Window
             if((change&(RuntimeChange.System|RuntimeChange.Settings))!=0){cpu.Text=$"CPU  {app.Usage.cpu:0}%";ram.Text=$"RAM  {app.Usage.used:0.0}/{app.Usage.total:0.0} GB";Motion.Progress(cpuBar,app.Usage.cpu);Motion.Progress(ramBar,app.Usage.total>0?app.Usage.used/app.Usage.total*100:0);}
             if(!volume.IsMouseCaptureWithin && !volume.IsKeyboardFocusWithin)volume.Value=app.Audio.Volume*100;volume.IsEnabled=app.Audio.Available;volumeText.Text=app.Audio.Available?$"{app.Audio.Volume*100:0}%":"—";volume.ToolTip=app.Audio.Device;
             var currentMute=app.Audio.Muted?"muted":"volume";if(mute!=null && muteIcon!=currentMute){muteIcon=currentMute;mute.Content=Icons.Create(currentMute,18);}
-            var power=Forms.SystemInformation.PowerStatus;bool hasBattery=(power.BatteryChargeStatus & Forms.BatteryChargeStatus.NoSystemBattery)==0 && power.BatteryChargeStatus!=Forms.BatteryChargeStatus.Unknown;if(batteryCard!=null)batteryCard.Visibility=hasBattery?Visibility.Visible:Visibility.Collapsed;battery.Text=$"{power.BatteryLifePercent*100:0}% · "+(power.PowerLineStatus==Forms.PowerLineStatus.Online?"Charging":"Battery");
+            var power=Forms.SystemInformation.PowerStatus;bool hasBattery=(power.BatteryChargeStatus & Forms.BatteryChargeStatus.NoSystemBattery)==0 && power.BatteryChargeStatus!=Forms.BatteryChargeStatus.Unknown;if(batteryCard!=null)batteryCard.Visibility=hasBattery?Visibility.Visible:Visibility.Collapsed;battery.Text=$"{power.BatteryLifePercent*100:0}% · "+(power.PowerLineStatus==Forms.PowerLineStatus.Online?"Şarj oluyor":"Pil");
             RefreshMediaControls((change&(RuntimeChange.Media|RuntimeChange.Settings))!=0);UpdateTimeline();
         }finally{updating=false;}
     }

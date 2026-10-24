@@ -80,6 +80,6 @@ internal sealed class WeatherService : IDisposable
     private static double Number(JsonElement value,string name)=>value.TryGetProperty(name,out var field) && field.ValueKind==JsonValueKind.Number && field.TryGetDouble(out var n) && double.IsFinite(n)?n:0;
     private static double At(JsonElement value,string name,int index)=>value.TryGetProperty(name,out var field) && field.ValueKind==JsonValueKind.Array && index<field.GetArrayLength() && field[index].ValueKind==JsonValueKind.Number && field[index].TryGetDouble(out var n) && double.IsFinite(n)?n:0;
     private static string Text(JsonElement value,string name)=>value.TryGetProperty(name,out var field) && field.ValueKind==JsonValueKind.String?field.GetString()??"":"";
-    internal static string Condition(int code)=>code switch{0=>"Clear skies",1=>"Mostly clear",2=>"Partly cloudy",3=>"Cloudy",45 or 48=>"Foggy",>=51 and <=57=>"Drizzle",>=61 and <=67=>"Rain",>=71 and <=77=>"Snow",>=80 and <=82=>"Rain showers",85 or 86=>"Snow showers",>=95=>"Thunderstorms",_=>"Weather"};
+    internal static string Condition(int code)=>code switch{0=>"Açık",1=>"Çoğunlukla açık",2=>"Parçalı bulutlu",3=>"Bulutlu",45 or 48=>"Sisli",>=51 and <=57=>"Çiseleme",>=61 and <=67=>"Yağmur",>=71 and <=77=>"Kar",>=80 and <=82=>"Sağanak yağmur",85 or 86=>"Kar sağanağı",>=95=>"Gök gürültülü fırtına",_=>"Hava durumu"};
     public void Dispose(){shutdown.Cancel();shutdown.Dispose();}
 }

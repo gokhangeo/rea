@@ -12,16 +12,16 @@ internal static class SettingsBackdrop
     internal static readonly string[] Choices={"Solid","Simulated glass","Native Mica","Native Acrylic"};
     internal readonly record struct Conditions(bool Supported,bool HighContrast,bool Transparency,bool EnergySaver,bool Remote);
     internal readonly record struct Result(string Requested,string Actual,string Reason,int HResult=0)
-    {internal bool Native=>Actual is "Native Mica" or "Native Acrylic";internal string Status=>$"Requested: {Requested}. Actual: {Actual}. {Reason}";}
+    {internal bool Native=>Actual is "Native Mica" or "Native Acrylic";internal string Status=>$"İstenen: {Requested}. Uygulanan: {Actual}. {Reason}";}
     internal static string Requested(Settings s)=>Array.IndexOf(Choices,s.SettingsMaterial)>=0?s.SettingsMaterial:"Solid";
     internal static Result Resolve(string request,Conditions conditions,Func<int,int> apply)
     {
         if(Array.IndexOf(Choices,request)<0)request="Solid";
-        if(request is "Solid" or "Simulated glass")return new(request,request,"Settings only; island material is independent.");
-        string reason=!conditions.Supported?"Requires Windows 11 build 22621 or later.":conditions.HighContrast?"High contrast is enabled.":!conditions.Transparency?"Windows transparency effects are off.":conditions.EnergySaver?"Energy saver is active.":conditions.Remote?"Remote sessions use the fallback.":"";
+        if(request is "Solid" or "Simulated glass")return new(request,request,"Yalnızca Ayarlar; ada materyali bağımsızdır.");
+        string reason=!conditions.Supported?"Windows 11 derleme 22621 veya üzeri gerektirir.":conditions.HighContrast?"Yüksek karşıtlık etkin.":!conditions.Transparency?"Windows saydamlık efektleri kapalı.":conditions.EnergySaver?"Enerji tasarrufu etkin.":conditions.Remote?"Uzak oturumlar yedek görünümü kullanır.":"";
         if(reason.Length>0)return new(request,"Solid",reason);
         int hr=apply(request=="Native Mica"?2:3);
-        return hr<0?new(request,"Solid",$"DWM could not enable the material (0x{hr:X8}).",hr):new(request,request,"DWM enabled; Windows controls the final appearance.",hr);
+        return hr<0?new(request,"Solid",$"DWM materyali etkinleştiremedi (0x{hr:X8}).",hr):new(request,request,"DWM etkin; son görünümü Windows denetler.",hr);
     }
     internal static Conditions ReadConditions()
     {

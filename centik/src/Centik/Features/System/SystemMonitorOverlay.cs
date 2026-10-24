@@ -47,7 +47,7 @@ public sealed partial class OverlayWindow
         DetachMonitorRows(monitorRows);
         var panel=new Grid();panel.RowDefinitions.Add(new(){Height=GridLength.Auto});panel.RowDefinitions.Add(new());
         var tabs=new WrapPanel{Margin=new(0,0,0,10)};monitorTabs.Clear();
-        foreach(var (id,label) in new[]{("overview","Overview"),("hardware","Hardware"),("network","Network"),("storage","Storage"),("processes","Processes")})
+        foreach(var (id,label) in new[]{("overview","Genel bakış"),("hardware","Donanım"),("network","Ağ"),("storage","Depolama"),("processes","İşlemler")})
         {
             if(id=="network" && !app.Settings.MonitorNetwork || id=="storage" && !app.Settings.MonitorStorage || id=="processes" && !app.Settings.MonitorProcesses)continue;
             var button=UI.Button(label,()=>SelectMonitorTab(id));button.FontSize=10;button.Padding=new(7,5,7,5);button.MinHeight=28;button.Margin=new(0,0,3,3);UI.Named(button,"Monitor "+label);monitorTabs[id]=button;tabs.Children.Add(button);
@@ -92,7 +92,7 @@ public sealed partial class OverlayWindow
         }
         catch
         {
-            if(generation==monitorGeneration && SystemMonitorVisible){monitorRows.Children.Clear();monitorRows.Children.Add(UI.Text("System information unavailable. Retrying…",11,UI.Muted));}
+            if(generation==monitorGeneration && SystemMonitorVisible){monitorRows.Children.Clear();monitorRows.Children.Add(UI.Text("Sistem bilgileri kullanılamıyor. Yeniden deneniyor…",11,UI.Muted));}
         }
         finally{monitorBusy=false;if(generation!=monitorGeneration && SystemMonitorVisible)UpdateSystemMonitor();}
     }
@@ -102,25 +102,25 @@ public sealed partial class OverlayWindow
     private void RenderSystemMonitor()
     {
         BeginMonitorRender();var s=monitorLatest;
-        if(s==null){AddMonitorElement(UI.Text("Sampling system information…",11,UI.Muted));CommitMonitorRender();return;}
+        if(s==null){AddMonitorElement(UI.Text("Sistem bilgileri örnekleniyor…",11,UI.Muted));CommitMonitorRender();return;}
         if(monitorTab=="overview")
         {
         double? cpu=SystemMonitor.Cpu(s,monitorPrevious);
-        MonitorRow("CPU",cpu.HasValue?$"{cpu:0.#}%":"Sampling…",true);
+        MonitorRow("CPU",cpu.HasValue?$"{cpu:0.#}%":"Örnekleniyor…",true);
         monitorHistory.SetValues(monitorCpuHistory,UI.Brush(app.Settings.Accent));AddMonitorElement(monitorHistory);
-        AddMonitorElement(UI.Text("CPU · 60 second window · 2 second samples",10,UI.Muted));
+        AddMonitorElement(UI.Text("CPU · 60 saniyelik pencere · 2 saniyelik örnekler",10,UI.Muted));
         if(s.Total is ulong total && s.Available is ulong available)
         {
-            MonitorRow("Memory",SystemMonitor.Bytes(total-available)+" / "+SystemMonitor.Bytes(total),true);
+            MonitorRow("Bellek",SystemMonitor.Bytes(total-available)+" / "+SystemMonitor.Bytes(total),true);
             UpdateMonitorMemory(total,available);AddMonitorElement(monitorMemoryTrack);
         }
-        else MonitorRow("Physical memory","Unavailable");
+        else MonitorRow("Fiziksel bellek","Kullanılamıyor");
         if(s.Hardware?.Gpus.Any(g=>g.Utilization.HasValue)==true)MonitorRow("GPU",HardwareMonitor.Percent(s.Hardware.Gpus.Where(g=>g.Utilization.HasValue).Max(g=>g.Utilization)),true);
-        MonitorRow("System uptime",SystemMonitor.Uptime(s.Uptime));
+        MonitorRow("Sistem çalışma süresi",SystemMonitor.Uptime(s.Uptime));
         }
         if(monitorTab=="network" && app.Settings.MonitorNetwork)
         {
-            MonitorSection("NETWORK · RECEIVE / SEND");
+            MonitorSection("AĞ · ALMA / GÖNDERME");
             double seconds=monitorPrevious==null?0:(s.Timestamp-monitorPrevious.Timestamp)/(double)Stopwatch.Frequency;
             foreach(var net in s.Networks)
             {
@@ -128,21 +128,21 @@ public sealed partial class OverlayWindow
                 MonitorRow(net.Name,SystemMonitor.RateText(SystemMonitor.Rate(net.Received,before?.Received,seconds))+" ↓");
                 MonitorRow("",SystemMonitor.RateText(SystemMonitor.Rate(net.Sent,before?.Sent,seconds))+" ↑");
             }
-            if(s.Networks.Count==0)MonitorRow("Active interfaces","None available");
+            if(s.Networks.Count==0)MonitorRow("Etkin arayüzler","Kullanılabilir yok");
         }
         if(monitorTab=="storage" && app.Settings.MonitorStorage)
         {
-            MonitorSection("FIXED VOLUMES · FREE / TOTAL");
+            MonitorSection("SABİT BİRİMLER · BOŞ / TOPLAM");
             foreach(var drive in s.Drives)MonitorRow(drive.Name,SystemMonitor.Bytes(drive.Free)+" / "+SystemMonitor.Bytes(drive.Total));
-            if(s.Drives.Count==0)MonitorRow("Volumes","None available");
+            if(s.Drives.Count==0)MonitorRow("Birimler","Kullanılabilir yok");
         }
         if(monitorTab=="processes" && app.Settings.MonitorProcesses)
         {
-            MonitorRow("Processes / threads",SystemMonitor.ProcessCounts(s.ProcessCount,s.ThreadCount,s.PartialThreads));
-            MonitorSection("TOP PROCESSES · WORKING SET");
+            MonitorRow("İşlemler / iş parçacıkları",SystemMonitor.ProcessCounts(s.ProcessCount,s.ThreadCount,s.PartialThreads));
+            MonitorSection("EN ÇOK İŞLEM · ÇALIŞMA KÜMESİ");
             foreach(var process in s.Processes)MonitorRow(process.Name+" · "+process.Id,SystemMonitor.Bytes(process.WorkingSet));
-            if(s.Processes.Count==0)MonitorRow("Processes","Unavailable");
-            var note=UI.Text("Working sets can share memory; they do not sum to total RAM usage.",10,UI.Muted);note.Margin=new(0,6,0,0);AddMonitorElement(note);
+            if(s.Processes.Count==0)MonitorRow("İşlemler","Kullanılamıyor");
+            var note=UI.Text("Çalışma kümeleri belleği paylaşabilir; toplam RAM kullanımına eşit değildir.",10,UI.Muted);note.Margin=new(0,6,0,0);AddMonitorElement(note);
         }
         if(monitorTab=="hardware")RenderHardware(s.Hardware);
         if(s.Errors.Length>0){var errors=UI.Text(string.Join(" · ",s.Errors),10,UI.Muted);errors.Margin=new(0,8,0,0);AddMonitorElement(errors);}
@@ -151,35 +151,35 @@ public sealed partial class OverlayWindow
 
     private void RenderHardware(MonitorHardware? hardware)
     {
-        if(hardware==null){MonitorRow("Hardware","Unavailable");return;}
-        MonitorSection("PROCESSOR");
+        if(hardware==null){MonitorRow("Donanım","Kullanılamıyor");return;}
+        MonitorSection("İŞLEMCİ");
         foreach(var cpu in hardware.Cpus)
         {
-            var model=UI.Heading(cpu.Name.Length>0?cpu.Name:"Processor unavailable",12);model.TextWrapping=TextWrapping.NoWrap;model.TextTrimming=TextTrimming.CharacterEllipsis;model.ToolTip=cpu.Name;AddMonitorElement(model);
-            MonitorRow("Cores / threads",(cpu.Cores?.ToString()??"—")+" / "+(cpu.Threads?.ToString()??"—")+(cpu.MaxClock is double mhz && mhz>0?$" · {mhz:0} MHz":""));
+            var model=UI.Heading(cpu.Name.Length>0?cpu.Name:"İşlemci kullanılamıyor",12);model.TextWrapping=TextWrapping.NoWrap;model.TextTrimming=TextTrimming.CharacterEllipsis;model.ToolTip=cpu.Name;AddMonitorElement(model);
+            MonitorRow("Çekirdekler / iş parçacıkları",(cpu.Cores?.ToString()??"—")+" / "+(cpu.Threads?.ToString()??"—")+(cpu.MaxClock is double mhz && mhz>0?$" · {mhz:0} MHz":""));
         }
-        if(hardware.Cpus.Count==0)MonitorRow("CPU details","Unavailable");
-        MonitorSection("GRAPHICS");
+        if(hardware.Cpus.Count==0)MonitorRow("CPU ayrıntıları","Kullanılamıyor");
+        MonitorSection("GRAFİK");
         foreach(string model in hardware.GpuModels){var text=UI.Heading(model,12);text.TextWrapping=TextWrapping.NoWrap;text.TextTrimming=TextTrimming.CharacterEllipsis;text.ToolTip=model;text.Margin=new(0,0,0,4);AddMonitorElement(text);}
-        if(hardware.GpuModels.Count==0)MonitorRow("GPU model","Unavailable");
+        if(hardware.GpuModels.Count==0)MonitorRow("GPU modeli","Kullanılamıyor");
         for(int i=0;i<hardware.Gpus.Count;i++)
         {
             var gpu=hardware.Gpus[i];
             // WMI controller names have no reliable LUID mapping: keep counter identities explicit.
-            MonitorRow(hardware.Gpus.Count>1?"GPU counter "+(i+1):"GPU utilization",HardwareMonitor.Percent(gpu.Utilization),true);
-            MonitorRow("Dedicated memory",gpu.Dedicated is ulong dedicated?SystemMonitor.Bytes(dedicated):"Unavailable");
+            MonitorRow(hardware.Gpus.Count>1?"GPU sayacı "+(i+1):"GPU kullanımı",HardwareMonitor.Percent(gpu.Utilization),true);
+            MonitorRow("Ayrılmış bellek",gpu.Dedicated is ulong dedicated?SystemMonitor.Bytes(dedicated):"Kullanılamıyor");
         }
         if(hardware.Gpus.Count==0)
         {
-            MonitorRow("GPU utilization","Unavailable");MonitorRow("Dedicated / shared memory","Unavailable");
+            MonitorRow("GPU kullanımı","Kullanılamıyor");MonitorRow("Ayrılmış / paylaşılan bellek","Kullanılamıyor");
         }
-        if(hardware.Sensors.Count>0){MonitorSection("TEMPERATURES & FANS");foreach(var sensor in hardware.Sensors)MonitorRow(sensor.Name,HardwareMonitor.SensorValue(sensor));}
+        if(hardware.Sensors.Count>0){MonitorSection("SICAKLIKLAR VE FANLAR");foreach(var sensor in hardware.Sensors)MonitorRow(sensor.Name,HardwareMonitor.SensorValue(sensor));}
         var technical=new StackPanel();
-        foreach(var gpu in hardware.Gpus){technical.Children.Add(UI.Text("Counter: "+gpu.Id,10,UI.Muted));technical.Children.Add(UI.Text("Shared memory: "+(gpu.Shared is ulong shared?SystemMonitor.Bytes(shared):"Unavailable"),11,UI.Muted));}
-        technical.Children.Add(UI.Text("Utilization uses the busiest GPU engine. Counter IDs do not identify the model above.",11,UI.Muted));
-        technical.Children.Add(UI.Text(hardware.Sensors.Count>0?"Sensors: "+string.Join(" / ",hardware.Sensors.Select(s=>s.Provider).Distinct()):"Temperature and fan sensors need an already running LibreHardwareMonitor or OpenHardwareMonitor WMI provider.",11,UI.Muted));
+        foreach(var gpu in hardware.Gpus){technical.Children.Add(UI.Text("Sayaç: "+gpu.Id,10,UI.Muted));technical.Children.Add(UI.Text("Paylaşılan bellek: "+(gpu.Shared is ulong shared?SystemMonitor.Bytes(shared):"Kullanılamıyor"),11,UI.Muted));}
+        technical.Children.Add(UI.Text("Kullanım en yoğun GPU motorunu temel alır. Sayaç kimlikleri yukarıdaki modeli tanımlamaz.",11,UI.Muted));
+        technical.Children.Add(UI.Text(hardware.Sensors.Count>0?"Sensörler: "+string.Join(" / ",hardware.Sensors.Select(s=>s.Provider).Distinct()):"Sıcaklık ve fan sensörleri, halihazırda çalışan bir LibreHardwareMonitor veya OpenHardwareMonitor WMI sağlayıcısı gerektirir.",11,UI.Muted));
         if(hardware.Status!=null)technical.Children.Add(UI.Text(hardware.Status,10,UI.Muted));
-        if(monitorTechnical==null){monitorTechnical=new Expander{Header="Sensor availability & technical details",Foreground=UI.Muted,FontSize=11,Margin=new(0,14,0,0)};monitorTechnical.Expanded+=(_,_)=>hardwareDetailsOpen=true;monitorTechnical.Collapsed+=(_,_)=>hardwareDetailsOpen=false;}
+        if(monitorTechnical==null){monitorTechnical=new Expander{Header="Sensör kullanılabilirliği ve teknik ayrıntılar",Foreground=UI.Muted,FontSize=11,Margin=new(0,14,0,0)};monitorTechnical.Expanded+=(_,_)=>hardwareDetailsOpen=true;monitorTechnical.Collapsed+=(_,_)=>hardwareDetailsOpen=false;}
         monitorTechnical.Content=technical;monitorTechnical.IsExpanded=hardwareDetailsOpen;AddMonitorElement(monitorTechnical);
     }
     private bool hardwareDetailsOpen;

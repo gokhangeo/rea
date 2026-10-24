@@ -40,7 +40,7 @@ public sealed partial class OverlayWindow
     internal bool IsPeeking=>peeking;
     internal string ActivePage=>activePage;
     private static string PageFor(string widget)=>Settings.ToolNames.ContainsKey(widget)?widget:widget switch{"media" or "volume"=>"media","timer" or "focus" or "stopwatch"=>"focus","shortcuts"=>"access","tools"=>"tools",_=>"status"};
-    private static string PageName(string page)=>Settings.ToolNames.TryGetValue(page,out var tool)?tool:page switch{"media"=>"Media","focus"=>"Focus","status"=>"Status","tools"=>"Tools",_=>"Launch"};
+    private static string PageName(string page)=>Settings.ToolNames.TryGetValue(page,out var tool)?tool:page switch{"media"=>"Medya","focus"=>"Odak","status"=>"Durum","tools"=>"Araçlar",_=>"Başlat"};
     private string? hoverPanelWidget;
     private bool WidgetOn(string id)=>id==hoverPanelWidget || app.Settings.Widgets.Any(w=>w.Enabled && w.Id==id);
     private IEnumerable<WidgetSetting> PanelWidgets=>app.Settings.Widgets.Where(w=>w.Enabled || w.Id==hoverPanelWidget);
@@ -73,7 +73,7 @@ public sealed partial class OverlayWindow
         peekTitle.TextWrapping=TextWrapping.NoWrap;peekTitle.TextTrimming=TextTrimming.CharacterEllipsis;peekTitle.FontWeight=FontWeights.SemiBold;
         peekSubtitle.TextWrapping=TextWrapping.NoWrap;peekSubtitle.TextTrimming=TextTrimming.CharacterEllipsis;
         var info=new StackPanel{VerticalAlignment=VerticalAlignment.Center};info.Children.Add(WrapTitle(peekTitle));info.Children.Add(WrapTitle(peekSubtitle));Grid.SetColumn(info,1);peekMedia.Children.Add(info);
-        peekPlay=Icons.Button("play","Play or pause from preview",()=>_=app.Media.Command("toggle"),true,38);peekPlay.Margin=new(16,0,0,0);Grid.SetColumn(peekPlay,2);peekMedia.Children.Add(peekPlay);
+        peekPlay=Icons.Button("play","Önizlemeden oynat ya da duraklat",()=>_=app.Media.Command("toggle"),true,38);peekPlay.Margin=new(16,0,0,0);Grid.SetColumn(peekPlay,2);peekMedia.Children.Add(peekPlay);
         Grid.SetRow(peekProgress,1);Grid.SetColumnSpan(peekProgress,3);peekProgress.Margin=new(0,12,0,0);peekMedia.Children.Add(peekProgress);
         var peekTimes=new DockPanel{Margin=new(0,6,0,0)};DockPanel.SetDock(peekDuration,Dock.Right);peekTimes.Children.Add(peekDuration);peekTimes.Children.Add(peekElapsed);Grid.SetRow(peekTimes,2);Grid.SetColumnSpan(peekTimes,3);peekMedia.Children.Add(peekTimes);
         Grid.SetRow(peekWave,2);Grid.SetColumn(peekWave,1);peekWave.HorizontalAlignment=HorizontalAlignment.Center;peekWave.Margin=new(0,6,0,0);peekMedia.Children.Add(peekWave);
@@ -104,10 +104,10 @@ public sealed partial class OverlayWindow
         peekArt.Visibility=media && app.Media.Artwork!=null?Visibility.Visible:Visibility.Collapsed;SwapArtwork(peekArt,media?app.Media.Artwork:null);
         peekFallback.Visibility=peekArt.Visibility==Visibility.Visible?Visibility.Collapsed:Visibility.Visible;
         var now=DateTimeOffset.Now;
-        string caption=media?app.Media.Title:WidgetOn("focus") && app.Session.Focus.Remaining(now)>0?"Focus · "+app.Session.Focus.Display(now):WidgetOn("timer") && app.Session.Timer.Remaining(now)>0?"Timer · "+app.Session.Timer.Display(now):now.ToString("HH:mm");
-        if(activityDetail=="Ending soon")caption=(previewKind=="timer"?"Timer · "+app.Session.Timer.Display(now):"Focus · "+app.Session.Focus.Display(now));
+        string caption=media?app.Media.Title:WidgetOn("focus") && app.Session.Focus.Remaining(now)>0?"Odak · "+app.Session.Focus.Display(now):WidgetOn("timer") && app.Session.Timer.Remaining(now)>0?"Zamanlayıcı · "+app.Session.Timer.Display(now):now.ToString("HH:mm");
+        if(activityDetail=="Ending soon")caption=(previewKind=="timer"?"Zamanlayıcı · "+app.Session.Timer.Display(now):"Odak · "+app.Session.Focus.Display(now));
         if(media)SwapText(peekTitle,caption);else Motion.Text(peekTitle,caption);
-        string detail=media?app.Media.Artist:ActiveCountdown()!=null?"Session running · click for controls":now.ToString("dddd, d MMMM",new System.Globalization.CultureInfo("en-US"));
+        string detail=media?app.Media.Artist:ActiveCountdown()!=null?"Oturum sürüyor · kontroller için tıkla":now.ToString("dddd, d MMMM",new System.Globalization.CultureInfo("en-US"));
         if(media)SwapText(peekSubtitle,detail);else Motion.Text(peekSubtitle,detail);
         if(peekPlay!=null){peekPlay.Visibility=media?Visibility.Visible:Visibility.Collapsed;peekPlay.IsEnabled=app.Media.CanToggle;Motion.Icon(peekPlay,app.Media.Playing?"pause":"play",18,Brushes.Black);}
         var position=media?app.Media.Timeline():(ActiveCountdown() is Countdown c?(c.DurationSeconds-c.Remaining(now),c.DurationSeconds):(0d,0d));
@@ -116,7 +116,7 @@ public sealed partial class OverlayWindow
         peekProgress.Value=position.Item2>0?Math.Clamp(position.Item1/position.Item2,0,1):0;
         var format=position.Item2>=3600?@"h\:mm\:ss":@"m\:ss";
         peekElapsed.Text=TimeSpan.FromSeconds(Math.Max(0,position.Item1)).ToString(format);peekDuration.Text=TimeSpan.FromSeconds(Math.Max(0,position.Item2)).ToString(format);
-        if(position.Item2<=0){peekElapsed.Text=media?"Windows media controls":"No active session";peekDuration.Text=media?"":"Open →";}
+        if(position.Item2<=0){peekElapsed.Text=media?"Windows medya kontrolleri":"Etkin oturum yok";peekDuration.Text=media?"":"Aç →";}
         if(media){timelineAt=DateTimeOffset.UtcNow;timelineElapsed=position.Item1;timelineDuration=position.Item2;}
         peekWave.Visibility=peekId=="media" && media && app.Settings.LiveActivity?Visibility.Visible:Visibility.Collapsed;
         ApplyPeekGeometry();
@@ -128,10 +128,10 @@ public sealed partial class OverlayWindow
         var navigation=new Grid{Tag="panel-navigation",Margin=new(0,0,0,app.Settings.SectionGap)};
         navigation.ColumnDefinitions.Add(new(){Width=new GridLength(28)});navigation.ColumnDefinitions.Add(new());navigation.ColumnDefinitions.Add(new(){Width=new GridLength(28)});
         navigation.Children.Add(AssistantLauncher());
-        var settings=Icons.Button("settings","Settings",app.ShowSettings,false,28);settings.Margin=new(0);settings.Background=Brushes.Transparent;Grid.SetColumn(settings,2);navigation.Children.Add(settings);
+        var settings=Icons.Button("settings","Ayarlar",app.ShowSettings,false,28);settings.Margin=new(0);settings.Background=Brushes.Transparent;Grid.SetColumn(settings,2);navigation.Children.Add(settings);
         if(bodyWidth<250 && app.Settings.CategoryStyle!="Dots"){navigation.RowDefinitions.Add(new(){Height=GridLength.Auto});navigation.RowDefinitions.Add(new(){Height=GridLength.Auto});Grid.SetRow(settings,0);}
         int categoryCount=Math.Max(1,PanelWidgets.Select(w=>PageFor(w.Id)).Distinct().Count());
-        var tabRow=new System.Windows.Controls.Primitives.UniformGrid{Columns=categoryCount,Rows=1,Width=categoryCount*(app.Settings.CategoryStyle=="Dots"?18:app.Settings.CategoryStyle=="Icons"?40:64),HorizontalAlignment=HorizontalAlignment.Center};var navScroll=new ScrollViewer{Content=tabRow,HorizontalScrollBarVisibility=ScrollBarVisibility.Hidden,VerticalScrollBarVisibility=ScrollBarVisibility.Disabled,HorizontalContentAlignment=HorizontalAlignment.Center};Grid.SetColumn(navScroll,bodyWidth<250 && app.Settings.CategoryStyle!="Dots"?0:1);if(bodyWidth<250 && app.Settings.CategoryStyle!="Dots"){Grid.SetColumnSpan(navScroll,3);Grid.SetRow(navScroll,1);}KeyboardNavigation.SetDirectionalNavigation(tabRow,KeyboardNavigationMode.Cycle);navScroll.PanningMode=PanningMode.HorizontalOnly;navScroll.ToolTip="Panel navigation · scroll for more panels";navScroll.PreviewMouseWheel+=(_,e)=>{if(navScroll.ScrollableWidth>0){navScroll.ScrollToHorizontalOffset(navScroll.HorizontalOffset-e.Delta*.5);e.Handled=true;}};navigation.Children.Add(navScroll);body.Children.Add(navigation);body.Children.Add(compactPageHost);
+        var tabRow=new System.Windows.Controls.Primitives.UniformGrid{Columns=categoryCount,Rows=1,Width=categoryCount*(app.Settings.CategoryStyle=="Dots"?18:app.Settings.CategoryStyle=="Icons"?40:64),HorizontalAlignment=HorizontalAlignment.Center};var navScroll=new ScrollViewer{Content=tabRow,HorizontalScrollBarVisibility=ScrollBarVisibility.Hidden,VerticalScrollBarVisibility=ScrollBarVisibility.Disabled,HorizontalContentAlignment=HorizontalAlignment.Center};Grid.SetColumn(navScroll,bodyWidth<250 && app.Settings.CategoryStyle!="Dots"?0:1);if(bodyWidth<250 && app.Settings.CategoryStyle!="Dots"){Grid.SetColumnSpan(navScroll,3);Grid.SetRow(navScroll,1);}KeyboardNavigation.SetDirectionalNavigation(tabRow,KeyboardNavigationMode.Cycle);navScroll.PanningMode=PanningMode.HorizontalOnly;navScroll.ToolTip="Panel gezinimi · daha fazla panel için kaydır";navScroll.PreviewMouseWheel+=(_,e)=>{if(navScroll.ScrollableWidth>0){navScroll.ScrollToHorizontalOffset(navScroll.HorizontalOffset-e.Delta*.5);e.Handled=true;}};navigation.Children.Add(navScroll);body.Children.Add(navigation);body.Children.Add(compactPageHost);
         bodyReflow.Add(()=>
         {
             bool narrow=bodyWidth<250 && app.Settings.CategoryStyle!="Dots";navigation.Margin=new(0,0,0,app.Settings.SectionGap);navigation.RowDefinitions.Clear();if(narrow){navigation.RowDefinitions.Add(new(){Height=GridLength.Auto});navigation.RowDefinitions.Add(new(){Height=GridLength.Auto});}
@@ -142,7 +142,7 @@ public sealed partial class OverlayWindow
             FrameworkElement view;if(page==activePage)view=BuildCompactPage(page);else{view=new Border();pendingCompactPages.Add(page);}view.Visibility=Visibility.Collapsed;compactPages[page]=view;compactPageHost.Children.Add(view);
             var tab=UI.Button(PageName(page),()=>SelectPage(page));tab.Padding=new(8,6,8,6);tab.FontSize=10.5;tab.MinHeight=30;tab.Margin=new(0,0,4,0);tab.Tag=new CornerRadius(15);StyleCategory(tab,page);compactTabs[page]=tab;tabRow.Children.Add(tab);
         }
-        if(compactPages.Count==0){var empty=UI.Text("Enable widgets in Settings.",12,UI.Muted);compactPages["media"]=empty;compactPageHost.Children.Add(empty);}
+        if(compactPages.Count==0){var empty=UI.Text("Bileşenleri Ayarlar'dan etkinleştir.",12,UI.Muted);compactPages["media"]=empty;compactPageHost.Children.Add(empty);}
         var mixer=new Border{Visibility=Visibility.Collapsed};pendingCompactPages.Add("mixer");compactPages["mixer"]=mixer;compactPageHost.Children.Add(mixer);
         if(!compactPages.ContainsKey(activePage))activePage=compactPages.Keys.FirstOrDefault()??"media";
         SelectPage(activePage,false);
@@ -183,9 +183,9 @@ public sealed partial class OverlayWindow
                 var info=new StackPanel{VerticalAlignment=VerticalAlignment.Center};title.TextWrapping=TextWrapping.NoWrap;title.TextTrimming=TextTrimming.CharacterEllipsis;artist.TextWrapping=TextWrapping.NoWrap;artist.TextTrimming=TextTrimming.CharacterEllipsis;artist.Margin=new(0,4,0,0);info.Children.Add(WrapTitle(title));info.Children.Add(WrapTitle(artist));
                 var cover=new Border{Child=WrapArtwork(artwork),Width=88,Height=88,Margin=new(0,0,20,0),Clip=new RectangleGeometry(new Rect(0,0,88,88),15,15)};
                 var row=new Grid{Margin=new(0,0,0,12)};row.ColumnDefinitions.Add(new(){Width=GridLength.Auto});row.ColumnDefinitions.Add(new());row.Children.Add(cover);
-                previous=Icons.Button("previous","Previous track",()=>_=app.Media.Command("previous"),false,38);play=Icons.Button("play","Play or pause",()=>_=app.Media.Command("toggle"),true,46);playIcon="";next=Icons.Button("next","Next track",()=>_=app.Media.Command("next"),false,38);previous.Background=next.Background=Brushes.Transparent;
+                previous=Icons.Button("previous","Önceki parça",()=>_=app.Media.Command("previous"),false,38);play=Icons.Button("play","Oynat ya da duraklat",()=>_=app.Media.Command("toggle"),true,46);playIcon="";next=Icons.Button("next","Sonraki parça",()=>_=app.Media.Command("next"),false,38);previous.Background=next.Background=Brushes.Transparent;
                 previous.Margin=new(0,0,8,0);play.Margin=new(0);next.Margin=new(8,0,0,0);
-                lyricsButton=Icons.Button("lyrics","Show or hide Spotify lyrics",ToggleLyrics,false,28);lyricsButton.Margin=new(16,0,0,0);lyricsButton.Background=Brushes.Transparent;
+                lyricsButton=Icons.Button("lyrics","Spotify şarkı sözlerini göster ya da gizle",ToggleLyrics,false,28);lyricsButton.Margin=new(16,0,0,0);lyricsButton.Background=Brushes.Transparent;
                 var buttons=UI.Row(previous,play,next);buttons.HorizontalAlignment=HorizontalAlignment.Center;var playbackRow=new Grid{Margin=new(0,12,0,0)};playbackRow.Children.Add(buttons);lyricsButton.HorizontalAlignment=HorizontalAlignment.Right;lyricsButton.VerticalAlignment=VerticalAlignment.Center;lyricsButton.Margin=new(0);playbackRow.Children.Add(lyricsButton);
                 info.Children.Add(playbackRow);Grid.SetColumn(info,1);row.Children.Add(info);panel.Children.Add(row);row.Loaded+=(_,_)=>QueueMediaLayout();row.IsVisibleChanged+=(_,_)=>{if(row.IsVisible)QueueMediaLayout();};
                 row.SizeChanged+=(_,_)=>{bool narrow=row.ActualWidth<310;double size=narrow?64:88;cover.Width=cover.Height=artwork.Width=artwork.Height=size;cover.Margin=new(0,0,narrow?14:20,0);if(previousArtwork.TryGetValue(artwork,out var outgoing))outgoing.Width=outgoing.Height=size;musicWave.Width=narrow?112:164;cover.Clip=new RectangleGeometry(new Rect(0,0,size,size),narrow?11:15,narrow?11:15);previous.Width=previous.Height=next.Width=next.Height=narrow?28:38;play.Width=play.Height=narrow?38:46;title.FontSize=narrow?15:18;previous.Margin=new(0,0,narrow?2:8,0);next.Margin=new(narrow?2:8,0,0,0);};
@@ -223,13 +223,13 @@ public sealed partial class OverlayWindow
             }
             return panel;
         }
-        var launch=new StackPanel{Margin=new(0,2,0,8)};var search=UI.Button("Search commands  ·  Ctrl+K",()=>ShowCommands());search.Background=UI.Brush("#14161A");search.BorderThickness=new(1);search.BorderBrush=UI.Brush("#30343C");search.Padding=new(12,8,12,8);search.Margin=new(0,0,0,16);search.HorizontalContentAlignment=HorizontalAlignment.Stretch;var searchRow=new DockPanel();var keys=UI.Text("Ctrl+K",10,UI.Muted);DockPanel.SetDock(keys,Dock.Right);searchRow.Children.Add(keys);var searchIcon=Icons.Create("search",16,UI.Muted);searchIcon.Margin=new(0,0,12,0);DockPanel.SetDock(searchIcon,Dock.Left);searchRow.Children.Add(searchIcon);searchRow.Children.Add(UI.Text("Search commands",12,UI.Muted));search.Content=searchRow;launch.Children.Add(search);
+        var launch=new StackPanel{Margin=new(0,2,0,8)};var search=UI.Button("Komutları ara  ·  Ctrl+K",()=>ShowCommands());search.Background=UI.Brush("#14161A");search.BorderThickness=new(1);search.BorderBrush=UI.Brush("#30343C");search.Padding=new(12,8,12,8);search.Margin=new(0,0,0,16);search.HorizontalContentAlignment=HorizontalAlignment.Stretch;var searchRow=new DockPanel();var keys=UI.Text("Ctrl+K",10,UI.Muted);DockPanel.SetDock(keys,Dock.Right);searchRow.Children.Add(keys);var searchIcon=Icons.Create("search",16,UI.Muted);searchIcon.Margin=new(0,0,12,0);DockPanel.SetDock(searchIcon,Dock.Left);searchRow.Children.Add(searchIcon);searchRow.Children.Add(UI.Text("Komutları ara",12,UI.Muted));search.Content=searchRow;launch.Children.Add(search);
         var shortcuts=new WrapPanel();KeyboardNavigation.SetDirectionalNavigation(shortcuts,KeyboardNavigationMode.Cycle);launch.Children.Add(shortcuts);foreach(var shortcut in app.Settings.Shortcuts)
         {
             shortcuts.Children.Add(LaunchButton(shortcut));
         }
-        if(app.Settings.ActivitiesEnabled)launch.Children.Add(UI.Button("Activities",()=>ShowActivities()));
-        if(app.Settings.Shortcuts.Count==0)shortcuts.Children.Add(UI.Text("Add shortcuts in Settings.",12,UI.Muted));return launch;
+        if(app.Settings.ActivitiesEnabled)launch.Children.Add(UI.Button("Etkinlikler",()=>ShowActivities()));
+        if(app.Settings.Shortcuts.Count==0)shortcuts.Children.Add(UI.Text("Kısayolları Ayarlar'dan ekle.",12,UI.Muted));return launch;
     }
     private void UpdateTimeline()
     {

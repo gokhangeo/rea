@@ -12,7 +12,7 @@ public sealed partial class SettingsWindow : Window
 {
     private readonly App app;
     private readonly StackPanel page=new(){Margin=new(28,20,28,28)};
-    private readonly TextBlock status=UI.Text("Changes save automatically on this device.",11,UI.Muted);
+    private readonly TextBlock status=UI.Text("Değişiklikler bu cihazda otomatik kaydedilir.",11,UI.Muted);
     private readonly Border preview;
     private readonly Border previewStage;
     private readonly DispatcherTimer saveTimer=new(){Interval=TimeSpan.FromMilliseconds(180)};
@@ -28,12 +28,12 @@ public sealed partial class SettingsWindow : Window
     private ComboBox? categorySelector;
     private AssistantProviderSettings? aiSettings;
     internal void OpenAiSettings()=>Navigate("AI");
-    private void AiSettings(){aiSettings??=new(app);page.Children.Add(Section("AI companion",UI.Text("Your providers and preferences. Microphone, screen sharing and actions are controlled in the island for each session.",12,UI.Muted),aiSettings));}
+    private void AiSettings(){aiSettings??=new(app);page.Children.Add(Section("Yapay zekâ yardımcısı",UI.Text("Sağlayıcılarınız ve tercihleriniz. Mikrofon, ekran paylaşımı ve eylemler her oturumda ada üzerinden denetlenir.",12,UI.Muted),aiSettings));}
     private readonly TextBlock frameStatus=UI.Text("",11,UI.Muted);
     private readonly TextBlock hotkeyState=UI.Text("",11,UI.Muted);
     public SettingsWindow(App app)
     {
-        this.app=app;Title="Centik · Settings";Width=1100;Height=780;MinWidth=480;MinHeight=300;WindowStartupLocation=WindowStartupLocation.Manual;
+        this.app=app;Title="Çentik · Ayarlar";Width=1100;Height=780;MinWidth=480;MinHeight=300;WindowStartupLocation=WindowStartupLocation.Manual;
         Background=UI.Brush("#111214");Foreground=UI.Brush("#F3F4F6");FontFamily=new FontFamily("Segoe UI Variable, Segoe UI");FontSize=13;
         Icon=System.Windows.Media.Imaging.BitmapFrame.Create(new Uri("pack://application:,,,/Assets/island.ico"));
         Resources[typeof(CheckBox)]=FindResource("SettingsSwitch");
@@ -43,7 +43,7 @@ public sealed partial class SettingsWindow : Window
         string lastGroup="";
         foreach(var category in SettingsCategories)
         {
-            if(category.Group!=lastGroup){var label=UI.Text(category.Group,10,UI.Muted);label.Margin=new(12,category.Group=="Personalize"?0:18,0,6);navigation.Children.Add(label);lastGroup=category.Group;}
+            if(category.Group!=lastGroup){var label=UI.Text(category.Group,10,UI.Muted);label.Margin=new(12,category.Group=="Kişiselleştir"?0:18,0,6);navigation.Children.Add(label);lastGroup=category.Group;}
             var item=category;var button=UI.Button(item.Title,()=>Navigate(item.Id));button.HorizontalContentAlignment=HorizontalAlignment.Left;button.Padding=new(12,8,12,8);button.Margin=new(0,1,0,1);button.Tag=new CornerRadius(8);button.FontSize=12;button.ToolTip=item.Description;navigationButtons[item.Id]=button;navigation.Children.Add(button);
         }
         var navigationScroll=UI.Scroll(navigation);UI.Named(navigationScroll,"Settings category viewport");
@@ -55,11 +55,11 @@ public sealed partial class SettingsWindow : Window
         var form=new Grid();form.RowDefinitions.Add(new(){Height=GridLength.Auto});form.RowDefinitions.Add(new());Grid.SetRow(form,2);workspace.Children.Add(form);
         var scroll=UI.Scroll(page);scroll.Padding=new(0,0,8,0);form.Children.Add(scroll);Grid.SetRow(scroll,1);settingsScroll=scroll;InitializePinnedAmbientPreview(form,scroll);Grid.SetRow(sectionIndexHost,1);workspace.Children.Add(sectionIndexHost);
         preview=new Border{HorizontalAlignment=HorizontalAlignment.Center,VerticalAlignment=VerticalAlignment.Top};
-        var previewColumn=new StackPanel{Margin=new(20,28,20,20)};var previewTitle=UI.Text("Live preview",14);previewTitle.FontWeight=FontWeights.SemiBold;previewColumn.Children.Add(previewTitle);previewFocus.Margin=new(0,7,0,0);previewColumn.Children.Add(previewFocus);
+        var previewColumn=new StackPanel{Margin=new(20,28,20,20)};var previewTitle=UI.Text("Canlı önizleme",14);previewTitle.FontWeight=FontWeights.SemiBold;previewColumn.Children.Add(previewTitle);previewFocus.Margin=new(0,7,0,0);previewColumn.Children.Add(previewFocus);
         var modes=new Grid{Margin=new(0,14,0,12)};for(int i=0;i<3;i++)modes.ColumnDefinitions.Add(new());int column=0;foreach(string mode in new[]{"Closed","Hover","Panel"}){var button=UI.Button(mode,()=>{previewMode=mode;RefreshPreview();});button.FontSize=10;button.Padding=new(3,7,3,7);button.Margin=new(0,0,4,0);button.Tag=new CornerRadius(7);UI.Named(button,"Preview "+mode);Grid.SetColumn(button,column++);modes.Children.Add(button);previewModeButtons[mode]=button;}previewColumn.Children.Add(modes);
         previewStage=new Border{Height=238,Background=UI.Brush("#202226"),CornerRadius=new(10),ClipToBounds=true,Child=new System.Windows.Controls.Viewbox{Stretch=Stretch.Uniform,StretchDirection=StretchDirection.DownOnly,Child=preview,VerticalAlignment=VerticalAlignment.Top}};previewColumn.Children.Add(previewStage);
-        previewDimensions.Margin=new(0,12,0,18);previewColumn.Children.Add(previewDimensions);var sample=UI.Text("Preview content",11,UI.Muted);sample.Margin=new(0,0,0,7);previewColumn.Children.Add(sample);var examples=new ComboBox();previewExamples=examples;foreach(string item in new[]{"Music","Timer","Focus","Stopwatch","Calendar","Note","Shelf","Tools","System","Launch","Navigation","Volume feedback","Drop zone","Detached preview","Cover gestures","Two activities","Activities","Smart clipboard","Control colors","Typography","Panel navigation","Visibility","Tasks","Startup","AI"})examples.Items.Add(item);examples.SelectedIndex=0;UI.Named(examples,"Preview content");examples.SelectionChanged+=(_,_)=>{previewContent=examples.SelectedItem?.ToString()??"Music";RefreshPreview();};previewColumn.Children.Add(examples);var hint=previewHelp;hint.Margin=new(0,15,0,0);previewColumn.Children.Add(hint);
-        var previewExpander=new Expander{Header=UI.Text("Live preview",12,UI.Muted),Foreground=UI.Muted,Margin=new(8,0,0,0),Content=UI.Scroll(previewColumn),IsExpanded=true};
+        previewDimensions.Margin=new(0,12,0,18);previewColumn.Children.Add(previewDimensions);var sample=UI.Text("Önizleme içeriği",11,UI.Muted);sample.Margin=new(0,0,0,7);previewColumn.Children.Add(sample);var examples=new ComboBox();previewExamples=examples;foreach(string item in new[]{"Music","Timer","Focus","Stopwatch","Calendar","Note","Shelf","Tools","System","Launch","Navigation","Volume feedback","Drop zone","Detached preview","Cover gestures","Two activities","Activities","Smart clipboard","Control colors","Typography","Panel navigation","Visibility","Tasks","Startup","AI"})examples.Items.Add(item);examples.SelectedIndex=0;UI.Named(examples,"Preview content");examples.SelectionChanged+=(_,_)=>{previewContent=examples.SelectedItem?.ToString()??"Music";RefreshPreview();};previewColumn.Children.Add(examples);var hint=previewHelp;hint.Margin=new(0,15,0,0);previewColumn.Children.Add(hint);
+        var previewExpander=new Expander{Header=UI.Text("Canlı önizleme",12,UI.Muted),Foreground=UI.Muted,Margin=new(8,0,0,0),Content=UI.Scroll(previewColumn),IsExpanded=true};
         var rail=new Border{BorderBrush=UI.Brush("#24262B"),BorderThickness=new(1,0,0,0),Child=previewExpander};Grid.SetColumn(rail,1);Grid.SetRowSpan(rail,3);workspace.Children.Add(rail);
         var footer=new Border{Padding=new(26,12,26,14),BorderBrush=UI.Brush("#24262B"),BorderThickness=new(0,1,0,0),Child=status};
         bool? previousNarrow=null;
@@ -92,12 +92,12 @@ public sealed partial class SettingsWindow : Window
         SizeChanged+=(_,_)=>Responsive();workspace.SizeChanged+=(_,_)=>Responsive();Loaded+=(_,_)=>Responsive();
         page.MaxWidth=660;page.HorizontalAlignment=HorizontalAlignment.Stretch;
         Grid.SetRow(footer,2);main.Children.Add(footer);Content=SettingsFrame(root);InitializePreviewMotion(previewColumn);InitializeAmbientPreview();
-        saveTimer.Tick+=(_,_)=>{saveTimer.Stop();try{applyingSettings=true;app.ChangeSettings();status.Text="Saved on this device";}catch(Exception ex){status.Text="Could not save changes. Try again.";app.Store.Log(ex);}finally{applyingSettings=false;}};
+        saveTimer.Tick+=(_,_)=>{saveTimer.Stop();try{applyingSettings=true;app.ChangeSettings();status.Text="Bu cihazda kaydedildi";}catch(Exception ex){status.Text="Değişiklikler kaydedilemedi. Tekrar deneyin.";app.Store.Log(ex);}finally{applyingSettings=false;}};
         app.Updates.Changed+=UpdateControls;
         app.SettingsChanged+=SettingsApplied;app.Updated+=UpdateFrameStatus;
         Closed+=(_,_)=>{aiSettings?.ClearSecrets();if(saveTimer.IsEnabled){saveTimer.Stop();app.ChangeSettings();}app.Updates.Changed-=UpdateControls;app.SettingsChanged-=SettingsApplied;app.Updated-=UpdateFrameStatus;};Navigate("Appearance");RefreshPreview();
     }
-    private void Save() {previewRevision++;InvalidateExamples(System.Windows.Input.Keyboard.FocusedElement as DependencyObject??System.Windows.Input.Mouse.DirectlyOver as DependencyObject);RefreshPreview();status.Text="Saving changes…";saveTimer.Stop();saveTimer.Start();}
+    private void Save() {previewRevision++;InvalidateExamples(System.Windows.Input.Keyboard.FocusedElement as DependencyObject??System.Windows.Input.Mouse.DirectlyOver as DependencyObject);RefreshPreview();status.Text="Değişiklikler kaydediliyor…";saveTimer.Stop();saveTimer.Start();}
     private void SettingsApplied(){ApplyMaterial();if(applyingSettings)return;previewRevision++;InvalidateExamples(null);RefreshPreview();}
     private void InvalidateExamples(DependencyObject? source)
     {
@@ -115,7 +115,7 @@ public sealed partial class SettingsWindow : Window
     private void Navigate(string name)
     {
         if(searchResultsHost!=null)searchResultsHost.Visibility=Visibility.Collapsed;
-        status.Text=name=="AI"?"Provider fields use Save provider. Toggles apply immediately.":"Changes save automatically on this device.";previewHelp.Text=name=="AI"?"Preview only. Apply connection edits with Save provider.":"Changes apply automatically. The preview uses your current shape, size and colors.";
+        status.Text=name=="AI"?"Sağlayıcı alanları için Sağlayıcıyı kaydet'i kullanın. Anahtarlar hemen uygulanır.":"Değişiklikler bu cihazda otomatik kaydedilir.";previewHelp.Text=name=="AI"?"Yalnızca önizleme. Bağlantı düzenlemelerini Sağlayıcıyı kaydet ile uygulayın.":"Değişiklikler otomatik uygulanır. Önizleme; geçerli şeklinizi, boyutunuzu ve renklerinizi kullanır.";
         bool same=name==current && page.Children.Count>0;double offset=settingsScroll.VerticalOffset;int revision=++navigationRevision;
         var expanded=SettingTree(page).OfType<Expander>().Where(e=>e.IsExpanded).Select(e=>e.Header?.ToString()).ToHashSet();
         string focused=System.Windows.Input.Keyboard.FocusedElement is DependencyObject oldFocus?System.Windows.Automation.AutomationProperties.GetName(oldFocus):"";
@@ -130,7 +130,7 @@ public sealed partial class SettingsWindow : Window
         {
             var example=new SettingsScene(title,app.Settings){Margin=new(0,0,0,12)};settingExamples.Add(example);
             if(title=="Ambient light")content.Children.Add(example);
-            else content.Children.Add(new Expander{Header="Preview · "+FriendlySection(title),Content=example,Foreground=UI.Muted,IsExpanded=false,FontSize=11,Margin=new(0,0,0,12)});
+            else content.Children.Add(new Expander{Header="Önizleme · "+FriendlySection(title),Content=example,Foreground=UI.Muted,IsExpanded=false,FontSize=11,Margin=new(0,0,0,12)});
         }
         var details=new StackPanel();
         foreach(var child in children)
@@ -139,7 +139,7 @@ public sealed partial class SettingsWindow : Window
             if(child is FrameworkElement element && element.Parent is Panel old)old.Children.Remove(child);else if(child is FrameworkElement owned && owned.Parent is Expander expander)expander.Content=null;
             if(child is TextBlock paragraph && paragraph.Text.Length>220 && title!="Clipboard history")details.Children.Add(child);else content.Children.Add(child);
         }
-        if(details.Children.Count>0)content.Children.Add(new Expander{Header="More details · "+FriendlySection(title),Content=details,Foreground=UI.Muted,IsExpanded=false,FontSize=11,Margin=new(0,10,0,0)});
+        if(details.Children.Count>0)content.Children.Add(new Expander{Header="Daha fazla ayrıntı · "+FriendlySection(title),Content=details,Foreground=UI.Muted,IsExpanded=false,FontSize=11,Margin=new(0,10,0,0)});
         return new Border{Tag=title,Background=UI.Brush("#17191D"),BorderBrush=UI.Brush("#2A2E36"),BorderThickness=new(.7),CornerRadius=new(12),Padding=new(16),Margin=new(0,0,0,15),Child=content};
     }
     private static Expander Advanced(string title,UIElement content)

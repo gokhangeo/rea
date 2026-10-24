@@ -89,10 +89,10 @@ internal sealed class AssistantVoiceSession : IAssistantVoice
     {
         cancellationToken.ThrowIfCancellationRequested();
         if (provider.RealtimeProtocol is not ("OpenAIRealtime" or "GeminiLive"))
-            throw new InvalidOperationException("This voice protocol is not supported. Choose OpenAIRealtime or GeminiLive.");
+            throw new InvalidOperationException("Bu ses protokolü desteklenmiyor. OpenAIRealtime veya GeminiLive seçin.");
         if (string.IsNullOrWhiteSpace(provider.RealtimeModel) || provider.RealtimeModel.Length > 200 || string.IsNullOrWhiteSpace(provider.Voice) || provider.Voice.Length > 100)
-            throw new InvalidOperationException("Configure a realtime model and voice before starting voice.");
-        CheckText(instructions); if (tools.Count > 32 || history.Count > 200) throw new InvalidOperationException("Voice session context is too large.");
+            throw new InvalidOperationException("Sesi başlatmadan önce bir gerçek zamanlı model ve ses yapılandırın.");
+        CheckText(instructions); if (tools.Count > 32 || history.Count > 200) throw new InvalidOperationException("Ses oturumu bağlamı çok büyük.");
         bool gemini = provider.RealtimeProtocol == "GeminiLive";
         Uri endpoint = ValidateEndpoint(provider.RealtimeUrl, provider.RealtimeModel, gemini);
         var enabledTools = provider.Tools ? tools : Array.Empty<AssistantTool>();
@@ -100,13 +100,13 @@ internal sealed class AssistantVoiceSession : IAssistantVoice
         lock (gate)
         {
             ObjectDisposedException.ThrowIf(disposed, this);
-            if (current != null) throw new InvalidOperationException("Stop the current voice session first.");
+            if (current != null) throw new InvalidOperationException("Önce mevcut ses oturumunu durdurun.");
             s = new Session(socketFactory(), gemini, provider.Vision, enabledTools); current = s;
         }
         s.Registration = cancellationToken.Register(() => End(s));
         try
         {
-            Emit(s, () => Status?.Invoke("Connecting voice…"));
+            Emit(s, () => Status?.Invoke("Ses bağlanıyor…"));
             using var connect = CancellationTokenSource.CreateLinkedTokenSource(s.Cancel.Token);
             connect.CancelAfter(TimeSpan.FromSeconds(20));
             await s.Socket.Connect(endpoint, apiKey, gemini, connect.Token).ConfigureAwait(false);
@@ -116,7 +116,7 @@ internal sealed class AssistantVoiceSession : IAssistantVoice
             // Seed only bounded text history. Images are sent exclusively by explicit SendImage calls.
             var seed = history.Where(m => m.Role is "user" or "assistant" && !string.IsNullOrWhiteSpace(m.Text)).TakeLast(80).ToArray();
             foreach (var m in seed) CheckText(m.Text);
-            if (seed.Sum(m => (long)m.Text.Length) > 512 * 1024) throw new InvalidOperationException("Voice history is too large.");
+            if (seed.Sum(m => (long)m.Text.Length) > 512 * 1024) throw new InvalidOperationException("Ses geçmişi çok büyük.");
             if (gemini && seed.Length > 0)
                 await SendBatch(s, new[] { JsonSerializer.Serialize(new { clientContent = new { turns = seed.Select(m => new { role = m.Role == "assistant" ? "model" : "user", parts = new[] { new { text = m.Text } } }), turnComplete = false } }) }, s.Cancel.Token).ConfigureAwait(false);
             else if (!gemini)
@@ -128,19 +128,19 @@ internal sealed class AssistantVoiceSession : IAssistantVoice
                 s.Audio = audio;
             }
             s.Sender = CaptureLoop(s);
-            audio.Start(gemini ? 16000 : 24000, bytes => Captured(s, bytes), (value, output) => Emit(s, () => Level?.Invoke(value, output)), () => Fail(s, "Audio device unavailable. Start voice again after checking Windows audio devices."));
+            audio.Start(gemini ? 16000 : 24000, bytes => Captured(s, bytes), (value, output) => Emit(s, () => Level?.Invoke(value, output)), () => Fail(s, "Ses aygıtı kullanılamıyor. Windows ses aygıtlarını denetledikten sonra sesi yeniden başlatın."));
             lock (gate) { if (!Active(s)) throw new OperationCanceledException(); s.Connected = true; }
-            Emit(s, () => Status?.Invoke("Voice connected"));
+            Emit(s, () => Status?.Invoke("Ses bağlandı"));
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested || (s.Ended && s.Failure == null)) { End(s); throw; }
         catch (OperationCanceledException)
         {
-            string message = s.Failure ?? "Voice connection timed out. Check the network and voice endpoint, then try again.";
+            string message = s.Failure ?? "Ses bağlantısı zaman aşımına uğradı. Ağı ve ses uç noktasını denetleyip yeniden deneyin.";
             Fail(s, message); throw new InvalidOperationException(message);
         }
         catch
         {
-            string message = s.Failure ?? "Voice connection failed. Check the endpoint, model, voice and API key, then start again.";
+            string message = s.Failure ?? "Ses bağlantısı başarısız oldu. Uç noktayı, modeli, sesi ve API anahtarını denetleyip yeniden başlatın.";
             Fail(s, message); throw new InvalidOperationException(message);
         }
     }
@@ -179,17 +179,17 @@ internal sealed class AssistantVoiceSession : IAssistantVoice
     }
     private static async Task<string> CaptureImage(Session s, Func<CancellationToken, Task<string?>> capture, CancellationToken token)
     {
-        if (!s.Vision) throw new InvalidOperationException("Enable vision for this voice provider before sharing images.");
+        if (!s.Vision) throw new InvalidOperationException("Görüntüleri paylaşmadan önce bu ses sağlayıcısı için görüntü desteğini etkinleştirin.");
         // ImageLock reserves capture/delivery order. Slow capture or a busy UI must
         // not hold SendLock and starve the bounded microphone upload queue.
         token.ThrowIfCancellationRequested();
         string? dataUrl = await capture(token).ConfigureAwait(false);
         token.ThrowIfCancellationRequested();
-        if (dataUrl == null) throw new InvalidOperationException("A fresh shared image is unavailable.");
+        if (dataUrl == null) throw new InvalidOperationException("Güncel bir paylaşılan görüntü kullanılamıyor.");
         int comma = dataUrl.IndexOf(',');
         if (dataUrl.Length > 3 * 1024 * 1024 || comma < 0 || !(dataUrl.StartsWith("data:image/jpeg;base64,", StringComparison.Ordinal) || dataUrl.StartsWith("data:image/png;base64,", StringComparison.Ordinal)))
-            throw new InvalidOperationException("Supply a bounded JPEG or PNG image data URL.");
-        try { _ = Convert.FromBase64String(dataUrl[(comma + 1)..]); } catch { throw new InvalidOperationException("The shared image is invalid."); }
+            throw new InvalidOperationException("Sınırlı boyutta bir JPEG veya PNG görüntü veri URL'si sağlayın.");
+        try { _ = Convert.FromBase64String(dataUrl[(comma + 1)..]); } catch { throw new InvalidOperationException("Paylaşılan görüntü geçersiz."); }
         string payload = s.Gemini ? JsonSerializer.Serialize(new { realtimeInput = new { video = new { mimeType = dataUrl[5..dataUrl.IndexOf(';')], data = dataUrl[(comma + 1)..] } } })
             : JsonSerializer.Serialize(new { type = "conversation.item.create", item = new { type = "message", role = "user", content = new[] { new { type = "input_image", image_url = dataUrl } } } });
         token.ThrowIfCancellationRequested();
@@ -209,7 +209,7 @@ internal sealed class AssistantVoiceSession : IAssistantVoice
         lock (gate)
         {
             if (!s.Pending.TryGetValue(call.Id, out var expected) || expected != call)
-                throw new InvalidOperationException("This voice tool request is no longer pending.");
+                throw new InvalidOperationException("Bu ses aracı isteği artık beklemede değil.");
             callToken = s.Calls[call.Id].Token;
         }
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, s.Cancel.Token, callToken);
@@ -226,7 +226,7 @@ internal sealed class AssistantVoiceSession : IAssistantVoice
             await s.SendLock.WaitAsync(linked.Token).ConfigureAwait(false); held = true;
             lock (gate)
                 if (!Active(s) || !s.Pending.TryGetValue(call.Id, out var expected) || expected != call)
-                    throw new InvalidOperationException("This voice tool request is no longer pending.");
+                    throw new InvalidOperationException("Bu ses aracı isteği artık beklemede değil.");
             if (imagePayload != null) await SendImageLocked(s, imagePayload, linked.Token).ConfigureAwait(false);
             string output = s.Gemini
                 ? JsonSerializer.Serialize(new { toolResponse = new { functionResponses = new[] { new { id = call.Id, name = call.Name, response = new { result } } } } })
@@ -299,11 +299,11 @@ internal sealed class AssistantVoiceSession : IAssistantVoice
         Emit(s, () => Status?.Invoke(s.Failure ?? message)); End(s);
     }
     private bool Active(Session s) => ReferenceEquals(current, s) && !s.Ended;
-    private Session GetSession() { lock (gate) return current is { Connected: true } s ? s : throw new InvalidOperationException("Start voice first."); }
+    private Session GetSession() { lock (gate) return current is { Connected: true } s ? s : throw new InvalidOperationException("Önce sesi başlatın."); }
     private void Emit(Session s, Action action)
     { lock (gate) { if (Active(s)) { try { action(); } catch { /* UI subscribers must not escape native or receive threads. */ } } } }
     private static void CheckText(string text)
-    { if (text == null || text.Length > 128 * 1024) throw new InvalidOperationException("Voice text is too large."); }
+    { if (text == null || text.Length > 128 * 1024) throw new InvalidOperationException("Ses metni çok büyük."); }
     private void Captured(Session s, byte[] bytes)
     {
         lock (gate)
@@ -312,7 +312,7 @@ internal sealed class AssistantVoiceSession : IAssistantVoice
             if (bytes.Length == 0 || bytes.Length > 9600 || (bytes.Length & 1) != 0) return;
             if (s.Input.Writer.TryWrite(bytes)) return;
         }
-        ThreadPool.QueueUserWorkItem(_ => Fail(s, "Voice upload is too slow. Start voice again after checking the connection."));
+        ThreadPool.QueueUserWorkItem(_ => Fail(s, "Ses yüklemesi çok yavaş. Bağlantıyı denetledikten sonra sesi yeniden başlatın."));
     }
     private async Task CaptureLoop(Session s)
     {
@@ -328,7 +328,7 @@ internal sealed class AssistantVoiceSession : IAssistantVoice
                 // delay after network sends would make upload permanently lag capture.
             }
         }
-        catch (OperationCanceledException) { } catch { Fail(s, "Voice upload failed. Start voice again to reconnect."); }
+        catch (OperationCanceledException) { } catch { Fail(s, "Ses yüklemesi başarısız oldu. Yeniden bağlanmak için sesi yeniden başlatın."); }
     }
     private async Task SendBatch(Session s, IEnumerable<string> payloads, CancellationToken token)
     {
@@ -345,7 +345,7 @@ internal sealed class AssistantVoiceSession : IAssistantVoice
             linked.Token.ThrowIfCancellationRequested();
         }
         catch (OperationCanceledException) when (linked.IsCancellationRequested) { throw; }
-        catch { Fail(s, "Voice upload failed. Start voice again to reconnect."); throw new InvalidOperationException("Voice upload failed. Start voice again to reconnect."); }
+        catch { Fail(s, "Ses yüklemesi başarısız oldu. Yeniden bağlanmak için sesi yeniden başlatın."); throw new InvalidOperationException("Ses yüklemesi başarısız oldu. Yeniden bağlanmak için sesi yeniden başlatın."); }
         finally { if (held) s.SendLock.Release(); }
     }
     private async Task SendLocked(Session s, string payload, CancellationToken token)
@@ -354,7 +354,7 @@ internal sealed class AssistantVoiceSession : IAssistantVoice
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(token); deadline.CancelAfter(TimeSpan.FromSeconds(10));
         try { await s.Socket.Send(payload, deadline.Token).ConfigureAwait(false); }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
-        catch { Fail(s, "Voice upload failed. Start voice again to reconnect."); throw new InvalidOperationException("Voice upload failed. Start voice again to reconnect."); }
+        catch { Fail(s, "Ses yüklemesi başarısız oldu. Yeniden bağlanmak için sesi yeniden başlatın."); throw new InvalidOperationException("Ses yüklemesi başarısız oldu. Yeniden bağlanmak için sesi yeniden başlatın."); }
     }
     private async Task ReceiveLoop(Session s)
     {
@@ -363,7 +363,7 @@ internal sealed class AssistantVoiceSession : IAssistantVoice
             while (!s.Cancel.IsCancellationRequested)
             {
                 string? json = await s.Socket.Receive(s.Cancel.Token).ConfigureAwait(false);
-                if (json == null) { Fail(s, "Voice disconnected. Start voice again to reconnect."); return; }
+                if (json == null) { Fail(s, "Ses bağlantısı kesildi. Yeniden bağlanmak için sesi yeniden başlatın."); return; }
                 if (json.Length > 4 * 1024 * 1024) throw new InvalidDataException();
                 using var doc = JsonDocument.Parse(json, new JsonDocumentOptions { MaxDepth = 40 });
                 if (doc.RootElement.ValueKind != JsonValueKind.Object) throw new InvalidDataException();
@@ -371,7 +371,7 @@ internal sealed class AssistantVoiceSession : IAssistantVoice
                 else await HandleOpenAI(s, doc.RootElement).ConfigureAwait(false);
             }
         }
-        catch (OperationCanceledException) { } catch { Fail(s, "Voice received an invalid response or disconnected. Start voice again to reconnect."); }
+        catch (OperationCanceledException) { } catch { Fail(s, "Ses geçersiz bir yanıt aldı veya bağlantı kesildi. Yeniden bağlanmak için sesi yeniden başlatın."); }
     }
     private static string Str(JsonElement e, string name) => e.TryGetProperty(name, out var p) && p.ValueKind == JsonValueKind.String ? p.GetString()! : "";
     private static bool Flag(JsonElement e, string name) => e.TryGetProperty(name, out var p) && p.ValueKind == JsonValueKind.True;
@@ -389,7 +389,7 @@ internal sealed class AssistantVoiceSession : IAssistantVoice
         // Interrupt only that reply; the microphone and session remain usable.
         var events = Interrupt(s);
         lock (gate) s.IgnoreAudio = true;
-        Emit(s, () => Status?.Invoke("Voice reply exceeded the playback limit. Ask for a shorter answer."));
+        Emit(s, () => Status?.Invoke("Ses yanıtı oynatma sınırını aştı. Daha kısa bir yanıt isteyin."));
         if (events.Count > 0) await SendBatch(s, events, s.Cancel.Token).ConfigureAwait(false);
     }
     private async Task HandleOpenAI(Session s, JsonElement e)
@@ -413,7 +413,7 @@ internal sealed class AssistantVoiceSession : IAssistantVoice
             case "response.output_audio_transcript.done": if (!s.IgnoreAudio) FinalText(s, "assistant", Str(e, "transcript")); break;
             case "response.output_text.done": if (!s.IgnoreAudio) FinalText(s, "assistant", Str(e, "text")); break;
             case "conversation.item.input_audio_transcription.completed": FinalText(s, "user", Str(e, "transcript")); break;
-            case "conversation.item.input_audio_transcription.failed": Emit(s, () => Status?.Invoke("Voice transcription unavailable for this turn.")); break;
+            case "conversation.item.input_audio_transcription.failed": Emit(s, () => Status?.Invoke("Bu tur için ses dökümü kullanılamıyor.")); break;
             case "response.function_call_arguments.done": Call(s, Str(e, "call_id"), Str(e, "name"), Str(e, "arguments")); break;
             case "input_audio_buffer.speech_started":
                 var events = Interrupt(s);
@@ -444,16 +444,16 @@ internal sealed class AssistantVoiceSession : IAssistantVoice
             int code = error.ValueKind == JsonValueKind.Object && error.TryGetProperty("code", out var value) && value.ValueKind == JsonValueKind.Number && value.TryGetInt32(out int number) ? number : 0;
             Fail(s, code switch
             {
-                401 or 403 => "Gemini rejected access. Check the Google AI Studio API key and model access in Settings > AI.",
-                404 => "Gemini Live model not found. Check the realtime model ID in Settings > AI.",
-                429 => "Gemini Live quota exceeded. Check your Google AI Studio limits or try again later.",
-                400 => "Gemini rejected the voice configuration. Check the realtime model, voice name and supported capabilities in Settings > AI.",
-                _ => "Gemini rejected the voice session. Check the API key, live model and quota in Google AI Studio."
+                401 or 403 => "Gemini erişimi reddetti. Google AI Studio API anahtarını ve model erişimini Ayarlar → AI bölümünden denetleyin.",
+                404 => "Gemini Live modeli bulunamadı. Gerçek zamanlı model kimliğini Ayarlar → AI bölümünden denetleyin.",
+                429 => "Gemini Live kotası aşıldı. Google AI Studio sınırlarınızı denetleyin veya daha sonra yeniden deneyin.",
+                400 => "Gemini ses yapılandırmasını reddetti. Gerçek zamanlı modeli, ses adını ve desteklenen özellikleri Ayarlar → AI bölümünden denetleyin.",
+                _ => "Gemini ses oturumunu reddetti. API anahtarını, canlı modeli ve kotayı Google AI Studio'dan denetleyin."
             });
             return;
         }
         if (e.TryGetProperty("setupComplete", out _)) s.Ready.TrySetResult();
-        if (e.TryGetProperty("goAway", out _)) { Fail(s, "Voice session is ending. Start voice again to reconnect."); return; }
+        if (e.TryGetProperty("goAway", out _)) { Fail(s, "Ses oturumu sona eriyor. Yeniden bağlanmak için sesi yeniden başlatın."); return; }
         if (e.TryGetProperty("toolCallCancellation", out var cancelled) && cancelled.TryGetProperty("ids", out var ids))
             CancelPending(s, ids.EnumerateArray().Select(id => id.GetString() ?? ""));
         if (e.TryGetProperty("serverContent", out var content))
@@ -517,11 +517,11 @@ internal sealed class AssistantVoiceSession : IAssistantVoice
     internal static Uri ValidateEndpoint(string value, string model, bool gemini)
     {
         if (!Uri.TryCreate(value, UriKind.Absolute, out var uri) || uri.Scheme is not ("ws" or "wss"))
-            throw new InvalidOperationException("Configure a secure WSS voice endpoint or loopback WS endpoint.");
+            throw new InvalidOperationException("Güvenli bir WSS ses uç noktası veya geri döngü WS uç noktası yapılandırın.");
         var check = new UriBuilder(uri) { Scheme = uri.Scheme == "wss" ? "https" : "http", Query = "" };
         AssistantTransport.ValidateEndpoint(check.Uri.AbsoluteUri);
         if (uri.Query.Length != 0 && (gemini || uri.Query != "?model=" + Uri.EscapeDataString(model)))
-            throw new InvalidOperationException("Voice endpoints must not contain API keys or other query parameters.");
+            throw new InvalidOperationException("Ses uç noktaları API anahtarları veya başka sorgu parametreleri içermemelidir.");
         var result = new UriBuilder(uri) { Query = gemini ? "" : "model=" + Uri.EscapeDataString(model) };
         return result.Uri;
     }

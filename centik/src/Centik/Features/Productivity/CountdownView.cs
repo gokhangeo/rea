@@ -15,7 +15,7 @@ internal sealed class CountdownView : StackPanel
 {
     private readonly App app;
     private readonly bool focus;
-    private readonly TextBlock digits=UI.Text("",29), status=UI.Text("Ready",10,UI.Muted), hint=UI.Text("",10,UI.Muted), durationLabel=UI.Text("",10,UI.Muted);
+    private readonly TextBlock digits=UI.Text("",29), status=UI.Text("Hazır",10,UI.Muted), hint=UI.Text("",10,UI.Muted), durationLabel=UI.Text("",10,UI.Muted);
     private readonly ProgressRing progress=new();
     private readonly TextBox minutes, breaks;
     private readonly Button primary, reset;
@@ -33,21 +33,21 @@ internal sealed class CountdownView : StackPanel
         string id=focus?"focus":"timer";
         var header=new DockPanel{LastChildFill=true,Margin=new(0,0,0,9)};
         status.HorizontalAlignment=HorizontalAlignment.Right;DockPanel.SetDock(status,Dock.Right);header.Children.Add(status);
-        if(heading){var title=UI.Heading(focus?"Focus":"Timer",13);title.FontWeight=FontWeights.SemiBold;header.Children.Add(title);}Children.Add(header);
+        if(heading){var title=UI.Heading(focus?"Odak":"Zamanlayıcı",13);title.FontWeight=FontWeights.SemiBold;header.Children.Add(title);}Children.Add(header);
         Typography.SetNumeralAlignment(digits,FontNumeralAlignment.Tabular);digits.FontWeight=FontWeights.Medium;digits.TextWrapping=TextWrapping.NoWrap;digits.HorizontalAlignment=HorizontalAlignment.Center;
         progress.Accent(focus);UI.Named(progress,focus?"Focus session progress":"Timer progress");
         var instrument=new Grid{Margin=new(0,4,0,14)};instrument.Children.Add(progress);
         var center=new StackPanel{VerticalAlignment=VerticalAlignment.Center,HorizontalAlignment=HorizontalAlignment.Center,IsHitTestVisible=false};center.Children.Add(digits);durationLabel.HorizontalAlignment=HorizontalAlignment.Center;durationLabel.Margin=new(0,4,0,0);center.Children.Add(durationLabel);instrument.Children.Add(center);Children.Add(instrument);
-        minutes=UI.Input(focus?"Focus minutes":"Timer duration in minutes",focus?app.Settings.FocusMinutes.ToString(CultureInfo.CurrentCulture):"5",focus?"1–240 minutes. Reset the session to change its duration.":"0.1–1440 minutes. Reset the timer to change its duration.");
-        breaks=UI.Input("Break minutes",app.Settings.BreakMinutes.ToString(CultureInfo.CurrentCulture),"1–120 minutes. Reset the session to change its duration.");
+        minutes=UI.Input(focus?"Odak dakikaları":"Zamanlayıcı süresi (dakika)",focus?app.Settings.FocusMinutes.ToString(CultureInfo.CurrentCulture):"5",focus?"1–240 dakika. Süresini değiştirmek için oturumu sıfırlayın.":"0.1–1440 dakika. Süresini değiştirmek için zamanlayıcıyı sıfırlayın.");
+        breaks=UI.Input("Mola dakikaları",app.Settings.BreakMinutes.ToString(CultureInfo.CurrentCulture),"1–120 dakika. Süresini değiştirmek için oturumu sıfırlayın.");
         var fields=new Grid();fields.ColumnDefinitions.Add(new());
         if(focus)fields.ColumnDefinitions.Add(new());
         fields.Children.Add(Field(focus?"Focus · min":"Duration · min",minutes));
         if(focus){var field=Field("Break · min",breaks);field.Margin=new(8,0,0,0);Grid.SetColumn(field,1);fields.Children.Add(field);}
-        primary=UI.Button("Start",Activate,true);AutomationProperties.SetAutomationId(primary,id+"-primary");
-        reset=UI.Button("Reset",()=>{State.Reset();app.SaveSession();});UI.Named(reset,"Reset "+id);AutomationProperties.SetAutomationId(reset,id+"-reset");
+        primary=UI.Button("Başlat",Activate,true);AutomationProperties.SetAutomationId(primary,id+"-primary");
+        reset=UI.Button("Sıfırla",()=>{State.Reset();app.SaveSession();});UI.Named(reset,"Reset "+id);AutomationProperties.SetAutomationId(reset,id+"-reset");
         var actions=new StackPanel{Orientation=Orientation.Horizontal,HorizontalAlignment=HorizontalAlignment.Center,Margin=new(0,0,0,18)};
-        foreach(var button in new[]{primary,reset}){button.Width=button.Height=36;button.MinHeight=36;button.Margin=new(0);button.Padding=new(9);button.Tag=new CornerRadius(18);button.ToolTip="Tab to select; Space or Enter to activate";}
+        foreach(var button in new[]{primary,reset}){button.Width=button.Height=36;button.MinHeight=36;button.Margin=new(0);button.Padding=new(9);button.Tag=new CornerRadius(18);button.ToolTip="Sekme ile seçin; etkinleştirmek için Boşluk veya Enter.";}
         primary.Margin=new(0,0,12,0);reset.Background=Brushes.Transparent;reset.Foreground=UI.Muted;reset.BorderThickness=new(1);reset.BorderBrush=UI.Brush("#3C4048");reset.Content=Icons.Create("reset",17,UI.Muted);actions.Children.Add(primary);actions.Children.Add(reset);Children.Add(actions);
         Children.Add(fields);hint.MinHeight=20;hint.Margin=new(0,10,0,0);hint.VerticalAlignment=VerticalAlignment.Top;Children.Add(hint);
         foreach(var input in new[]{minutes,breaks})
@@ -72,7 +72,7 @@ internal sealed class CountdownView : StackPanel
         void Step(int direction){if(double.TryParse(input.Text,NumberStyles.Float,CultureInfo.CurrentCulture,out double value)){input.Text=Math.Clamp(value+direction,label.StartsWith("Duration")?.1:1,maximum).ToString("0.###",CultureInfo.CurrentCulture);}}
         foreach(int direction in new[]{-1,1})
         {
-            var button=Icons.Button(direction<0?"minus":"plus",(direction<0?"Decrease ":"Increase ")+label,()=>Step(direction),false,28);button.Content=Icons.Create(direction<0?"minus":"plus",12,UI.Muted);button.Margin=new(0);button.Padding=new(7);button.Background=Brushes.Transparent;
+            var button=Icons.Button(direction<0?"minus":"plus",(direction<0?"Azalt ":"Artır ")+label,()=>Step(direction),false,28);button.Content=Icons.Create(direction<0?"minus":"plus",12,UI.Muted);button.Margin=new(0);button.Padding=new(7);button.Background=Brushes.Transparent;
             button.SetBinding(IsEnabledProperty,new System.Windows.Data.Binding("IsEnabled"){Source=input});Grid.SetColumn(button,direction<0?0:2);controls.Children.Add(button);
         }
         panel.Children.Add(new Border{Background=UI.Brush("#14161A"),BorderBrush=UI.Brush("#30343B"),BorderThickness=new(.7),CornerRadius=new(8),Child=controls});return panel;
@@ -124,7 +124,7 @@ internal sealed class CountdownView : StackPanel
         }
         bool valid=Valid(out double seconds,out _,out _);
         digits.Text=active || completed?state.Display(now):Countdown.FormatSeconds(valid?seconds:0);
-        status.Text=active?(state.Running?(focus?(state.Phase=="break"?"Break":"Focusing"):"Running"):"Paused"):completed?"Complete":"Ready";
+        status.Text=active?(state.Running?(focus?(state.Phase=="break"?"Mola":"Odaklanılıyor"):"Çalışıyor"):"Duraklatıldı"):completed?"Tamamlandı":"Hazır";
         string action=state.Running?"Pause":active?"Resume":"Start";
         if(AutomationProperties.GetItemStatus(primary)!=action){primary.Content=Icons.Create(state.Running?"pause":"play",17,Brushes.Black);AutomationProperties.SetItemStatus(primary,action);}
         UI.Named(primary,state.Running?(focus?"Pause focus":"Pause timer"):active?(focus?"Resume focus":"Resume timer"):(focus?"Start focus":"Start"));
@@ -132,8 +132,8 @@ internal sealed class CountdownView : StackPanel
         minutes.IsEnabled=breaks.IsEnabled=!active;
         progress.Value=active || completed?state.Progress(now):0;
         progress.Accent(focus && state.Phase!="break");
-        durationLabel.Text=active || completed?"of "+(state.DurationSeconds/60).ToString("0.#",CultureInfo.CurrentCulture)+" min":focus?"Focus · "+minutes.Text+" min":"of "+minutes.Text+" min";
-        hint.Text=!active && !valid?(focus?"Use 1–240 focus and 1–120 break minutes.":"Enter 0.1–1440 minutes."):completed?"Time is up.":focus?$"{breaks.Text} min break after focus.":"";
+        durationLabel.Text=active || completed?"/ "+(state.DurationSeconds/60).ToString("0.#",CultureInfo.CurrentCulture)+" dk":focus?"Odak · "+minutes.Text+" dk":"/ "+minutes.Text+" dk";
+        hint.Text=!active && !valid?(focus?"1–240 odak ve 1–120 mola dakikası kullanın.":"0.1–1440 dakika girin."):completed?"Süre doldu.":focus?$"Odaktan sonra {breaks.Text} dk mola.":"";
         hint.Foreground=!active && !valid?UI.Brush("#F0B8A8"):UI.Muted;
     }
 }

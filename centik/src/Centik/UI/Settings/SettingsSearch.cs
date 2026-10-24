@@ -71,7 +71,7 @@ public sealed partial class SettingsWindow
         settingsSearchIndex=BuildSettingsSearchIndex();settingsSearch=UI.Input("Search settings","");settingsSearch.Background=Brushes.Transparent;settingsSearch.BorderThickness=new(0);settingsSearch.Margin=new(0);settingsSearch.Padding=new(0,6,0,6);settingsSearch.MinHeight=34;
         var row=new DockPanel();var glyph=Icons.Create("search",15,UI.Muted);glyph.Margin=new(0,0,10,0);DockPanel.SetDock(glyph,Dock.Left);row.Children.Add(glyph);
         var clear=Icons.Button("x","Clear settings search",()=>settingsSearch.Clear(),false,28);clear.Background=Brushes.Transparent;clear.Margin=new(5,0,0,0);clear.Visibility=Visibility.Collapsed;DockPanel.SetDock(clear,Dock.Right);row.Children.Add(clear);
-        var inputHost=new Grid();inputHost.Children.Add(settingsSearch);var hint=UI.Text("Search settings…  Ctrl+F",12,UI.Muted);hint.IsHitTestVisible=false;inputHost.Children.Add(hint);row.Children.Add(inputHost);
+        var inputHost=new Grid();inputHost.Children.Add(settingsSearch);var hint=UI.Text("Ayarlarda ara…  Ctrl+F",12,UI.Muted);hint.IsHitTestVisible=false;inputHost.Children.Add(hint);row.Children.Add(inputHost);
         var field=new Border{Child=row,Background=UI.Brush("#1A1D23"),BorderBrush=UI.Brush("#30353F"),BorderThickness=new(.7),CornerRadius=new(10),Padding=new(12,0,6,0),Margin=new(20,13,20,9)};main.Children.Add(field);Grid.SetRow(field,0);
         var resultsScroll=UI.Scroll(settingsResults);resultsScroll.HorizontalScrollBarVisibility=ScrollBarVisibility.Disabled;
         searchResultsHost=new Border{Child=resultsScroll,Background=UI.Brush("#181B21"),BorderBrush=UI.Brush("#3C4350"),BorderThickness=new(.8),CornerRadius=new(12),Padding=new(8),Margin=new(20,0,20,10),VerticalAlignment=VerticalAlignment.Top,Visibility=Visibility.Collapsed};UI.Named(searchResultsHost,"Settings search results");Grid.SetRow(searchResultsHost,1);Panel.SetZIndex(searchResultsHost,40);main.Children.Add(searchResultsHost);
@@ -94,7 +94,7 @@ public sealed partial class SettingsWindow
         if(query.Length==0){searchResultsHost.Visibility=Visibility.Collapsed;return;}
         var tokens=query.Split(' ',StringSplitOptions.RemoveEmptyEntries).Where(t=>t is not ("settings" or "setting" or "pengaturan" or "ubah" or "change" or "cara")).ToArray();if(tokens.Length==0)tokens=new[]{query};
         var matches=settingsSearchIndex.Where(item=>tokens.All(t=>(item.Title+" "+item.Keywords).Contains(t,StringComparison.OrdinalIgnoreCase))).OrderByDescending(item=>item.Title.StartsWith(query,StringComparison.OrdinalIgnoreCase)).ThenByDescending(item=>item.Title.Contains(query,StringComparison.OrdinalIgnoreCase)).ThenByDescending(item=>item.Control.Length>0).Take(12).ToArray();
-        if(matches.Length==0){var empty=UI.Text("No settings found. Try color, dock, lyrics, weather or notifications.",12,UI.Muted);empty.Margin=new(12);settingsResults.Children.Add(empty);}
+        if(matches.Length==0){var empty=UI.Text("Ayar bulunamadı. Renk, dock, şarkı sözü, hava durumu veya bildirimleri deneyin.",12,UI.Muted);empty.Margin=new(12);settingsResults.Children.Add(empty);}
         foreach(var item in matches)
         {
             var result=item;var button=UI.Button("Open "+result.Title,()=>OpenSettingsSearchResult(result));button.Background=Brushes.Transparent;button.BorderThickness=new(0);button.Padding=new(12,9,12,9);button.Margin=new(0,1,0,1);button.HorizontalContentAlignment=HorizontalAlignment.Stretch;

@@ -11,23 +11,23 @@ public sealed partial class SettingsWindow
     {
         var s=app.Settings;
         var edge=new StackPanel();AddSlider(edge,"Tucked edge height",s.TuckEdge,3,12,v=>s.TuckEdge=v," DIP");
-        page.Children.Add(Section("Automatic tucking",Check("Always tucked",s.AlwaysTucked,v=>s.AlwaysTucked=v),edge,Check("Tuck above maximized apps",s.HideMaximized,v=>s.HideMaximized=v),Check("Tuck above fullscreen apps",s.HideFullscreen,v=>s.HideFullscreen=v),UI.Text("Leaves a small edge at the top when Chrome or another app fills this display. Move the pointer to that edge to reveal the preview. Manual hide still hides the whole island.",11,UI.Muted)));
-        page.Children.Add(Section("Panel navigation",Check("Swipe between open panels",s.PanelSwipe,v=>s.PanelSwipe=v),UI.Text("Swipe empty space or use Shift+wheel to switch panels. Long lists keep vertical scrolling. Keyboard: Ctrl+Tab.",11,UI.Muted)));
-        page.Children.Add(Section("Drag to Island",Check("Reveal shelf when dragging files",s.DropReveal,v=>s.DropReveal=v),UI.Text("Drag files onto the island or its tucked edge. Drop to stage references; select multiple shelf items to drag them out together. Manual hiding stays hidden.",11,UI.Muted)));
-        page.Children.Add(Section("Detachable previews",Check("Allow detachable previews",s.DetachablePreviews,v=>s.DetachablePreviews=v),UI.Text("Drag the grip to place a mini window, or choose Detach. Supports Music, Timer, Focus, Calendar, Notes, Shelf and System. Closing it keeps music and sessions running.",11,UI.Muted)));
-        page.Children.Add(Section("Closed cover gestures",Check("Control playback from album cover",s.CoverGestures,v=>s.CoverGestures=v),UI.Text("Choose Album artwork in Audio. Click to play/pause; hold 500 ms to choose a session. Keyboard: Ctrl+Space for playback, Ctrl+M for sessions.",11,UI.Muted)));
+        page.Children.Add(Section("Automatic tucking",Check("Always tucked",s.AlwaysTucked,v=>s.AlwaysTucked=v),edge,Check("Tuck above maximized apps",s.HideMaximized,v=>s.HideMaximized=v),Check("Tuck above fullscreen apps",s.HideFullscreen,v=>s.HideFullscreen=v),UI.Text("Chrome veya başka bir uygulama bu ekranı doldurduğunda üstte küçük bir kenar bırakır. Önizlemeyi ortaya çıkarmak için işaretçiyi o kenara götürün. Elle gizleme yine de tüm adayı gizler.",11,UI.Muted)));
+        page.Children.Add(Section("Panel navigation",Check("Swipe between open panels",s.PanelSwipe,v=>s.PanelSwipe=v),UI.Text("Panel değiştirmek için boş alanda kaydırın ya da Shift+tekerlek kullanın. Uzun listelerde dikey kaydırma korunur. Klavye: Ctrl+Tab.",11,UI.Muted)));
+        page.Children.Add(Section("Drag to Island",Check("Reveal shelf when dragging files",s.DropReveal,v=>s.DropReveal=v),UI.Text("Dosyaları adanın üzerine ya da gizlenmiş kenarına sürükleyin. Referansları sahnelemek için bırakın; birden çok raf öğesini seçip birlikte sürükleyin. Elle gizleme gizli kalır.",11,UI.Muted)));
+        page.Children.Add(Section("Detachable previews",Check("Allow detachable previews",s.DetachablePreviews,v=>s.DetachablePreviews=v),UI.Text("Mini pencere yerleştirmek için tutamacı sürükleyin ya da Ayır'ı seçin. Müzik, Zamanlayıcı, Odak, Takvim, Notlar, Raf ve Sistem desteklenir. Kapatmak müzik ve oturumları çalışır tutar.",11,UI.Muted)));
+        page.Children.Add(Section("Closed cover gestures",Check("Control playback from album cover",s.CoverGestures,v=>s.CoverGestures=v),UI.Text("Ses bölümünde Albüm kapağını seçin. Oynat/duraklat için tıklayın; oturum seçmek için 500 ms basılı tutun. Klavye: oynatma için Ctrl+Space, oturumlar için Ctrl+M.",11,UI.Muted)));
         var source=new ComboBox();var sourceValues=new[]{"Auto","Countdown","CPU","RAM","Calendar","Clock"};
         foreach(var label in new[]{"Automatic","Timer / Focus","CPU usage","Memory usage","Next calendar event","Clock"})source.Items.Add(label);
         source.SelectedIndex=System.Array.IndexOf(sourceValues,s.SatelliteSource);UI.Named(source,"Companion beside music");
         source.SelectionChanged+=(_,_)=>{if(source.SelectedIndex>=0){s.SatelliteSource=sourceValues[source.SelectedIndex];previewMode="Hover";previewContent="Two activities";Save();}};
-        page.Children.Add(Section("Two live activities",Check("Show companion beside music",s.ActivitySatellite,v=>s.ActivitySatellite=v),UI.Text("Companion",12),source,UI.Text("Auto chooses a countdown, an upcoming event, then CPU. Or choose a fixed source. Hover to preview; click to open. Hides while the island opens, during feedback, or when space is limited.",11,UI.Muted)));
+        page.Children.Add(Section("Two live activities",Check("Show companion beside music",s.ActivitySatellite,v=>s.ActivitySatellite=v),UI.Text("Yardımcı",12),source,UI.Text("Otomatik; bir geri sayım, yaklaşan bir etkinlik, sonra CPU seçer. Ya da sabit bir kaynak seçin. Önizlemek için üzerine gelin; açmak için tıklayın. Ada açılırken, geri bildirim sırasında veya alan kısıtlıyken gizlenir.",11,UI.Muted)));
 
     }
     private FrameworkElement FeaturePreview(string kind)
     {
         var panel=new StackPanel();
         var s=app.Settings;
-        if(kind=="Activities" && !s.ActivitiesEnabled)return UI.Text("Activities is off. Saved routines are kept.",12,UI.Muted);if(kind=="Smart clipboard")return ClipboardExample();
+        if(kind=="Activities" && !s.ActivitiesEnabled)return UI.Text("Etkinlikler kapalı. Kayıtlı rutinler korunur.",12,UI.Muted);if(kind=="Smart clipboard")return ClipboardExample();
         if(kind is "Control colors" or "Typography" or "Panel navigation")return ControlExample(kind);
         string? inactive=kind switch
         {
@@ -43,18 +43,18 @@ public sealed partial class SettingsWindow
         {
             var row=new StackPanel{Orientation=Orientation.Horizontal,HorizontalAlignment=HorizontalAlignment.Center};
             for(int i=0;i<3;i++){var icon=Icons.Create(i==1?"music":"nav-tools",26);icon.Margin=new(9,0,9,0);var move=new TranslateTransform();icon.RenderTransform=move;row.Children.Add(icon);int index=i;previewRealtimeFrames.Add(t=>move.Y=app.Settings.ReduceMotion?0:Math.Sin(t*2+index)*3);}
-            panel.Children.Add(row);panel.Children.Add(UI.Text("3 files · drop to stage",12));
+            panel.Children.Add(row);panel.Children.Add(UI.Text("3 dosya · sahnelemek için bırak",12));
         }
         else if(kind=="Detached preview")return DetachedExample();
         else if(kind=="Cover gestures")
         {
-            var state=UI.Text("Click cover to play",12);var cover=UI.Button("Album cover",()=>state.Text=state.Text.Contains("playing")?"Playback paused":"Music is playing");cover.Content=Icons.Create("music",24);cover.Width=44;cover.Height=44;cover.HorizontalAlignment=HorizontalAlignment.Left;panel.Children.Add(cover);panel.Children.Add(state);
+            var state=UI.Text("Oynatmak için kapağa tıkla",12);var cover=UI.Button("Albüm kapağı",()=>state.Text=state.Text.Contains("playing")?"Playback paused":"Music is playing");cover.Content=Icons.Create("music",24);cover.Width=44;cover.Height=44;cover.HorizontalAlignment=HorizontalAlignment.Left;panel.Children.Add(cover);panel.Children.Add(state);
         }
         else if(kind=="Two activities")return CompanionExample();
         else if(kind=="Activities")
-        {panel.Children.Add(UI.Text("Study",16));panel.Children.Add(UI.Text("Open workspace → Focus 45 min → Keep awake",11,UI.Muted));var result=UI.Text("Ready",11,UI.Muted);var start=UI.Button("Try preview",()=>result.Text="Workspace ready · Focus started");panel.Children.Add(start);panel.Children.Add(result);}
+        {panel.Children.Add(UI.Text("Çalışma",16));panel.Children.Add(UI.Text("Çalışma alanını aç → 45 dk Odak → Uyanık tut",11,UI.Muted));var result=UI.Text("Hazır",11,UI.Muted);var start=UI.Button("Önizlemeyi dene",()=>result.Text="Çalışma alanı hazır · Odak başladı");panel.Children.Add(start);panel.Children.Add(result);}
         else
-        {panel.Children.Add(new Border{Height=28,Background=UI.Brush("#8E9AAF"),CornerRadius=new(4)});panel.Children.Add(UI.Text("#8E9AAF · rgb(142, 154, 175)",12));panel.Children.Add(UI.Text("Copy HEX    Copy RGB",11,UI.Muted));}
+        {panel.Children.Add(new Border{Height=28,Background=UI.Brush("#8E9AAF"),CornerRadius=new(4)});panel.Children.Add(UI.Text("#8E9AAF · rgb(142, 154, 175)",12));panel.Children.Add(UI.Text("HEX kopyala    RGB kopyala",11,UI.Muted));}
         return panel;
     }
 }

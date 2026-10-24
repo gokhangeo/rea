@@ -24,36 +24,36 @@ internal static class Installer
             return;
         }
         var application=new Application();application.Resources.MergedDictionaries.Add(new ResourceDictionary{Source=new Uri("/Centik;component/Theme.xaml",UriKind.Relative)});
-        var window=new Window{Title="Install Centik",Width=560,Height=440,ResizeMode=ResizeMode.NoResize,WindowStartupLocation=WindowStartupLocation.CenterScreen};
+        var window=new Window{Title="Centik Kurulumu",Width=560,Height=440,ResizeMode=ResizeMode.NoResize,WindowStartupLocation=WindowStartupLocation.CenterScreen};
         window.Icon=System.Windows.Media.Imaging.BitmapFrame.Create(new Uri("pack://application:,,,/Assets/island.ico"));window.SourceInitialized+=(_,_)=>Native.DarkTitleBar(window);
-        var panel=new StackPanel{Margin=new(36)};panel.Children.Add(UI.Text("Çentik",36,UI.Brush("#B4F272")));panel.Children.Add(UI.Text("A little space. More possibilities.",15,UI.Muted));
-        panel.Children.Add(new Border{Height=26});panel.Children.Add(UI.Text("Music, focus, and your everyday tools — always close.\n\nInstalls for this Windows user only. Auto-start is off by default.",14));
-        var state=UI.Text("Location: "+InstallDirectory,11,UI.Muted);state.Margin=new(0,20,0,12);panel.Children.Add(state);
-        var launch=new CheckBox{Content="Open Centik after installation",IsChecked=true};panel.Children.Add(launch);
-        var button=UI.Button("Install Centik",()=>{},true);button.Click+=(_,_)=>
+        var panel=new StackPanel{Margin=new(36)};panel.Children.Add(UI.Text("Çentik",36,UI.Brush("#B4F272")));panel.Children.Add(UI.Text("Küçük bir alan. Daha fazla olasılık.",15,UI.Muted));
+        panel.Children.Add(new Border{Height=26});panel.Children.Add(UI.Text("Müzik, odak ve günlük araçlarınız — her zaman yakın.\n\nYalnızca bu Windows kullanıcısı için kurulur. Otomatik başlatma varsayılan olarak kapalıdır.",14));
+        var state=UI.Text("Konum: "+InstallDirectory,11,UI.Muted);state.Margin=new(0,20,0,12);panel.Children.Add(state);
+        var launch=new CheckBox{Content="Kurulumdan sonra Centik'i aç",IsChecked=true};panel.Children.Add(launch);
+        var button=UI.Button("Centik'i Kur",()=>{},true);button.Click+=(_,_)=>
         {
             button.IsEnabled=false;
             try {Install();if(launch.IsChecked==true)Launch();window.Close();}
-            catch(Exception ex) {state.Text="Installation failed: "+ex.Message;button.IsEnabled=true;}
+            catch(Exception ex) {state.Text="Kurulum başarısız: "+ex.Message;button.IsEnabled=true;}
         };panel.Children.Add(button);window.Content=panel;application.Run(window);
     }
     private static void Launch()=>Process.Start(new ProcessStartInfo(Path.Combine(InstallDirectory,"Centik.exe")){UseShellExecute=true});
     internal static void Install()
     {
         var target=Path.GetFullPath(InstallDirectory);var expected=Path.GetFullPath(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"Programs","Centik"));
-        if(!string.Equals(target,expected,StringComparison.OrdinalIgnoreCase))throw new IOException("Invalid installation location.");
+        if(!string.Equals(target,expected,StringComparison.OrdinalIgnoreCase))throw new IOException("Geçersiz kurulum konumu.");
         foreach(string processName in new[]{"LumaIsland","BillyNabilaIsland","Centik"})
         foreach(var process in Process.GetProcessesByName(processName))
         {
             using(process)
             {
-                try {if(new[]{"LumaIsland.exe","BillyNabilaIsland.exe","Centik.exe"}.Any(name=>string.Equals(process.MainModule?.FileName,Path.Combine(target,name),StringComparison.OrdinalIgnoreCase)))throw new IOException("Quit Centik from the system tray before updating.");}
+                try {if(new[]{"LumaIsland.exe","BillyNabilaIsland.exe","Centik.exe"}.Any(name=>string.Equals(process.MainModule?.FileName,Path.Combine(target,name),StringComparison.OrdinalIgnoreCase)))throw new IOException("Güncellemeden önce Centik'i sistem tepsisinden kapatın.");}
                 catch(System.ComponentModel.Win32Exception) { }
             }
         }
         Directory.CreateDirectory(target);
         string source=Environment.ProcessPath!;string executable=Path.Combine(target,"Centik.exe");
-        if(!Path.GetFileName(source).StartsWith("Centik",StringComparison.OrdinalIgnoreCase))throw new IOException("Use Centik-Setup.exe to install the app.");
+        if(!Path.GetFileName(source).StartsWith("Centik",StringComparison.OrdinalIgnoreCase))throw new IOException("Uygulamayı kurmak için Centik-Setup.exe kullanın.");
         if(!string.Equals(source,executable,StringComparison.OrdinalIgnoreCase))
         {
             File.Copy(source,executable+".new",true);File.Move(executable+".new",executable,true);
@@ -67,9 +67,9 @@ internal static class Installer
         object? shell=null,shortcut=null;
         try
         {
-            var type=Type.GetTypeFromProgID("WScript.Shell") ?? throw new IOException("The Windows shortcut service is unavailable.");
+            var type=Type.GetTypeFromProgID("WScript.Shell") ?? throw new IOException("Windows kısayol hizmeti kullanılamıyor.");
             shell=Activator.CreateInstance(type);dynamic dynamicShell=shell!;shortcut=dynamicShell.CreateShortcut(ShortcutPath);dynamic link=shortcut;
-            link.TargetPath=executable;link.WorkingDirectory=target;link.Description="Centik for Windows";link.IconLocation=executable+",0";link.Save();
+            link.TargetPath=executable;link.WorkingDirectory=target;link.Description="Windows için Centik";link.IconLocation=executable+",0";link.Save();
             foreach(string legacyName in new[]{"Luma Island.lnk","BillyNabila Island.lnk"})
             {
             string legacyShortcut=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs),legacyName);

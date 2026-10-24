@@ -39,13 +39,13 @@ internal sealed class StopwatchView : StackPanel
     private readonly Button toggle;
     internal StopwatchView(App app)
     {
-        this.app=app;Children.Add(UI.Heading("Stopwatch",13));digits.Margin=new(0,10,0,8);Typography.SetNumeralAlignment(digits,FontNumeralAlignment.Tabular);Children.Add(digits);
-        toggle=UI.Button("Start",()=>{app.Session.Stopwatch.Toggle();app.SaveSession();});UI.Named(toggle,"Start, pause or resume stopwatch");
-        var reset=UI.Button("Reset",()=>{app.Session.Stopwatch.Reset();app.SaveSession();});UI.Named(reset,"Reset stopwatch");
-        foreach(var button in new[]{toggle,reset}){button.FontSize=11;button.Padding=new(9,4,9,4);button.MinHeight=30;button.ToolTip="Tab to select; Space or Enter to activate";}
+        this.app=app;Children.Add(UI.Heading("Kronometre",13));digits.Margin=new(0,10,0,8);Typography.SetNumeralAlignment(digits,FontNumeralAlignment.Tabular);Children.Add(digits);
+        toggle=UI.Button("Başlat",()=>{app.Session.Stopwatch.Toggle();app.SaveSession();});UI.Named(toggle,"Start, pause or resume stopwatch");
+        var reset=UI.Button("Sıfırla",()=>{app.Session.Stopwatch.Reset();app.SaveSession();});UI.Named(reset,"Reset stopwatch");
+        foreach(var button in new[]{toggle,reset}){button.FontSize=11;button.Padding=new(9,4,9,4);button.MinHeight=30;button.ToolTip="Sekme ile seçin; etkinleştirmek için Boşluk veya Enter.";}
         Children.Add(UI.Row(toggle,reset));
         IsVisibleChanged+=(_,_)=>{app.Updated-=Refresh;if(IsVisible){app.Updated+=Refresh;Refresh();}};
         Refresh();
     }
-    private void Refresh(){if(Window.GetWindow(this)?.WindowState==WindowState.Minimized)return;Refreshes++;digits.Text=app.Session.Stopwatch.Display;toggle.Content=app.Session.Stopwatch.Running?"Pause":app.Session.Stopwatch.Elapsed>0?"Resume":"Start";}
+    private void Refresh(){if(Window.GetWindow(this)?.WindowState==WindowState.Minimized)return;Refreshes++;digits.Text=app.Session.Stopwatch.Display;toggle.Content=app.Session.Stopwatch.Running?"Duraklat":app.Session.Stopwatch.Elapsed>0?"Devam et":"Başlat";}
 }

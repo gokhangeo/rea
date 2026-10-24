@@ -22,7 +22,7 @@ internal static class AssistantWindowChrome
         var actions=new StackPanel{Orientation=Orientation.Horizontal};DockPanel.SetDock(actions,Dock.Right);bar.Children.Add(actions);
         void Caption(string text,string name,Action action)
         {var button=UI.Button(text,action);AutomationProperties.SetName(button,name);button.ToolTip=name;button.Width=40;button.MinHeight=38;button.Margin=new(0);button.Padding=new(0);button.Background=Brushes.Transparent;button.Tag=new CornerRadius(0);WindowChrome.SetIsHitTestVisibleInChrome(button,true);actions.Children.Add(button);}
-        Caption("—","Minimize",()=>window.WindowState=WindowState.Minimized);Caption("□","Maximize or restore",()=>window.WindowState=window.WindowState==WindowState.Maximized?WindowState.Normal:WindowState.Maximized);Caption("×","Close",window.Close);
+        Caption("—","Simge durumuna küçült",()=>window.WindowState=WindowState.Minimized);Caption("□","Büyüt veya geri yükle",()=>window.WindowState=window.WindowState==WindowState.Maximized?WindowState.Normal:WindowState.Maximized);Caption("×","Kapat",window.Close);
         var label=UI.Text(title,12);label.FontWeight=FontWeights.SemiBold;label.Margin=new(15,0,0,0);bar.Children.Add(label);frame.Children.Add(bar);Grid.SetRow(content,1);frame.Children.Add(content);
         window.StateChanged+=(_,_)=>frame.Margin=window.WindowState==WindowState.Maximized?new Thickness(7):new Thickness(0);
         window.SourceInitialized+=(_,_)=>

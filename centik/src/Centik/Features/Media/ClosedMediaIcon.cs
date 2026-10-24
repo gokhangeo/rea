@@ -22,7 +22,7 @@ public sealed partial class OverlayWindow
         bool cover=!FeedbackVisible && !countdown && app.Settings.ClosedMediaIcon=="Artwork" && WidgetOn("media") && app.Media.Available && app.Media.Artwork!=null;
         bool waveform=app.Notifications.Current==null && !expanded && !peeking && !FeedbackVisible && !countdown && WidgetOn("media") && app.Media.Available && app.Settings.ClosedMediaContent=="Waveform";
         closedTitleWave.Visibility=waveform?Visibility.Visible:Visibility.Collapsed;summary.Visibility=waveform?Visibility.Collapsed:Visibility.Visible;
-        compact.ToolTip=waveform?app.Media.Title+" · click to open · Esc to close":"Click to open · Esc to close";
+        compact.ToolTip=waveform?app.Media.Title+" · açmak için tıkla · kapatmak için Esc":"Açmak için tıkla · kapatmak için Esc";
         if(!app.Media.Playing || app.Audio.MediaMeterMuted || app.Settings.ReduceMotion || !app.Settings.LiveActivity)closedTitleWave.Sample(0,1,0,false,false,false,0);
         closedCover.Visibility=cover?Visibility.Visible:Visibility.Collapsed;
         activity.Visibility=FeedbackVisible || cover || waveform || !(countdown || WidgetOn("media") && app.Media.Available)?Visibility.Collapsed:Visibility.Visible;

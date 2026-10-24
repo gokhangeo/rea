@@ -27,7 +27,7 @@ public sealed partial class SettingsWindow
     private string livePreviewKey="";
     private void InitializePreviewMotion(StackPanel column)
     {
-        var replay=UI.Button("Replay transition",async()=>
+        var replay=UI.Button("Geçişi yeniden oynat",async()=>
         {
             if(previewReplaying)return;previewReplaying=true;string previous=previewMode;
             try{foreach(string mode in new[]{"Closed","Hover","Panel"}){if(previewClosed)return;previewMode=mode;RefreshPreview();await System.Threading.Tasks.Task.Delay(Math.Max(500,(int)app.Settings.AnimationMs+180));}}
@@ -121,7 +121,7 @@ public sealed partial class SettingsWindow
         else if(current=="System"){previewMode="Panel";previewContent="System";}
         else if(current=="Audio"){previewMode="Panel";previewContent="Music";}
     }
-    private readonly TextBlock previewFocus=UI.Text("Point to a setting to explore it",11,UI.Muted);
+    private readonly TextBlock previewFocus=UI.Text("Keşfetmek için bir ayarın üzerine gelin",11,UI.Muted);
     private ActivityVisual? audioSignalWave;
     private TextBlock? audioSignalState;
     private void UpdateAudioSignal(double seconds)

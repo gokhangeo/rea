@@ -11,7 +11,7 @@ public sealed class ActivityStep
     public Shortcut Target { get; set; } = new();
     public int Minutes { get; set; } = 25;
     public bool KeepDisplayOn { get; set; }
-    public string Label => Kind=="focus" ? $"Focus · {Minutes} min" : Kind=="awake" ? $"Keep awake · {Minutes} min" : "Open · "+Target.Name;
+    public string Label => Kind=="focus" ? $"Odak · {Minutes} dk" : Kind=="awake" ? $"Uyanık tut · {Minutes} dk" : "Aç · "+Target.Name;
 }
 public sealed class ActivityDefinition
 {
@@ -59,20 +59,20 @@ public sealed class ActivityActionsService : IDisposable
     public static void Validate(ActivityDefinition item)
     {
         if(item==null || !Guid.TryParseExact(item.Id,"N",out _) || string.IsNullOrWhiteSpace(item.Name) || item.Name.Trim().Length>80)
-            throw new ArgumentException("Give the activity a name of 1–80 characters.");
-        if(item.Steps==null || item.Steps.Count is <1 or >20)throw new ArgumentException("Add between 1 and 20 steps.");
-        if(item.Steps.Count(s=>s?.Kind=="focus")>1 || item.Steps.Count(s=>s?.Kind=="awake")>1)throw new ArgumentException("Use one Focus and one Keep awake step per activity.");
+            throw new ArgumentException("Etkinliğe 1–80 karakterlik bir ad verin.");
+        if(item.Steps==null || item.Steps.Count is <1 or >20)throw new ArgumentException("1 ile 20 arasında adım ekleyin.");
+        if(item.Steps.Count(s=>s?.Kind=="focus")>1 || item.Steps.Count(s=>s?.Kind=="awake")>1)throw new ArgumentException("Etkinlik başına bir Odak ve bir Uyanık tut adımı kullanın.");
         foreach(var step in item.Steps)
         {
-            if(step==null || step.Kind is not ("open" or "focus" or "awake"))throw new ArgumentException("Choose a supported activity step.");
-            if(step.Kind!="open") {if(step.Minutes<1 || step.Minutes>(step.Kind=="focus"?240:1440))throw new ArgumentException(step.Kind=="focus"?"Focus duration must be 1–240 minutes.":"Keep awake duration must be 1–1440 minutes.");continue;}
+            if(step==null || step.Kind is not ("open" or "focus" or "awake"))throw new ArgumentException("Desteklenen bir etkinlik adımı seçin.");
+            if(step.Kind!="open") {if(step.Minutes<1 || step.Minutes>(step.Kind=="focus"?240:1440))throw new ArgumentException(step.Kind=="focus"?"Odak süresi 1–240 dakika olmalıdır.":"Uyanık tut süresi 1–1440 dakika olmalıdır.");continue;}
             var target=step.Target;
-            if(target==null || string.IsNullOrWhiteSpace(target.Name) || target.Name.Length>200)throw new ArgumentException("Choose a target and give it a name.");
-            if(target.AppId!=null) {if(!WindowsAppCatalog.ValidAppId(target.AppId))throw new ArgumentException("Choose a valid installed app.");continue;}
+            if(target==null || string.IsNullOrWhiteSpace(target.Name) || target.Name.Length>200)throw new ArgumentException("Bir hedef seçin ve ona bir ad verin.");
+            if(target.AppId!=null) {if(!WindowsAppCatalog.ValidAppId(target.AppId))throw new ArgumentException("Geçerli, yüklü bir uygulama seçin.");continue;}
             string value=target.Target?.Trim()??"";
-            if(value.Length==0 || value.Length>4096)throw new ArgumentException("Choose a file, folder, app, or website.");
+            if(value.Length==0 || value.Length>4096)throw new ArgumentException("Bir dosya, klasör, uygulama veya web sitesi seçin.");
             if(Uri.TryCreate(value,UriKind.Absolute,out var uri) && !uri.IsFile) {CleanLink.ValidateUrl(value,4096,"website");continue;}
-            if(!Path.IsPathFullyQualified(value) || value.IndexOfAny(new[]{'\r','\n','\0','"'})>=0)throw new ArgumentException("Choose a full file or folder path, or an HTTP/HTTPS website. Commands and arguments are not supported.");
+            if(!Path.IsPathFullyQualified(value) || value.IndexOfAny(new[]{'\r','\n','\0','"'})>=0)throw new ArgumentException("Tam bir dosya veya klasör yolu ya da bir HTTP/HTTPS web sitesi seçin. Komutlar ve argümanlar desteklenmez.");
             _=Path.GetFullPath(value);
         }
     }
@@ -82,7 +82,7 @@ public sealed class ActivityActionsService : IDisposable
         try
         {
             Validate(item);var copy=Clone(item);copy.Name=copy.Name.Trim();int index=definitions.FindIndex(d=>d.Id==copy.Id);
-            var next=definitions.ToList();if(index<0){if(next.Count>=40)throw new InvalidOperationException("You can save up to 40 activities.");next.Add(copy);}else next[index]=copy;
+            var next=definitions.ToList();if(index<0){if(next.Count>=40)throw new InvalidOperationException("En fazla 40 etkinlik kaydedebilirsiniz.");next.Add(copy);}else next[index]=copy;
             store.Save("activities",new ActivityActionsData{Activities=next});definitions.Clear();definitions.AddRange(next);LastError=null;Changed?.Invoke();return true;
         }
         catch(Exception ex){Report(ex);Changed?.Invoke();return false;}
@@ -97,7 +97,7 @@ public sealed class ActivityActionsService : IDisposable
     {
         if(disposed || executing || ActiveActivity!=null)return false;
         var definition=definitions.FirstOrDefault(d=>d.Id==id);if(definition==null)return false;
-        try {Validate(definition);if(ReplacesFocus(definition) && !replaceFocusConfirmed){LastError="Confirm replacing the current Focus session first.";return false;}}
+        try {Validate(definition);if(ReplacesFocus(definition) && !replaceFocusConfirmed){LastError="Önce mevcut Odak oturumunun değiştirilmesini onaylayın.";return false;}}
         catch(Exception ex){Report(ex);return false;}
         executing=true;ActiveActivity=Clone(definition);results.Clear();LastError=null;
         try
@@ -109,7 +109,7 @@ public sealed class ActivityActionsService : IDisposable
                     if(step.Kind=="open")launch(step.Target);
                     else if(step.Kind=="focus") {focus.Start(step.Minutes*60,clock(),"work");focusOwner=focus.RunId;saveSession();}
                     else {ownAwakeChange=true;try{awake.Start(TimeSpan.FromMinutes(step.Minutes),step.KeepDisplayOn,clock());awakeOwner=true;}finally{ownAwakeChange=false;}}
-                    results.Add(new(step.Label,true,step.Kind=="open"?"Opened":"Started"));
+                    results.Add(new(step.Label,true,step.Kind=="open"?"Açıldı":"Başlatıldı"));
                 }
                 catch(Exception ex){Report(ex);results.Add(new(step.Label,false,ex.Message));}
             }

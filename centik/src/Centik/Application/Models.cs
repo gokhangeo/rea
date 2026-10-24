@@ -69,7 +69,7 @@ public sealed partial class Settings
     public bool ClipboardHistory { get; set; }
     public bool ActivitiesEnabled {get;set;}=true;
     public List<WidgetSetting> Tools {get;set;}=ToolNames.Keys.Select(id=>new WidgetSetting{Id=id}).ToList();
-    public static readonly Dictionary<string,string> ToolNames=new(){["files"]="File shelf",["notes"]="Notes",["tasks"]="Tasks",["clips"]="Clipboard",["calendar"]="Calendar",["awake"]="Keep awake",["links"]="Clean links",["weather"]="Weather"};
+    public static readonly Dictionary<string,string> ToolNames=new(){["files"]="Dosya rafı",["notes"]="Notlar",["tasks"]="Görevler",["clips"]="Pano",["calendar"]="Takvim",["awake"]="Uyanık tut",["links"]="Bağlantıları temizle",["weather"]="Hava durumu"};
     public bool ToolEnabled(string id)=>Widgets.FirstOrDefault(t=>t.Id==id)?.Enabled ?? (Widgets.Any(w=>w.Id=="tools" && w.Enabled) && Tools.Any(t=>t.Id==id && t.Enabled));
     public string Performance { get; set; } = "Auto";
     public string WheelAction { get; set; } = "volume";
@@ -117,13 +117,13 @@ public sealed partial class Settings
     public List<Shortcut> Shortcuts { get; set; } = new()
     {
         new() { Name = "Explorer", Target = "explorer.exe" },
-        new() { Name = "Settings", Target = "ms-settings:" }
+        new() { Name = "Ayarlar", Target = "ms-settings:" }
     };
     public static readonly Dictionary<string,string> Names = new()
     {
-        ["media"]="Media", ["volume"]="Volume", ["timer"]="Timer", ["stopwatch"]="Stopwatch", ["focus"]="Focus mode",
-        ["clock"]="Clock & date", ["system"]="System monitor", ["battery"]="Battery", ["shortcuts"]="Shortcuts",["tools"]="Everyday tools",
-        ["files"]="File shelf",["notes"]="Notes",["tasks"]="Tasks",["clips"]="Clipboard",["calendar"]="Calendar",["awake"]="Keep awake",["links"]="Clean links",["weather"]="Weather"
+        ["media"]="Medya", ["volume"]="Ses düzeyi", ["timer"]="Zamanlayıcı", ["stopwatch"]="Kronometre", ["focus"]="Odak modu",
+        ["clock"]="Saat ve tarih", ["system"]="Sistem izleyici", ["battery"]="Pil", ["shortcuts"]="Kısayollar",["tools"]="Günlük araçlar",
+        ["files"]="Dosya rafı",["notes"]="Notlar",["tasks"]="Görevler",["clips"]="Pano",["calendar"]="Takvim",["awake"]="Uyanık tut",["links"]="Bağlantıları temizle",["weather"]="Hava durumu"
     };
     public static List<WidgetSetting> Defaults() => Names.Keys.Where(id=>id!="tools").Select(id => new WidgetSetting { Id=id,Enabled=id!="stopwatch" }).ToList();
     public void Normalize()
@@ -248,7 +248,7 @@ public sealed partial class Store
         }
         catch(Exception ex) when(ex is JsonException or IOException or UnauthorizedAccessException)
         {
-            Warning="Settings could not be read. Defaults were loaded and the original file was preserved.";
+            Warning="Ayarlar okunamadı. Varsayılanlar yüklendi ve özgün dosya korundu.";
             try { File.Copy(file,file+".backup-"+DateTime.Now.ToString("yyyyMMddHHmmss"),true); } catch { }
             return Fresh<T>();
         }

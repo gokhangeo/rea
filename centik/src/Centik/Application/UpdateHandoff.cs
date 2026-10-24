@@ -18,7 +18,7 @@ internal static class UpdateSignature
         {
             Marshal.StructureToPtr(file,pointer,false);var data=new TrustData{Size=(uint)Marshal.SizeOf<TrustData>(),Ui=2,Revocation=1,Choice=1,File=pointer};var action=new Guid("00AAC56B-CD44-11D0-8CC2-00C04FC295EE");int result=WinVerifyTrust(new IntPtr(-1),ref action,ref data);
             // Existing official releases are unsigned. Once present, Authenticode must pass Windows trust/revocation policy.
-            if(result!=0 && result!=unchecked((int)0x800B0100))throw new IOException("Windows could not validate the setup signature (0x"+result.ToString("X8")+").");
+            if(result!=0 && result!=unchecked((int)0x800B0100))throw new IOException("Windows kurulum imzasını doğrulayamadı (0x"+result.ToString("X8")+").");
         }
         finally{Marshal.DestroyStructure<FileInfo>(pointer);Marshal.FreeHGlobal(pointer);}
     }
@@ -42,11 +42,11 @@ internal static class UpdateHandoff
         if(!TryBegin())return;
         try
         {
-        if(app.Updates.Busy || app.Updates.VerifiedSetup==null || app.Updates.VerifiedHash==null)throw new IOException("Download and verify an update first.");
+        if(app.Updates.Busy || app.Updates.VerifiedSetup==null || app.Updates.VerifiedHash==null)throw new IOException("Önce bir güncelleme indirip doğrulayın.");
         string installed=Environment.ProcessPath!;
-        if(!OfficialUpdates.IsInstalled(installed))throw new IOException("Portable copy: open the official release and replace your portable files manually after quitting.");
+        if(!OfficialUpdates.IsInstalled(installed))throw new IOException("Taşınabilir kopya: resmi sürümü açın ve çıktıktan sonra taşınabilir dosyalarınızı elle değiştirin.");
         string setup=Path.Combine(Folder,"Centik-Setup.exe");
-        if(!string.Equals(setup,app.Updates.VerifiedSetup,StringComparison.OrdinalIgnoreCase))throw new IOException("Invalid update staging location.");
+        if(!string.Equals(setup,app.Updates.VerifiedSetup,StringComparison.OrdinalIgnoreCase))throw new IOException("Geçersiz güncelleme hazırlama konumu.");
         await System.Threading.Tasks.Task.Run(()=>{OfficialUpdates.VerifyFile(setup,app.Updates.VerifiedHash);OfficialUpdates.InspectSetup(setup,app.Updates.Available!.Version);});
         // Every fallible save happens before the helper starts and before shutdown.
         Flush(()=>app.FlushPreferenceEditors(),()=>app.Store.Save("preference-backup",app.Settings),()=>app.Store.Save("settings",app.Settings),()=>app.Store.Save("session",app.Session));
@@ -55,8 +55,8 @@ internal static class UpdateHandoff
         File.WriteAllText(Path.Combine(Folder,"handoff.json"),JsonSerializer.Serialize(data));
         string helper=Path.Combine(Folder,"Centik-UpdateHelper.exe");File.Copy(installed,helper,true);
         using var ready=new System.Threading.EventWaitHandle(false,System.Threading.EventResetMode.ManualReset,"Local\\Centik.UpdateReady."+process.Id);
-        _=Process.Start(new ProcessStartInfo(helper){UseShellExecute=false,CreateNoWindow=true,ArgumentList={"--update-handoff"}})??throw new IOException("Could not start updater helper.");
-        if(!await System.Threading.Tasks.Task.Run(()=>ready.WaitOne(15000)))throw new IOException("Updater did not confirm process identity. Your app remains open.");
+        _=Process.Start(new ProcessStartInfo(helper){UseShellExecute=false,CreateNoWindow=true,ArgumentList={"--update-handoff"}})??throw new IOException("Güncelleyici yardımcısı başlatılamadı.");
+        if(!await System.Threading.Tasks.Task.Run(()=>ready.WaitOne(15000)))throw new IOException("Güncelleyici işlem kimliğini doğrulamadı. Uygulamanız açık kalıyor.");
         app.Quit();
         }
         finally{End();}
@@ -65,29 +65,29 @@ internal static class UpdateHandoff
     internal static bool SameProcess(UpdateHandoffData data,int id,long started,string path)=>data.ProcessId==id && data.StartedUtcTicks==started && string.Equals(data.InstalledPath,path,StringComparison.OrdinalIgnoreCase) && OfficialUpdates.IsInstalled(path);
     internal static void Complete(Func<bool> wait,Action verify,Func<int> install)
     {
-        if(!wait())throw new IOException("Centik did not quit. Installation cancelled.");
-        verify();int result=install();if(result!=0)throw new IOException("Setup failed with exit code "+result+". Reopen your installed Centik; see install-error.txt.");
+        if(!wait())throw new IOException("Centik çıkmadı. Kurulum iptal edildi.");
+        verify();int result=install();if(result!=0)throw new IOException("Kurulum şu çıkış koduyla başarısız oldu: "+result+". Kurulu Centik'i yeniden açın; install-error.txt dosyasına bakın.");
     }
     internal static System.Version Validate(UpdateHandoffData data)
     {
-        if(!OfficialUpdates.IsInstalled(data.InstalledPath) || data.ProcessId<=0 || data.StartedUtcTicks<=0 || data.StartedUtcTicks>DateTime.UtcNow.AddMinutes(1).Ticks || !System.Text.RegularExpressions.Regex.IsMatch(data.Hash,"^[A-F0-9]{64}$") || !System.Text.RegularExpressions.Regex.IsMatch(data.Version,@"^\d+\.\d+\.\d+$") || !System.Version.TryParse(data.Version,out var version) || version<=OfficialUpdates.InstalledVersion)throw new IOException("Invalid update handoff.");
+        if(!OfficialUpdates.IsInstalled(data.InstalledPath) || data.ProcessId<=0 || data.StartedUtcTicks<=0 || data.StartedUtcTicks>DateTime.UtcNow.AddMinutes(1).Ticks || !System.Text.RegularExpressions.Regex.IsMatch(data.Hash,"^[A-F0-9]{64}$") || !System.Text.RegularExpressions.Regex.IsMatch(data.Version,@"^\d+\.\d+\.\d+$") || !System.Version.TryParse(data.Version,out var version) || version<=OfficialUpdates.InstalledVersion)throw new IOException("Geçersiz güncelleme devri.");
         return version;
     }
     internal static int Run()
     {
         try
         {
-            if(!string.Equals(Environment.ProcessPath,Path.Combine(Folder,"Centik-UpdateHelper.exe"),StringComparison.OrdinalIgnoreCase))throw new IOException("Invalid updater helper location.");
-            var data=JsonSerializer.Deserialize<UpdateHandoffData>(File.ReadAllText(Path.Combine(Folder,"handoff.json")))??throw new IOException("Missing update handoff.");
+            if(!string.Equals(Environment.ProcessPath,Path.Combine(Folder,"Centik-UpdateHelper.exe"),StringComparison.OrdinalIgnoreCase))throw new IOException("Geçersiz güncelleyici yardımcısı konumu.");
+            var data=JsonSerializer.Deserialize<UpdateHandoffData>(File.ReadAllText(Path.Combine(Folder,"handoff.json")))??throw new IOException("Güncelleme devri eksik.");
             var version=Validate(data);
             using(var parent=Process.GetProcessById(data.ProcessId))
             {
-                if(!SameProcess(data,parent.Id,parent.StartTime.ToUniversalTime().Ticks,parent.MainModule?.FileName??""))throw new IOException("Update process identity changed.");
+                if(!SameProcess(data,parent.Id,parent.StartTime.ToUniversalTime().Ticks,parent.MainModule?.FileName??""))throw new IOException("Güncelleme işlem kimliği değişti.");
                 using(var ready=System.Threading.EventWaitHandle.OpenExisting("Local\\Centik.UpdateReady."+data.ProcessId))ready.Set();
                 string setup=Path.Combine(Folder,"Centik-Setup.exe");
                 Complete(()=>parent.WaitForExit(120000),()=>{OfficialUpdates.VerifyFile(setup,data.Hash);OfficialUpdates.InspectSetup(setup,version);},()=>
                 {
-                    using var installer=Process.Start(new ProcessStartInfo(setup){UseShellExecute=true,ArgumentList={"--silent","--launch"}})??throw new IOException("Could not open setup.");
+                    using var installer=Process.Start(new ProcessStartInfo(setup){UseShellExecute=true,ArgumentList={"--silent","--launch"}})??throw new IOException("Kurulum açılamadı.");
                     installer.WaitForExit();return installer.ExitCode;
                 });
             }

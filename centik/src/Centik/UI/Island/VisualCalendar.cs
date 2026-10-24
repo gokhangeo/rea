@@ -14,8 +14,8 @@ public sealed partial class OverlayWindow
             var button=UI.Button(forward?"Next calendar month":"Previous calendar month",()=>{if(forward && calendarMonth.Year==9999 && calendarMonth.Month==12 || !forward && calendarMonth==DateTime.MinValue)return;calendarMonth=calendarMonth.AddMonths(forward?1:-1);calendarMonthExpanded=true;RefreshTools();});
             var icon=Icons.Create("chevron",9,UI.Muted);icon.RenderTransformOrigin=new(.5,.5);icon.RenderTransform=new RotateTransform(forward?-90:90);button.Content=icon;button.Width=26;button.MinHeight=30;button.Padding=new(6);button.Margin=new(0,0,4,0);button.Background=Brushes.Transparent;button.IsEnabled=forward?calendarMonth.Year<9999 || calendarMonth.Month<12:calendarMonth>DateTime.MinValue;return button;
         }
-        var today=UI.Button("Today",()=>{calendarDay=DateTime.Today;calendarMonth=new(calendarDay.Year,calendarDay.Month,1);calendarMonthExpanded=false;RefreshTools();});today.Padding=new(8,4,8,4);today.Margin=new(2,0,6,0);today.Background=Brushes.Transparent;today.MinHeight=30;today.FontSize=11;
-        var add=UI.Button("Add local event",()=>{calendarEditing=true;RefreshTools();});add.Content="Add event";add.MinHeight=30;add.Padding=new(10,4,10,4);add.Margin=new(0);add.FontSize=11;
+        var today=UI.Button("Bugün",()=>{calendarDay=DateTime.Today;calendarMonth=new(calendarDay.Year,calendarDay.Month,1);calendarMonthExpanded=false;RefreshTools();});today.Padding=new(8,4,8,4);today.Margin=new(2,0,6,0);today.Background=Brushes.Transparent;today.MinHeight=30;today.FontSize=11;
+        var add=UI.Button("Add local event",()=>{calendarEditing=true;RefreshTools();});add.Content="Etkinlik ekle";add.MinHeight=30;add.Padding=new(10,4,10,4);add.Margin=new(0);add.FontSize=11;
         return MinimalWidgets.Header(month,UI.Row(Arrow(false),Arrow(true),today,add));
     }
     private FrameworkElement CalendarWeek()
@@ -39,8 +39,8 @@ public sealed partial class OverlayWindow
         var labels=new StackPanel();var title=UI.Text(item.Title,12);title.TextWrapping=TextWrapping.Wrap;labels.Children.Add(title);
         string range=item.Start.LocalDateTime.Date==item.End.LocalDateTime.Date?item.Start.ToLocalTime().ToString("HH:mm")+" – "+item.End.ToLocalTime().ToString("HH:mm"):item.Start.ToLocalTime().ToString("MMM d, HH:mm")+" – "+item.End.ToLocalTime().ToString("MMM d, HH:mm");
         var duration=UI.Text(range,10,UI.Muted);duration.Margin=new(0,5,0,0);labels.Children.Add(duration);
-        if(item.MeetingUrl.Length>0){var join=UI.Button("Open meeting",()=>{try{ShortcutService.Open(new(){Target=item.MeetingUrl});}catch(Exception ex){app.Notify("Could not open meeting",ex.Message);}});join.FontSize=10;join.MinHeight=26;join.Padding=new(0,5,8,5);join.Background=Brushes.Transparent;join.HorizontalAlignment=HorizontalAlignment.Left;labels.Children.Add(join);}
+        if(item.MeetingUrl.Length>0){var join=UI.Button("Toplantıyı aç",()=>{try{ShortcutService.Open(new(){Target=item.MeetingUrl});}catch(Exception ex){app.Notify("Toplantı açılamadı",ex.Message);}});join.FontSize=10;join.MinHeight=26;join.Padding=new(0,5,8,5);join.Background=Brushes.Transparent;join.HorizontalAlignment=HorizontalAlignment.Left;labels.Children.Add(join);}
         Grid.SetColumn(labels,2);row.Children.Add(labels);
-        var remove=MinimalWidgets.More("Event actions · "+item.Title,("Delete event "+item.Title,()=>MutateUtility(()=>app.Calendar.Remove(item.Id))));remove.Margin=new(0);Grid.SetColumn(remove,3);row.Children.Add(remove);MinimalWidgets.Reveal(remove,row);return row;
+        var remove=MinimalWidgets.More("Etkinlik eylemleri · "+item.Title,("Etkinliği sil "+item.Title,()=>MutateUtility(()=>app.Calendar.Remove(item.Id))));remove.Margin=new(0);Grid.SetColumn(remove,3);row.Children.Add(remove);MinimalWidgets.Reveal(remove,row);return row;
     }
 }
