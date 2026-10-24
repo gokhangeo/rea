@@ -1,0 +1,57 @@
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+}
+
+def runNumber = System.getenv('GITHUB_RUN_NUMBER') ?: '1'
+
+android {
+    namespace 'com.gokhan.winkeeper'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'com.gokhan.winkeeper'
+        minSdk 26
+        targetSdk 34
+        versionCode runNumber.toInteger()
+        versionName "0.1.${runNumber}"
+    }
+
+    // Her sürüm aynı anahtarla imzalanır ki yeni APK eskisinin üstüne kurulabilsin.
+    // Anahtar depoda: winkeeper/android/winkeeper.jks (parola winkeeper).
+    def keystore = rootProject.file('winkeeper.jks')
+    def keystorePass = System.getenv('WINKEEPER_KEYSTORE_PASS') ?: 'winkeeper'
+    if (keystore.exists()) {
+        signingConfigs {
+            wk {
+                storeFile keystore
+                storePassword keystorePass
+                keyAlias 'winkeeper'
+                keyPassword keystorePass
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.findByName('wk') ?: signingConfigs.debug
+        }
+    }
+
+    lint {
+        abortOnError false
+        checkReleaseBuilds false
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+kotlin {
+    jvmToolchain 17
+}

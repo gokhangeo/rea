@@ -61,6 +61,7 @@ input.search:focus { border-color: var(--accent); }
 .bg-uninstall { background: radial-gradient(1200px 700px at 50% 40%, #6b1e14 0%, #3a0f0c 40%, #1d0a0a 80%); }
 .bg-optimize { background: radial-gradient(1200px 700px at 50% 40%, #5c4413 0%, #33260b 40%, #1a1407 80%); }
 .bg-analyze { background: radial-gradient(1200px 700px at 50% 40%, #0f5a52 0%, #0a3330 40%, #061b1a 80%); }
+.bg-startup { background: radial-gradient(1200px 700px at 50% 40%, #5a2460 0%, #331437 40%, #1c0f1f 80%); }
 .bg-status { background: radial-gradient(1200px 700px at 50% 30%, #4d2a12 0%, #2a1a10 40%, #15100c 80%); }
 .stars { position: absolute; inset: 0; pointer-events: none; opacity: .5;
   background-image: radial-gradient(1px 1px at 12% 18%, #fff, transparent), radial-gradient(1px 1px at 72% 12%, #fff, transparent),
@@ -83,6 +84,7 @@ input.search:focus { border-color: var(--accent); }
 .p-mars { background: radial-gradient(circle at 35% 35%, #f0a36b, #b4441f 60%, #3d0f08); }
 .p-mercury { background: radial-gradient(circle at 35% 35%, #fff1c9, #c39a52 60%, #3a2c14); }
 .p-jupiter { background: repeating-linear-gradient(0deg, #bfe8d4 0 2px, #1f6f63 2px 4px); }
+.p-venus { background: radial-gradient(circle at 35% 35%, #fff0f6, #c27bb8 60%, #3b1640); }
 .p-sun { background: radial-gradient(circle, #fff4c4, #ffa531 55%, #ec6a17); box-shadow: 0 0 6px #ffa531; }
 
 .stage { position: relative; z-index: 1; flex: 1; min-height: 0; }
@@ -344,3 +346,13 @@ tr:hover .kill { opacity: 1; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
+
+/* ---------- Başlangıç ---------- */
+.startup-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding-bottom: 10px; }
+.startup-bar .seg { margin: 0; }
+.startup .startup-row { cursor: pointer; }
+.startup .startup-row.head { background: transparent; border-color: transparent; padding: 4px 16px; margin-bottom: 2px; cursor: default; }
+.startup .startup-row.sel { border-color: color-mix(in srgb, var(--accent) 55%, transparent); background: color-mix(in srgb, var(--accent) 8%, var(--glass)); }
+.startup .startup-row .tags { flex: none; justify-content: flex-end; max-width: 260px; }
+.row-actions { display: flex; gap: 4px; opacity: 0; transition: opacity .2s; }
+.startup-row:hover .row-actions { opacity: 1; }

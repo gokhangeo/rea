@@ -59,7 +59,8 @@ object Updater {
         p.edit().putLong("checkedAt", now).apply()
         Thread {
             try {
-                if (refresh(c)) main.post(onReady)
+                // Kutu Kurucu'nun sessiz kurulumu hazırsa güncellemeyi o pencere açmadan kurar; soru sorulmaz.
+                if (refresh(c) && !kutuKurucuSessizKurar()) main.post(onReady)
             } catch (e: Exception) {
                 Log.w(TAG, "güncelleme denetlenemedi", e)
             } finally {
@@ -67,6 +68,24 @@ object Updater {
             }
         }.start()
     }
+
+    /** Kutu Kurucu (127.0.0.1:8090) sessiz kurulum hazırsa ona "şimdi güncelle" der ve true döner. */
+    private fun kutuKurucuSessizKurar(): Boolean = runCatching {
+        fun istek(yol: String, post: Boolean): String {
+            val b = java.net.URL("http://127.0.0.1:8090$yol").openConnection() as java.net.HttpURLConnection
+            b.connectTimeout = 2_000
+            b.readTimeout = 5_000
+            if (post) { b.requestMethod = "POST"; b.doOutput = true; b.outputStream.close() }
+            try {
+                return if (b.responseCode == 200) b.inputStream.bufferedReader().readText() else ""
+            } finally {
+                b.disconnect()
+            }
+        }
+        val d = org.json.JSONObject(istek("/api/sessiz", false).ifEmpty { return false })
+        if (!d.optBoolean("acik") || d.optString("durum") != "hazir") return false
+        istek("/api/sessiz-guncelle", true).isNotEmpty()
+    }.getOrDefault(false)
 
     /** Kurulmayı bekleyen sürüm; yoksa, ertelendiyse ya da zaten kuruluysa null. */
     @JvmStatic

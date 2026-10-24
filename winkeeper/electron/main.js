@@ -5,6 +5,7 @@ const uninstall = require('./modules/uninstall');
 const optimize = require('./modules/optimize');
 const analyze = require('./modules/analyze');
 const status = require('./modules/status');
+const startup = require('./modules/startup');
 
 let win;
 
@@ -50,8 +51,14 @@ ipcMain.handle('uninstall:reveal', (_e, id) => uninstall.reveal(id));
 
 ipcMain.handle('optimize:list', () => optimize.list());
 ipcMain.handle('optimize:run', (e, ids) => optimize.runMany(ids, (u) => e.sender.send('optimize:update', u)));
-ipcMain.handle('startup:list', () => optimize.startupList());
-ipcMain.handle('startup:set', (_e, id, on) => optimize.startupSet(id, on));
+
+ipcMain.handle('startup:list', () => startup.list());
+ipcMain.handle('startup:set', (_e, id, on) => startup.set(id, on));
+ipcMain.handle('startup:setMany', (_e, ids, on) => startup.setMany(ids, on));
+ipcMain.handle('startup:remove', (_e, id) => startup.remove(id));
+ipcMain.handle('startup:add', () => startup.add(win));
+ipcMain.handle('startup:reveal', (_e, id) => startup.reveal(id));
+ipcMain.handle('startup:openFolder', () => startup.openFolder());
 
 ipcMain.handle('analyze:drives', () => analyze.drives());
 ipcMain.handle('analyze:pick', async () => {

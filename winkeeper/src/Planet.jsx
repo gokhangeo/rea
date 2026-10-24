@@ -64,6 +64,13 @@ export const PLANETS = {
       return ramp(S([[0, '#0c3533'], [0.3, '#17584f'], [0.55, '#2f8f7c'], [0.78, '#79c9ad'], [1, '#b9e6d2']]), b * 0.85 + (n - 0.5) * 0.3);
     },
   },
+  venus: {
+    seed: 31, scale: 1.9, clouds: true, glow: '#f0a6e0',
+    color: (n, lat) => {
+      const b = 0.5 + 0.5 * Math.sin(lat * 4 + (n - 0.5) * 9);
+      return ramp(S([[0, '#3b1640'], [0.35, '#7a3b7c'], [0.6, '#c27bb8'], [0.82, '#efc3dd'], [1, '#fff0f6']]), b * 0.7 + n * 0.3);
+    },
+  },
   sun: {
     seed: 41, scale: 4, emissive: true, glow: '#ff9a3c',
     color: (n) => ramp(S([[0, '#b8360b'], [0.4, '#ec6a17'], [0.6, '#ffa531'], [0.8, '#ffd76a'], [1, '#fff4c4']]), n),

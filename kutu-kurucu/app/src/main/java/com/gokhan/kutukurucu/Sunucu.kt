@@ -42,6 +42,19 @@ class Sunucu(private val c: Context) : NanoHTTPD(PORT) {
         return when (uri) {
             "/api/kontrol" -> json(JSONObject().put("ok", true))
             "/api/kutular" -> json(JSONObject().put("kutular", Kutular.liste(c, s.parameters["yenile"]?.firstOrNull() == "1")))
+            "/api/sessiz" -> {
+                if (post) {
+                    val ac = s.parameters["ac"]?.firstOrNull() != "0"
+                    Sessiz.acikAyarla(c, ac)
+                    if (ac) Thread { Sessiz.dene(c) }.start()
+                }
+                json(Sessiz.json(c))
+            }
+            "/api/sessiz-guncelle" -> {
+                if (!post) return metin(Response.Status.METHOD_NOT_ALLOWED, "")
+                Thread { runCatching { Sessiz.guncelle(c) } }.start()
+                tamam()
+            }
             "/api/kodsuz" -> {
                 if (!post) return metin(Response.Status.METHOD_NOT_ALLOWED, "")
                 kodsuzAyarla(c, s.parameters["ac"]?.firstOrNull() != "0")
@@ -56,7 +69,8 @@ class Sunucu(private val c: Context) : NanoHTTPD(PORT) {
                     .put("izinler", Izinler.json(c))
                     .put("isler", Kurucu.liste())
                     .put("yeniSurum", Kurucu.bilinenYeni)
-                    .put("kodsuz", kodsuz(c)),
+                    .put("kodsuz", kodsuz(c))
+                    .put("sessiz", Sessiz.json(c)),
             )
             "/api/kur" -> {
                 if (!post) return metin(Response.Status.METHOD_NOT_ALLOWED, "")

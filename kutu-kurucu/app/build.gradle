@@ -55,4 +55,5 @@ kotlin {
 
 dependencies {
     implementation 'org.nanohttpd:nanohttpd:2.3.1'
+    implementation 'dev.mobile:dadb:1.2.10'
 }

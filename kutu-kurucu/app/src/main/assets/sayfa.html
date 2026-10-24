@@ -168,6 +168,7 @@
       <div class="satir" style="margin-top:12px">
         <button class="ikinci" id="kaldirBtn" style="border-color:var(--kirmizi);color:var(--kirmizi)">Kutu Kurucu'yu kaldır</button>
       </div>
+      <label class="secim" style="margin-top:12px"><input type="checkbox" id="sessiz"><span><b>Sessiz kurulum</b> (Ev Ekranı ve Kutu Kurucu güncellemeleri soru sormadan kurulur) <span id="sessizDurum" class="alt"></span></span></label>
       <label class="secim" style="margin-top:12px"><input type="checkbox" id="kodsuz"><span><b>Evdeki ağda kod sorma</b> (aynı Wi-Fi'deki telefon ve kutular kodsuz girer)</span></label>
       <p class="uyari" id="kaldirUyari">Yeni sürüm "başka anahtarla imzalı" diye kurulmuyorsa önce eski sürüm kaldırılır. Kaldırma TV'de onay ister; onaydan sonra bu panel kapanır ve yeni APK'yı yeniden kurmanız gerekir.</p>
     </section>
@@ -233,6 +234,11 @@ $('kodsuz').onchange = async () => {
   try { await api('/api/kodsuz?ac=' + ($('kodsuz').checked ? '1' : '0'), { method: 'POST' }); }
   catch (e) { if (e.message !== 'kod') alert(e.message); }
 };
+$('sessiz').onchange = async () => {
+  try { await api('/api/sessiz?ac=' + ($('sessiz').checked ? '1' : '0'), { method: 'POST' }); }
+  catch (e) { if (e.message !== 'kod') alert(e.message); }
+};
+const SESSIZ = { hazir: '✔ hazır', izin: "TV'deki soruda \"Her zaman izin ver\"i işaretleyip Tamam'a basın", kapali: '✘ çalışmıyor', bilinmiyor: 'deneniyor…' };
 $('girBtn').onclick = () => gir(false);
 $('kod').addEventListener('keydown', e => { if (e.key === 'Enter') gir(false); });
 
@@ -241,6 +247,10 @@ async function durum() {
     const d = await api('/api/durum');
     $('cihaz').textContent = d.cihaz + ' · Android ' + d.android + (d.adres ? ' · ' + d.adres : '');
     $('kodsuz').checked = d.kodsuz !== false;
+    if (d.sessiz) {
+      $('sessiz').checked = d.sessiz.acik;
+      $('sessizDurum').textContent = d.sessiz.acik ? '· ' + (SESSIZ[d.sessiz.durum] || d.sessiz.durum) + (d.sessiz.durum === 'kapali' && d.sessiz.mesaj ? ' (' + d.sessiz.mesaj + ')' : '') : '';
+    }
     $('surum').innerHTML = 'Sürüm ' + esc(d.surum) + (d.yeniSurum ? ' <span class="yeni">1.' + d.yeniSurum + ' hazır</span>' : '');
     const i = d.izinler, s = [];
     s.push((i.yukleme ? '✔' : '✘') + ' Uygulama yükleme izni');

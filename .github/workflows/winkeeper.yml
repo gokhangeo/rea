@@ -1,0 +1,55 @@
+name: WinKeeper Windows
+
+on:
+  push:
+    paths:
+      - "winkeeper/**"
+      - "!winkeeper/android/**"
+      - ".github/workflows/winkeeper.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  derle:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: winkeeper
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Bağımlılıkları kur
+        run: npm ci
+      - name: Derle
+        shell: bash
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+        run: npm run dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: WinKeeper-windows
+          path: |
+            winkeeper/release/*.exe
+            winkeeper/release/*.zip
+          if-no-files-found: error
+      - name: Sürüm notu
+        shell: bash
+        run: |
+          git log -1 --format=%s > notlar.txt
+          echo "" >> notlar.txt
+          echo "Windows bakım aracı. Kurulum: WinKeeper-Kurulum-*.exe, kurulumsuz: WinKeeper-Tasinabilir-*.exe. Android sürümü ayrı yayında (winkeeper-android-v...)." >> notlar.txt
+      - name: Sürüm yayınla (yalnızca main)
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: winkeeper-v0.4.${{ github.run_number }}
+          name: WinKeeper 0.4.${{ github.run_number }} (Windows)
+          make_latest: false
+          files: |
+            winkeeper/release/*.exe
+            winkeeper/release/*.zip
+          body_path: winkeeper/notlar.txt

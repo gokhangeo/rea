@@ -1,0 +1,62 @@
+name: WinKeeper Android APK
+
+on:
+  push:
+    paths:
+      - "winkeeper/android/**"
+      - ".github/workflows/winkeeper-android.yml"
+  workflow_dispatch:
+  # İmza anahtarı depoda: winkeeper/android/winkeeper.jks (parola winkeeper). Her sürüm aynı
+  # anahtarla imzalanır, yeni APK eskisinin üstüne kurulur.
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  derle:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: winkeeper/android
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+      - name: APK derle
+        run: |
+          chmod +x gradlew
+          set -o pipefail
+          ./gradlew --no-daemon assembleRelease 2>&1 | tee derleme.log
+      - name: Derleme hatasını bildir
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          { echo "Çalışma: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"; echo; echo '```'; grep -E "^e:|error|FAILURE|What went wrong" -A3 derleme.log | head -c 20000; echo; echo "--- son satırlar ---"; tail -c 25000 derleme.log; echo '```'; } > hata.md
+          gh issue create --repo "${{ github.repository }}" --title "WinKeeper Android derleme hatası #${{ github.run_number }}" --body-file hata.md
+      - name: APK adını düzenle
+        run: |
+          cp app/build/outputs/apk/release/app-release.apk "WinKeeper-Android-0.1.${GITHUB_RUN_NUMBER}.apk"
+          "$JAVA_HOME/bin/keytool" -list -keystore winkeeper.jks -storepass winkeeper | grep -m1 SHA256 || true
+      - name: Sürüm notu
+        run: |
+          git log -1 --format=%s > notlar.txt
+          echo "" >> notlar.txt
+          echo "WinKeeper'ın Android telefon ve tablet sürümü: Temizle, Kaldır, Başlangıç, Analiz, Durum. APK'yı telefona indirip açın; ilk kurulumda 'bilinmeyen kaynaklardan yükleme' izni istenir." >> notlar.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: WinKeeper-Android-apk
+          path: winkeeper/android/WinKeeper-Android-*.apk
+      - name: Sürüm yayınla (yalnızca main)
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: winkeeper-android-v0.1.${{ github.run_number }}
+          name: WinKeeper Android 0.1.${{ github.run_number }}
+          make_latest: false
+          files: winkeeper/android/WinKeeper-Android-*.apk
+          body_path: winkeeper/android/notlar.txt

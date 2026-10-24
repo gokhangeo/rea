@@ -15,7 +15,10 @@ contextBridge.exposeInMainWorld('api', {
     trash: call('uninstall:trash'), reveal: call('uninstall:reveal'),
   },
   optimize: { list: call('optimize:list'), run: call('optimize:run'), onUpdate: listen('optimize:update') },
-  startup: { list: call('startup:list'), set: call('startup:set'), openSettings: call('sys:openStartupSettings') },
+  startup: {
+    list: call('startup:list'), set: call('startup:set'), setMany: call('startup:setMany'), remove: call('startup:remove'),
+    add: call('startup:add'), reveal: call('startup:reveal'), openFolder: call('startup:openFolder'), openSettings: call('sys:openStartupSettings'),
+  },
   analyze: {
     drives: call('analyze:drives'), pick: call('analyze:pick'), scan: call('analyze:scan'), cancel: call('analyze:cancel'),
     node: call('analyze:node'), summary: call('analyze:summary'), reveal: call('analyze:reveal'), open: call('analyze:open'),

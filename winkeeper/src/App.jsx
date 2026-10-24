@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import Clean from './pages/Clean.jsx';
 import Uninstall from './pages/Uninstall.jsx';
 import Optimize from './pages/Optimize.jsx';
+import Startup from './pages/Startup.jsx';
 import Analyze from './pages/Analyze.jsx';
 import Status from './pages/Status.jsx';
 
@@ -9,6 +10,7 @@ export const THEMES = {
   clean: { name: 'Temizle', planet: 'earth', top: '#0b1226', accent: '#7cc4ff', C: Clean },
   uninstall: { name: 'Kaldır', planet: 'mars', top: '#1d0a0a', accent: '#ff8a6b', C: Uninstall },
   optimize: { name: 'Optimize', planet: 'mercury', top: '#1a1407', accent: '#ffcf6e', C: Optimize },
+  startup: { name: 'Başlangıç', planet: 'venus', top: '#1c0f1f', accent: '#f0a6e0', C: Startup },
   analyze: { name: 'Analiz', planet: 'jupiter', top: '#061b1a', accent: '#6ee0c2', C: Analyze },
   status: { name: 'Durum', planet: 'sun', top: '#15100c', accent: '#ffa24c', C: Status },
 };
@@ -27,7 +29,7 @@ export default function App() {
   useEffect(() => {
     window.api.theme(THEMES[active].top);
     const onKey = (e) => {
-      if (e.ctrlKey && e.key >= '1' && e.key <= '5') setActive(IDS[Number(e.key) - 1]);
+      if (e.ctrlKey && e.key >= '1' && e.key <= String(IDS.length)) setActive(IDS[Number(e.key) - 1]);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);

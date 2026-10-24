@@ -1,18 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
 import Planet from '../Planet.jsx';
-import { Hero, Toggle, Check, Toast, useConfirm } from '../ui.jsx';
+import { Hero, Check, Toast, useConfirm } from '../ui.jsx';
 
 const STATE = { running: 'Çalışıyor', ok: 'Tamam', fail: 'Başarısız' };
 
 export default function Optimize({ active, theme }) {
   const [phase, setPhase] = useState('hero');
-  const [tab, setTab] = useState('tasks');
   const [tasks, setTasks] = useState([]);
   const [sel, setSel] = useState(new Set());
   const [state, setState] = useState({});
   const [out, setOut] = useState({});
   const [busy, setBusy] = useState(false);
-  const [startup, setStartup] = useState(null);
   const [toast, setToast] = useState(null);
   const [ask, confirmEl] = useConfirm();
 
@@ -23,8 +21,6 @@ export default function Optimize({ active, theme }) {
       if (u.output != null) setOut((o) => ({ ...o, [u.id]: u.output }));
     });
   }, []);
-
-  useEffect(() => { if (tab === 'startup' && !startup) window.api.startup.list().then(setStartup); }, [tab]);
 
   const groups = useMemo(() => {
     const g = new Map();
@@ -52,13 +48,6 @@ export default function Optimize({ active, theme }) {
     setToast({ text: `${okN}/${res.length} görev başarıyla tamamlandı.`, type: okN === res.length ? 'ok' : 'err' });
   }
 
-  async function setStart(item, on) {
-    setStartup((s) => s.map((x) => (x.id === item.id ? { ...x, state: on ? 'on' : 'off', pending: true } : x)));
-    const r = await window.api.startup.set(item.id, on);
-    setStartup((s) => s.map((x) => (x.id === item.id ? { ...x, state: r.ok ? (on ? 'on' : 'off') : item.state, pending: false } : x)));
-    if (!r.ok) setToast({ text: 'Değişiklik uygulanamadı.', type: 'err' });
-  }
-
   if (phase === 'hero') {
     return <Hero planet={theme.planet} active={active} lines={['En yakın yörünge, en hızlı tur.', 'Küçük bakımlar, akıcı bir sistem.']}
       cta="Bakıma başla" onCta={() => setPhase('list')} />;
@@ -76,14 +65,9 @@ export default function Optimize({ active, theme }) {
           <small>Yönetici gerektirenler tek bir onayla birlikte çalışır.</small>
         </div>
         <div className="spacer" />
-        <div className="seg">
-          <button className={tab === 'tasks' ? 'on' : ''} onClick={() => setTab('tasks')}>Bakım görevleri</button>
-          <button className={tab === 'startup' ? 'on' : ''} onClick={() => setTab('startup')}>Başlangıç uygulamaları</button>
-        </div>
       </div>
 
-      {tab === 'tasks' && (
-        <>
+      <>
           <div className="scroll-area">
             {groups.map(([g, list], gi) => (
               <div key={g} className="group">
@@ -118,32 +102,7 @@ export default function Optimize({ active, theme }) {
             <button className="ghost" disabled={busy} onClick={() => setSel(new Set())}>Hiçbiri</button>
             <button className="pill" onClick={run} disabled={busy || !sel.size}>{busy ? 'Çalışıyor…' : `${sel.size} görevi çalıştır`}</button>
           </div>
-        </>
-      )}
-
-      {tab === 'startup' && (
-        <div className="scroll-area">
-          {!startup && <div className="empty">Başlangıç öğeleri okunuyor…</div>}
-          {startup && (
-            <div className="group">
-              <h4>Windows açılırken başlayanlar · {startup.filter((s) => s.state === 'on').length} etkin</h4>
-              {startup.map((s, i) => (
-                <div key={s.id} className={`startup-row stagger ${s.state}`} style={{ '--i': i }}>
-                  <div className="grow">
-                    <b>{s.name}</b>
-                    <small className="path" title={s.command}>{s.command}</small>
-                  </div>
-                  <span className="tag soft">{s.source}</span>
-                  {s.admin && <span className="tag">Yönetici</span>}
-                  <Toggle on={s.state === 'on'} disabled={s.pending} onChange={(on) => setStart(s, on)} />
-                </div>
-              ))}
-              {startup.length === 0 && <div className="empty small">Başlangıç öğesi bulunamadı.</div>}
-              <button className="ghost" onClick={() => window.api.startup.openSettings()}>Windows ayarlarında aç</button>
-            </div>
-          )}
-        </div>
-      )}
+      </>
       <Toast msg={toast} onDone={() => setToast(null)} />
       {confirmEl}
     </div>

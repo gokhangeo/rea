@@ -17,7 +17,7 @@ import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * APK kurulumu: telefondan/PC'den gelen dosya ya da bir bağlantı Android'in yükleyicisine verilir. Kurulum her zaman
- * TV'de Android'in kendi "Yükle" penceresiyle onaylanır; sessiz kurulum yoktur. Sayfa her işin durumunu buradan okur.
+ * TV'de Android'in kendi "Yükle" penceresiyle onaylanır; Sessiz kurulum hazırsa (Sessiz.kt) pencere açılmaz. Sayfa her işin durumunu buradan okur.
  */
 object Kurucu {
     private const val TAG = "KutuKurucu"
@@ -63,6 +63,18 @@ object Kurucu {
     /** Sayfadan gelen dosyayı doğrudan yükleyiciye akıtır; ara dosya yazılmaz. [uzunluk] bilinmiyorsa -1. */
     fun akistan(c: Context, ad: String, girdi: InputStream, uzunluk: Long): Is {
         val i = yeni(ad)
+        if (Sessiz.hazir(c)) {
+            val dosya = File(c.cacheDir, "gelen-${i.id}.apk")
+            try {
+                dosya.outputStream().use { girdi.copyTo(it, 64 * 1024) }
+                sessizVeyaNormal(c, i, dosya)
+            } catch (e: Exception) {
+                hata(i, e)
+            } finally {
+                dosya.delete()
+            }
+            return i
+        }
         try {
             kur(c, i, girdi, uzunluk)
         } catch (e: Exception) {
@@ -80,7 +92,7 @@ object Kurucu {
                 i.durum = "indiriliyor"
                 val apkUrl = githubApk(url) ?: url
                 indir(apkUrl, dosya)
-                dosya.inputStream().use { kur(c, i, it, dosya.length()) }
+                sessizVeyaNormal(c, i, dosya)
             } catch (e: Exception) {
                 hata(i, e)
             } finally {
@@ -134,6 +146,25 @@ object Kurucu {
         return baglantidan(c, url, "Kutu Kurucu 1.$en")
     }
 
+    /** Sessiz kurulum hazırsa pencere açmadan kurar; olmazsa Android'in Yükle penceresine düşer. */
+    private fun sessizVeyaNormal(c: Context, i: Is, dosya: File) {
+        if (Sessiz.hazir(c)) {
+            i.durum = "hazirlaniyor"
+            val hata = Sessiz.kur(c, dosya)
+            if (hata == null) {
+                i.durum = "kuruldu"; i.mesaj = "sessiz kuruldu"
+                return
+            }
+            if (hata.contains("INSTALL_FAILED_UPDATE_INCOMPATIBLE") || hata.contains("INCONSISTENT_CERTIFICATES") ||
+                hata.contains("VERSION_DOWNGRADE")) {
+                i.durum = "hata"; i.cakisma = true; i.mesaj = hata
+                return
+            }
+            Log.w(TAG, "sessiz kurulamadı, pencereyle denenecek: $hata")
+        }
+        dosya.inputStream().use { kur(c, i, it, dosya.length()) }
+    }
+
     private fun kur(c: Context, i: Is, girdi: InputStream, uzunluk: Long) {
         i.durum = "hazirlaniyor"
         val yukleyici = c.packageManager.packageInstaller
@@ -180,7 +211,7 @@ object Kurucu {
         return apkVarligi(JSONObject(getir(api))) ?: error("bu sürümde APK yok")
     }
 
-    private fun apkVarligi(surum: JSONObject): String? {
+    fun apkVarligi(surum: JSONObject): String? {
         val v = surum.optJSONArray("assets") ?: return null
         for (k in 0 until v.length()) {
             val a = v.getJSONObject(k)
@@ -198,7 +229,7 @@ object Kurucu {
         ek(it)
     }
 
-    private fun getir(url: String): String {
+    fun getir(url: String): String {
         val b = baglan(url) { it.setRequestProperty("Accept", "application/vnd.github+json") }
         try {
             if (b.responseCode != 200) error("GitHub cevap vermedi (HTTP ${b.responseCode})")
@@ -208,7 +239,7 @@ object Kurucu {
         }
     }
 
-    private fun indir(url: String, dosya: File) {
+    fun indir(url: String, dosya: File) {
         var adres = url
         // HttpURLConnection http↔https yönlendirmesini kendisi izlemez.
         repeat(5) {

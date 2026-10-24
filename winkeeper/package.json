@@ -1,9 +1,9 @@
 {
   "name": "winkeeper",
   "productName": "WinKeeper",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "author": "WinKeeper",
-  "description": "Windows bakım aracı: temizle, kaldır, optimize et, analiz et, durum",
+  "description": "Windows bakım aracı: temizle, kaldır, optimize et, başlangıç, analiz et, durum",
   "main": "electron/main.js",
   "private": true,
   "scripts": {

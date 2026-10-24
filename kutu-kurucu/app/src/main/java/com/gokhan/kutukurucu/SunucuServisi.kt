@@ -45,6 +45,14 @@ class SunucuServisi : Service() {
                 ana.postDelayed(this, 20_000)
             }
         })
+        // Sessiz kurulum: açılıştan 40 sn sonra bağlantı denenir, sonra 30 dakikada bir Ev Ekranı/Kutu Kurucu güncellenir.
+        ana.postDelayed(object : Runnable {
+            override fun run() {
+                val c = applicationContext
+                Thread { runCatching { Sessiz.guncelle(c) } }.start()
+                ana.postDelayed(this, 30 * 60_000L)
+            }
+        }, 40_000)
         // Yeni Kutu Kurucu sürümü: açılıştan 2 dk sonra, sonra 6 saatte bir bakılır.
         ana.postDelayed(object : Runnable {
             override fun run() {

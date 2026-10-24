@@ -1,0 +1,758 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>WinKeeper</title>
+<style>
+:root {
+  --text: #eef1f7; --muted: #9aa3b5; --faint: #6b7385;
+  --glass: rgba(255,255,255,.05); --glass2: rgba(255,255,255,.09); --line: rgba(255,255,255,.1); --track: rgba(255,255,255,.1);
+  --danger: #ff6b6b; --ok: #6ee0a0; --warn: #ffcf6e;
+  --serif: Georgia, "Noto Serif", serif; --ease: cubic-bezier(.2,.8,.2,1);
+  --accent: #7cc4ff; --nav: 64px;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; margin: 0; overflow: hidden; }
+body { background: #0b1226; color: var(--text); font: 15px/1.45 system-ui, "Roboto", sans-serif; -webkit-font-smoothing: antialiased; user-select: none; -webkit-user-select: none; }
+small { color: var(--muted); display: block; font-size: 12.5px; }
+b { font-weight: 600; }
+h4 { margin: 20px 0 8px; font-size: 11px; letter-spacing: 1.4px; text-transform: uppercase; color: var(--faint); font-weight: 600; }
+.muted { color: var(--faint); }
+.ell { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+button, select, input { font: inherit; color: var(--text); }
+button { background: var(--glass); border: 1px solid var(--line); border-radius: 999px; padding: 9px 16px; cursor: pointer; transition: transform .15s var(--ease), background .2s, opacity .2s; }
+button:active:not(:disabled) { transform: scale(.96); background: var(--glass2); }
+button:disabled { opacity: .45; }
+button.sm { padding: 6px 12px; font-size: 13px; }
+button.ghost { background: transparent; }
+button.danger { color: var(--danger); }
+.pill { background: #fff; color: #0d1220; border: 0; font-weight: 600; padding: 13px 28px; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+.pill.danger { background: var(--danger); color: #fff; }
+input.search { background: var(--glass); border: 1px solid var(--line); border-radius: 999px; padding: 9px 16px; outline: none; width: 100%; }
+input.search:focus { border-color: var(--accent); }
+select { background: var(--glass); border: 1px solid var(--line); border-radius: 999px; padding: 8px 12px; }
+select option { background: #1a1f2b; }
+
+/* kabuk */
+.app { position: relative; height: 100%; display: flex; flex-direction: column; }
+.bg { position: absolute; inset: 0; opacity: 0; transition: opacity .9s ease; pointer-events: none; }
+.bg.on { opacity: 1; }
+.bg-clean { background: radial-gradient(900px 700px at 50% 35%, #1a3a7a 0%, #0f2152 35%, #0b1226 75%); }
+.bg-uninstall { background: radial-gradient(900px 700px at 50% 35%, #6b1e14 0%, #3a0f0c 40%, #1d0a0a 80%); }
+.bg-startup { background: radial-gradient(900px 700px at 50% 35%, #5a2460 0%, #331437 40%, #1c0f1f 80%); }
+.bg-analyze { background: radial-gradient(900px 700px at 50% 35%, #0f5a52 0%, #0a3330 40%, #061b1a 80%); }
+.bg-status { background: radial-gradient(900px 700px at 50% 30%, #4d2a12 0%, #2a1a10 40%, #15100c 80%); }
+.stars { position: absolute; inset: 0; pointer-events: none; opacity: .5;
+  background-image: radial-gradient(1px 1px at 12% 18%, #fff, transparent), radial-gradient(1px 1px at 72% 12%, #fff, transparent),
+    radial-gradient(1px 1px at 35% 78%, #fff, transparent), radial-gradient(1.5px 1.5px at 88% 64%, #fff, transparent),
+    radial-gradient(1px 1px at 55% 35%, #fff, transparent), radial-gradient(1px 1px at 8% 88%, #fff, transparent),
+    radial-gradient(1px 1px at 92% 30%, #fff, transparent), radial-gradient(1.5px 1.5px at 22% 52%, #fff, transparent); }
+.top { position: relative; z-index: 3; display: flex; align-items: center; gap: 10px; padding: 14px 18px 6px; flex: none; }
+.logo { display: flex; align-items: center; gap: 8px; font: 500 17px var(--serif); }
+.logo i { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 12px var(--accent); transition: background .6s; }
+.top .title { margin-left: auto; color: var(--muted); font-size: 13px; }
+.stage { position: relative; z-index: 1; flex: 1; min-height: 0; }
+.page { position: absolute; inset: 0; display: none; flex-direction: column; }
+.page.on { display: flex; animation: pageIn .45s var(--ease); }
+@keyframes pageIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+nav { position: relative; z-index: 4; flex: none; display: flex; height: var(--nav); padding: 6px 8px calc(6px + env(safe-area-inset-bottom)); background: rgba(8,10,18,.72); border-top: 1px solid var(--line); backdrop-filter: blur(14px); }
+nav button { flex: 1; border: 0; background: transparent; border-radius: 14px; padding: 4px 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 11.5px; color: var(--muted); }
+nav button.on { color: var(--text); background: rgba(255,255,255,.08); }
+.dot { width: 12px; height: 12px; border-radius: 50%; flex: none; }
+.p-earth { background: radial-gradient(circle at 35% 35%, #7fd0ff, #1a56a8 60%, #0b2a6b); }
+.p-mars { background: radial-gradient(circle at 35% 35%, #f0a36b, #b4441f 60%, #3d0f08); }
+.p-venus { background: radial-gradient(circle at 35% 35%, #fff0f6, #c27bb8 60%, #3b1640); }
+.p-jupiter { background: repeating-linear-gradient(0deg, #bfe8d4 0 2px, #1f6f63 2px 4px); }
+.p-sun { background: radial-gradient(circle, #fff4c4, #ffa531 55%, #ec6a17); box-shadow: 0 0 6px #ffa531; }
+nav button.on .dot { box-shadow: 0 0 10px var(--accent); }
+
+/* tablet: yan menü */
+@media (min-width: 720px) {
+  .app { flex-direction: row; flex-wrap: wrap; }
+  .top { width: 100%; padding: 16px 26px 4px; }
+  nav { order: -1; flex-direction: column; justify-content: flex-start; width: 96px; height: auto; padding: 70px 10px 20px; margin-top: -54px; border-top: 0; border-right: 1px solid var(--line); background: rgba(8,10,18,.4); gap: 6px; }
+  nav button { flex: none; height: 72px; font-size: 12px; }
+  .dot { width: 16px; height: 16px; }
+  .stage { height: calc(100% - 54px); flex: 1; }
+  .wrap { padding-left: 28px !important; padding-right: 28px !important; }
+  .grid2 { grid-template-columns: 1fr 1fr !important; }
+  .cards { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)) !important; }
+}
+
+/* gezegen ve karşılama */
+.planet { position: relative; border-radius: 50%; flex: none; }
+.planet::before { content: ""; position: absolute; inset: -18%; border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, var(--glow) 38%, transparent) 30%, transparent 68%); filter: blur(6px); z-index: -1; animation: breathe 5s ease-in-out infinite; }
+.planet canvas { display: block; border-radius: 50%; }
+@keyframes breathe { 0%,100% { opacity: .7; transform: scale(1); } 50% { opacity: 1; transform: scale(1.05); } }
+.hero { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 0 24px 30px; text-align: center; }
+.hero-planet { position: relative; display: grid; place-items: center; animation: floaty 7s ease-in-out infinite; }
+@keyframes floaty { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+.orbit { position: absolute; inset: -26px; border-radius: 50%; border: 1px dashed color-mix(in srgb, var(--accent) 45%, transparent); animation: spin 6s linear infinite; }
+.orbit i { position: absolute; top: -4px; left: 50%; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+@keyframes spin { to { transform: rotate(360deg); } }
+.tagline { margin: 6px 0 2px; font: italic 17px/1.55 var(--serif); color: #dfe5f1; opacity: .92; }
+.live { font: 15px system-ui; color: var(--text); }
+.hero .sub { color: var(--muted); font-size: 12.5px; max-width: 90%; }
+
+/* listeler */
+.wrap { flex: 1; min-height: 0; overflow: auto; padding: 4px 16px 120px; -webkit-overflow-scrolling: touch; }
+.head { display: flex; align-items: center; gap: 14px; padding: 6px 16px 10px; flex: none; }
+.headline { font: 400 26px/1.15 var(--serif); }
+.headline span { font: 14px system-ui; color: var(--muted); }
+.row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 16px; background: var(--glass); border: 1px solid var(--line); margin-bottom: 8px; }
+.row.sel { border-color: color-mix(in srgb, var(--accent) 55%, transparent); background: color-mix(in srgb, var(--accent) 9%, var(--glass)); }
+.row .grow { flex: 1; min-width: 0; }
+.icon { width: 40px; height: 40px; border-radius: 10px; flex: none; object-fit: contain; }
+.icon.letter { display: grid; place-items: center; font-weight: 700; color: #fff; }
+.tags { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 4px; }
+.tag { font-size: 10.5px; color: var(--warn); background: rgba(255,207,110,.1); border: 1px solid rgba(255,207,110,.25); border-radius: 6px; padding: 1px 7px; white-space: nowrap; }
+.tag.soft { color: var(--muted); background: var(--glass); border-color: var(--line); }
+.tag.ok { color: var(--ok); background: rgba(110,224,160,.1); border-color: rgba(110,224,160,.3); }
+.tag.bad { color: var(--danger); background: rgba(255,107,107,.1); border-color: rgba(255,107,107,.3); }
+.chips { display: flex; gap: 6px; overflow-x: auto; padding: 0 16px 10px; flex: none; scrollbar-width: none; }
+.chips::-webkit-scrollbar { display: none; }
+.chips button { white-space: nowrap; padding: 6px 13px; font-size: 13px; }
+.chips button.on { background: rgba(255,255,255,.9); color: #0d1220; border-color: transparent; }
+.tools { display: flex; gap: 8px; padding: 0 16px 10px; flex: none; align-items: center; }
+.check { width: 22px; height: 22px; padding: 0; border-radius: 7px; flex: none; display: grid; place-items: center; background: var(--glass); border: 1px solid var(--line); }
+.check svg { width: 15px; height: 15px; fill: none; stroke: #0d1220; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; opacity: 0; }
+.check.on { background: var(--accent); border-color: var(--accent); }
+.check.on svg { opacity: 1; }
+.empty { color: var(--muted); padding: 40px 10px; text-align: center; }
+.banner { display: flex; gap: 12px; align-items: center; padding: 14px; border-radius: 16px; margin: 0 16px 10px; background: color-mix(in srgb, var(--accent) 12%, rgba(0,0,0,.25)); border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); flex: none; }
+.banner .grow { flex: 1; font-size: 13.5px; }
+.note { padding: 12px 14px; border-radius: 14px; background: rgba(0,0,0,.22); border: 1px solid var(--line); color: var(--muted); font-size: 13px; margin-bottom: 10px; }
+.note b { color: var(--text); }
+.bar { height: 6px; border-radius: 6px; background: var(--track); overflow: hidden; margin-top: 6px; }
+.bar i { display: block; height: 100%; background: var(--accent); border-radius: 6px; transition: width .6s var(--ease); }
+.actionbar { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; padding: 7px 7px 7px 18px; border-radius: 999px; background: rgba(14,18,28,.82); border: 1px solid var(--line); backdrop-filter: blur(18px); box-shadow: 0 20px 50px rgba(0,0,0,.45); z-index: 5; white-space: nowrap; transition: transform .4s var(--ease), opacity .3s; max-width: calc(100% - 24px); }
+.actionbar.hidden { transform: translate(-50%, 160%); opacity: 0; pointer-events: none; }
+.actionbar > span { color: var(--muted); font-size: 13px; overflow: hidden; text-overflow: ellipsis; }
+.actionbar .pill { padding: 11px 20px; }
+.cat { border-radius: 16px; background: var(--glass); border: 1px solid var(--line); margin-bottom: 10px; overflow: hidden; }
+.cat-top { display: flex; align-items: center; gap: 12px; padding: 14px; }
+.cat-top .grow { flex: 1; min-width: 0; }
+.cat-size { font: 500 15px var(--serif); white-space: nowrap; }
+.files { border-top: 1px solid var(--line); max-height: 320px; overflow: auto; }
+.file { display: flex; align-items: center; gap: 10px; padding: 9px 14px; font-size: 13px; border-bottom: 1px solid rgba(255,255,255,.04); }
+.file .grow { flex: 1; min-width: 0; }
+.crumbs { display: flex; gap: 4px; align-items: center; overflow-x: auto; padding: 0 16px 10px; flex: none; font-size: 13px; color: var(--muted); white-space: nowrap; scrollbar-width: none; }
+.crumbs span { padding: 4px 8px; border-radius: 8px; background: var(--glass); }
+.crumbs span:last-child { color: var(--text); }
+.fbar { position: absolute; left: 0; top: 0; bottom: 0; background: color-mix(in srgb, var(--accent) 16%, transparent); border-radius: 16px; pointer-events: none; transition: width .6s var(--ease); }
+.row.rel { position: relative; overflow: hidden; }
+.row.rel > *:not(.fbar) { position: relative; }
+.fi { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; background: rgba(255,255,255,.07); flex: none; font-size: 17px; }
+.cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.card { padding: 14px; border-radius: 18px; background: var(--glass); border: 1px solid var(--line); display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.card.wide { grid-column: 1 / -1; }
+.card .big { font: 400 24px var(--serif); }
+.ring { position: relative; display: grid; place-items: center; }
+.ring svg { transform: rotate(-90deg); }
+.ring circle { transition: stroke-dashoffset .7s var(--ease); }
+.ring .lbl { position: absolute; font: 500 16px var(--serif); }
+.kv { display: flex; justify-content: space-between; gap: 10px; font-size: 13.5px; padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,.05); }
+.kv span:first-child { color: var(--muted); }
+.spark { width: 100%; height: 44px; display: block; }
+.sheet-back { position: fixed; inset: 0; z-index: 20; background: rgba(0,0,0,.5); backdrop-filter: blur(4px); display: flex; align-items: flex-end; justify-content: center; animation: fade .2s; }
+.sheet { width: 100%; max-width: 560px; max-height: 88%; overflow: auto; background: rgba(20,22,32,.97); border: 1px solid var(--line); border-radius: 24px 24px 0 0; padding: 22px 20px calc(22px + env(safe-area-inset-bottom)); animation: up .3s var(--ease); }
+@media (min-width: 720px) { .sheet-back { align-items: center; } .sheet { border-radius: 24px; } }
+.sheet h3 { margin: 0 0 8px; font: 500 20px var(--serif); }
+.sheet .acts { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; justify-content: flex-end; }
+@keyframes up { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes fade { from { opacity: 0; } }
+.toast { position: fixed; left: 50%; bottom: calc(var(--nav) + 80px); transform: translateX(-50%); z-index: 30; padding: 11px 18px; border-radius: 14px; background: rgba(14,18,28,.94); border: 1px solid var(--line); font-size: 13.5px; max-width: 90%; text-align: center; animation: up .3s var(--ease); }
+.toast.ok { border-color: rgba(110,224,160,.4); }
+.toast.err { border-color: rgba(255,107,107,.45); }
+.spin { display: inline-block; width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--line); border-top-color: var(--accent); animation: spin .8s linear infinite; vertical-align: -2px; }
+.stagger { animation: rise .45s var(--ease) both; animation-delay: calc(var(--i, 0) * 30ms); }
+@keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.grid2 { display: grid; grid-template-columns: 1fr; gap: 0 12px; }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <div class="bg bg-clean on"></div><div class="bg bg-uninstall"></div><div class="bg bg-startup"></div><div class="bg bg-analyze"></div><div class="bg bg-status"></div>
+  <div class="stars"></div>
+  <header class="top"><div class="logo"><i></i>WinKeeper</div><div class="title" id="title"></div></header>
+  <main class="stage" id="stage"></main>
+  <nav id="nav"></nav>
+</div>
+<script>
+'use strict';
+const A = window.Android;
+const $ = (s, el = document) => el.querySelector(s);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+function bytes(n) {
+  if (n == null || isNaN(n) || n < 0) return '—';
+  const u = ['B', 'KB', 'MB', 'GB', 'TB']; let i = 0;
+  while (n >= 1024 && i < u.length - 1) { n /= 1024; i++; }
+  return `${n.toFixed(i === 0 ? 0 : n < 10 ? 1 : 0)} ${u[i]}`;
+}
+function sure(sec) {
+  const d = Math.floor(sec / 86400), h = Math.floor((sec % 86400) / 3600), m = Math.floor((sec % 3600) / 60);
+  return d ? `${d} g ${h} sa` : h ? `${h} sa ${m} dk` : `${m} dk`;
+}
+const tarih = (t) => t ? new Date(t).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+const CHECK = '<svg viewBox="0 0 16 16"><path d="M3.5 8.5l3 3 6-7"/></svg>';
+
+// Kotlin köprüsü: uzun işler id ile döner.
+let seq = 0; const bekleyen = {}; const dinleyici = {};
+function cagir(ad, ...args) {
+  return new Promise((res, rej) => {
+    if (!A) return rej(new Error('Bu sayfa WinKeeper uygulaması içinde çalışır.'));
+    const id = ++seq; bekleyen[id] = { res, rej };
+    try { A[ad](id, ...args); } catch (e) { delete bekleyen[id]; rej(e); }
+  });
+}
+window.__done = (id, s) => {
+  const p = bekleyen[id]; if (!p) return; delete bekleyen[id];
+  let d; try { d = JSON.parse(s); } catch { d = { hata: 'Yanıt okunamadı' }; }
+  d && d.hata ? p.rej(new Error(d.hata)) : p.res(d);
+};
+window.__progress = (k, s) => { try { dinleyici[k] && dinleyici[k](JSON.parse(s)); } catch {} };
+const izin = () => { try { return JSON.parse(A.izinler()); } catch { return { dosya: false, kullanim: false }; } };
+
+function toast(text, type = '') {
+  document.querySelectorAll('.toast').forEach((t) => t.remove());
+  const t = document.createElement('div'); t.className = `toast ${type}`; t.textContent = text;
+  document.body.appendChild(t); setTimeout(() => t.remove(), 3500);
+}
+let sheetKapat = null;
+function sheet(html, bagla) {
+  kapatSheet();
+  const b = document.createElement('div'); b.className = 'sheet-back';
+  b.innerHTML = `<div class="sheet">${html}</div>`;
+  b.addEventListener('click', (e) => { if (e.target === b) kapatSheet(); });
+  document.body.appendChild(b);
+  sheetKapat = () => { b.remove(); sheetKapat = null; };
+  bagla && bagla(b.firstElementChild);
+}
+function kapatSheet() { if (sheetKapat) { sheetKapat(); return true; } return false; }
+function onayla({ baslik, metin, ok = 'Onayla', tehlike }) {
+  return new Promise((res) => {
+    let bitti = false;
+    sheet(`<h3>${esc(baslik)}</h3><div class="muted" style="color:var(--muted)">${metin}</div>
+      <div class="acts"><button class="ghost" data-x="0">Vazgeç</button><button class="pill ${tehlike ? 'danger' : ''}" data-x="1">${esc(ok)}</button></div>`,
+      (el) => el.querySelectorAll('[data-x]').forEach((b) => b.onclick = () => { bitti = true; kapatSheet(); res(b.dataset.x === '1'); }));
+    const eski = sheetKapat; sheetKapat = () => { eski(); if (!bitti) res(false); };
+  });
+}
+function harfIkon(ad, size = 40) {
+  const h = [...(ad || '?')].reduce((a, c) => a + c.charCodeAt(0), 0) % 360;
+  return `<span class="icon letter" style="width:${size}px;height:${size}px;background:hsl(${h} 40% 34%)">${esc((ad || '?')[0])}</span>`;
+}
+const ikon = (x) => x.ikon ? `<img class="icon" src="${x.ikon}" alt="">` : harfIkon(x.ad);
+
+/* ---------- Gezegen (masaüstündeki dönen gezegenin hafif sürümü) ---------- */
+function hash(x, y, z, s) { let h = (x * 374761393 + y * 668265263 + z * 2147483647 + s * 144665) | 0; h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967295; }
+function noise3(x, y, z, s) {
+  const xi = Math.floor(x), yi = Math.floor(y), zi = Math.floor(z), xf = x - xi, yf = y - yi, zf = z - zi;
+  const u = xf * xf * (3 - 2 * xf), v = yf * yf * (3 - 2 * yf), w = zf * zf * (3 - 2 * zf), L = (a, b, t) => a + (b - a) * t, c = (a, b, d) => hash(xi + a, yi + b, zi + d, s);
+  return L(L(L(c(0,0,0), c(1,0,0), u), L(c(0,1,0), c(1,1,0), u), v), L(L(c(0,0,1), c(1,0,1), u), L(c(0,1,1), c(1,1,1), u), v), w);
+}
+function fbm(x, y, z, s, o = 4) { let a = .5, f = 1, t = 0, n = 0; for (let i = 0; i < o; i++) { t += a * noise3(x * f, y * f, z * f, s + i * 17); n += a; a *= .5; f *= 2; } return t / n; }
+const hex = (h) => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+function ramp(st, t) { t = Math.max(0, Math.min(1, t)); for (let i = 1; i < st.length; i++) if (t <= st[i][0]) { const [t0, c0] = st[i - 1], [t1, c1] = st[i], k = (t - t0) / (t1 - t0 || 1); return [c0[0] + (c1[0] - c0[0]) * k, c0[1] + (c1[1] - c0[1]) * k, c0[2] + (c1[2] - c0[2]) * k]; } return st[st.length - 1][1]; }
+const S = (a) => a.map(([t, h]) => [t, hex(h)]);
+const PLANETS = {
+  earth: { seed: 3, scale: 2.2, clouds: true, glow: '#6fb6ff', color: (n, lat) => { if (Math.abs(lat) > 1.25 + (n - .5) * .4) return [236,242,248]; if (n < .5) return ramp(S([[0,'#0b2a6b'],[.42,'#1a56a8'],[.5,'#2f86c9']]), n); if (n < .52) return hex('#d9c78f'); return ramp(S([[.52,'#3f8f3a'],[.62,'#2d6b2a'],[.7,'#7a6a43'],[.8,'#bfb6a6']]), n); } },
+  mars: { seed: 11, scale: 2.6, glow: '#ff7a52', color: (n, lat) => Math.abs(lat) > 1.35 ? [240,220,210] : ramp(S([[0,'#3d0f08'],[.35,'#7a2512'],[.5,'#b4441f'],[.62,'#d9733c'],[.8,'#f0a36b']]), n) },
+  venus: { seed: 31, scale: 1.9, clouds: true, glow: '#f0a6e0', color: (n, lat) => { const b = .5 + .5 * Math.sin(lat * 4 + (n - .5) * 9); return ramp(S([[0,'#3b1640'],[.35,'#7a3b7c'],[.6,'#c27bb8'],[.82,'#efc3dd'],[1,'#fff0f6']]), b * .7 + n * .3); } },
+  jupiter: { seed: 7, scale: 1.6, bands: true, glow: '#7fe0c8', color: (n, lat) => { const b = .5 + .5 * Math.sin(lat * 9 + (n - .5) * 7); return ramp(S([[0,'#0c3533'],[.3,'#17584f'],[.55,'#2f8f7c'],[.78,'#79c9ad'],[1,'#b9e6d2']]), b * .85 + (n - .5) * .3); } },
+  sun: { seed: 41, scale: 4, emissive: true, glow: '#ff9a3c', color: (n) => ramp(S([[0,'#b8360b'],[.4,'#ec6a17'],[.6,'#ffa531'],[.8,'#ffd76a'],[1,'#fff4c4']]), n) },
+};
+const TW = 256, TH = 128, dokular = {};
+function doku(k) {
+  if (dokular[k]) return dokular[k];
+  const p = PLANETS[k], data = new Uint8ClampedArray(TW * TH * 3), cloud = p.clouds ? new Uint8ClampedArray(TW * TH) : null;
+  for (let y = 0; y < TH; y++) { const lat = (.5 - y / TH) * Math.PI, cl = Math.cos(lat), sl = Math.sin(lat);
+    for (let x = 0; x < TW; x++) { const lon = x / TW * Math.PI * 2, px = cl * Math.cos(lon), py = sl, pz = cl * Math.sin(lon), sx = p.bands ? .6 : 1;
+      const c = p.color(fbm(px * p.scale * sx, py * p.scale, pz * p.scale * sx, p.seed), lat), i = (y * TW + x) * 3;
+      data[i] = c[0]; data[i + 1] = c[1]; data[i + 2] = c[2];
+      if (cloud) cloud[y * TW + x] = Math.max(0, (fbm(px * 3 + 9, py * 5, pz * 3, p.seed + 99, 3) - .52) * 4) * 255; } }
+  return (dokular[k] = { data, cloud });
+}
+const gezegenler = [];
+function gezegen(kind, size) {
+  const d = document.createElement('div'); d.className = 'planet'; d.style.cssText = `width:${size}px;height:${size}px;--glow:${PLANETS[kind].glow}`;
+  const cv = document.createElement('canvas'); cv.style.cssText = `width:${size}px;height:${size}px`; d.appendChild(cv);
+  const g = { el: d, kind, size, cv, speed: 1, raf: 0, hazir: false };
+  gezegenler.push(g);
+  return g;
+}
+function gezegenHazirla(g) {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2), R = Math.round(g.size * dpr), r = R / 2;
+  g.cv.width = R; g.cv.height = R;
+  const ctx = g.cv.getContext('2d'), img = ctx.createImageData(R, R), p = PLANETS[g.kind], tex = doku(g.kind);
+  const idx = [], row = [], lonF = [], light = [], tilt = .32, ct = Math.cos(tilt), st = Math.sin(tilt), Lv = [-.55, .45, .7];
+  for (let y = 0; y < R; y++) for (let x = 0; x < R; x++) {
+    const nx = (x + .5 - r) / r, ny = (r - y - .5) / r, d2 = nx * nx + ny * ny; if (d2 > 1) continue;
+    const nz = Math.sqrt(1 - d2), ty = ny * ct - nz * st, tz = ny * st + nz * ct, lat = Math.asin(Math.max(-1, Math.min(1, ty)));
+    const o = (y * R + x) * 4; idx.push(o); row.push(Math.min(TH - 1, Math.floor((.5 - lat / Math.PI) * TH))); lonF.push(Math.atan2(tz, nx) / (Math.PI * 2) + 1);
+    const lam = Math.max(0, nx * Lv[0] + ny * Lv[1] + nz * Lv[2]);
+    light.push(p.emissive ? .55 + .45 * nz : .08 + .92 * Math.pow(lam, .85));
+    img.data[o + 3] = 255 * Math.min(1, (1 - Math.sqrt(d2)) * R * .5);
+  }
+  Object.assign(g, { ctx, img, idx, row, lonF, light, tex, p, rot: 0, crot: 0, last: performance.now(), hazir: true });
+}
+function gezegenCiz(g, now) {
+  const dt = Math.min(.05, (now - g.last) / 1000); g.last = now; g.rot += dt * .025 * g.speed; g.crot += dt * .035 * g.speed;
+  const td = g.tex.data, cl = g.tex.cloud, out = g.img.data, flick = g.p.emissive ? .06 * Math.sin(now / 300) : 0;
+  for (let i = 0; i < g.idx.length; i++) {
+    const ti = (g.row[i] * TW + Math.floor((g.lonF[i] + g.rot) * TW) % TW) * 3; let r = td[ti], gg = td[ti + 1], b = td[ti + 2];
+    if (cl) { const a = cl[g.row[i] * TW + Math.floor((g.lonF[i] + g.crot) * TW) % TW] / 255; r += (245 - r) * a; gg += (248 - gg) * a; b += (252 - b) * a; }
+    const l = g.light[i] * (1 + flick), o = g.idx[i]; out[o] = r * l; out[o + 1] = gg * l; out[o + 2] = b * l;
+  }
+  g.ctx.putImageData(g.img, 0, 0);
+}
+function gezegenDongu(now) {
+  for (const g of gezegenler) {
+    if (!g.el.isConnected || !g.el.offsetParent) continue; // görünmeyen gezegen çizilmez
+    if (!g.hazir) gezegenHazirla(g);
+    gezegenCiz(g, now);
+  }
+  requestAnimationFrame(gezegenDongu);
+}
+requestAnimationFrame(gezegenDongu);
+
+function hero(sayfa, { satirlar, dugme, mesgul, durum, alt }) {
+  const k = sayfa.el;
+  k.innerHTML = `<div class="hero"><div class="hero-planet">${mesgul ? '<div class="orbit"><i></i></div>' : ''}</div>
+    ${mesgul ? `<p class="tagline live">${esc(durum || '')}</p>${alt ? `<div class="sub">${esc(alt)}</div>` : ''}`
+             : `<p class="tagline">${esc(satirlar[0])}<br>${esc(satirlar[1])}</p>${dugme ? `<button class="pill">${esc(dugme)}</button>` : ''}`}
+    </div>`;
+  const kap = $('.hero-planet', k);
+  const boy = Math.min(220, Math.round(Math.min(innerWidth, innerHeight) * .5));
+  if (!sayfa.g || sayfa.g.size !== boy) sayfa.g = gezegen(sayfa.gezegen, boy);
+  sayfa.g.speed = mesgul ? 9 : 1;
+  kap.prepend(sayfa.g.el);
+  return $('.pill', k);
+}
+
+/* ---------- Sayfalar ---------- */
+const SAYFALAR = {};
+
+// TEMİZLE
+SAYFALAR.clean = {
+  ad: 'Temizle', gezegen: 'earth', renk: '#7cc4ff', ust: '#0b1226',
+  durum: 'giris', veri: null, secili: new Set(), acik: new Set(),
+  ciz() {
+    const s = this;
+    if (s.durum === 'giris') {
+      const iz = izin();
+      const b = hero(s, { satirlar: ['Bulutlar dağılsın,', 'yer açılsın.'], dugme: iz.dosya ? 'Taramayı başlat' : 'Dosya erişimi ver' });
+      b.onclick = () => iz.dosya ? s.tara() : A.dosyaIzniIste();
+      if (!iz.dosya) s.el.querySelector('.hero').insertAdjacentHTML('beforeend', '<div class="sub">Gereksiz dosyaları bulmak için "Tüm dosyalara erişim" izni gerekir. Dosyalar telefondan dışarı çıkmaz.</div>');
+      return;
+    }
+    if (s.durum === 'tariyor') { hero(s, { mesgul: true, durum: 'Taranıyor…', alt: s.ilerleme || '' }); return; }
+    if (s.durum === 'temizliyor') { hero(s, { mesgul: true, durum: 'Temizleniyor…', alt: s.ilerleme || '' }); return; }
+    const k = s.veri.kategoriler.filter((c) => c.dosyalar.length);
+    const secBoyut = s.seciliBoyut();
+    const toplam = k.reduce((a, c) => a + c.toplam, 0);
+    s.el.innerHTML = `
+      <div class="head"><div class="grow"><div class="headline">${bytes(toplam)} <span>bulundu</span></div>
+        <small>${s.veri.taranan.toLocaleString('tr-TR')} dosya tarandı</small></div>
+        <button class="sm" data-a="yeniden">Yeniden tara</button></div>
+      <div class="wrap">
+        ${k.map((c, i) => {
+          const hepsi = c.dosyalar.every((f) => s.secili.has(f.yol)), biri = c.dosyalar.some((f) => s.secili.has(f.yol));
+          return `<div class="cat stagger" style="--i:${i}">
+            <div class="cat-top" data-cat="${c.id}">
+              <button class="check ${hepsi ? 'on' : ''}" data-cc="${c.id}" style="${biri && !hepsi ? 'opacity:.6' : ''}">${CHECK}</button>
+              <div class="grow"><b>${esc(c.ad)}</b><small>${esc(c.aciklama)} · ${c.dosyalar.length} öğe</small></div>
+              <div class="cat-size">${bytes(c.toplam)}</div>
+            </div>
+            ${s.acik.has(c.id) ? `<div class="files">${c.dosyalar.slice(0, 300).map((f) => `
+              <div class="file" data-f="${esc(f.yol)}"><button class="check ${s.secili.has(f.yol) ? 'on' : ''}">${CHECK}</button>
+                <div class="grow"><div class="ell">${esc(f.ad)}</div><small class="ell">${esc(f.yol.replace(s.kok, ''))}</small></div>
+                <span class="muted">${f.klasor && !f.boyut ? '' : bytes(f.boyut)}</span></div>`).join('')}
+              ${c.dosyalar.length > 300 ? `<div class="file muted">+${c.dosyalar.length - 300} öğe daha (kategoriyle birlikte seçilir)</div>` : ''}</div>` : ''}
+          </div>`; }).join('')}
+        ${!k.length ? '<div class="empty">Temizlenecek bir şey bulunamadı. Her şey yolunda.</div>' : ''}
+        <div class="note" style="margin-top:14px">Diğer uygulamaların önbelleğini Android yalnızca kendi ayarlarından temizletir. <button class="sm" data-a="depo" style="margin-top:8px">Depolama ayarlarını aç</button></div>
+      </div>
+      <div class="actionbar ${s.secili.size ? '' : 'hidden'}"><span>${s.secili.size} öğe · ${bytes(secBoyut)}</span><button class="pill" data-a="temizle">Temizle</button></div>`;
+    s.el.querySelector('[data-a=yeniden]').onclick = () => s.tara();
+    s.el.querySelector('[data-a=depo]').onclick = () => A.depolamaAyarlari();
+    const tb = s.el.querySelector('[data-a=temizle]'); if (tb) tb.onclick = () => s.temizle();
+    s.el.querySelectorAll('[data-cat]').forEach((el) => el.onclick = (e) => {
+      const id = el.dataset.cat;
+      if (e.target.closest('[data-cc]')) {
+        const c = s.veri.kategoriler.find((x) => x.id === id), hepsi = c.dosyalar.every((f) => s.secili.has(f.yol));
+        c.dosyalar.forEach((f) => hepsi ? s.secili.delete(f.yol) : s.secili.add(f.yol));
+      } else s.acik.has(id) ? s.acik.delete(id) : s.acik.add(id);
+      s.yenidenCiz();
+    });
+    s.el.querySelectorAll('[data-f]').forEach((el) => el.onclick = () => { const y = el.dataset.f; s.secili.has(y) ? s.secili.delete(y) : s.secili.add(y); s.yenidenCiz(); });
+  },
+  yenidenCiz() { const w = $('.wrap', this.el), y = w ? w.scrollTop : 0; this.ciz(); const w2 = $('.wrap', this.el); if (w2) w2.scrollTop = y; },
+  seciliBoyut() {
+    let t = 0; if (!this.veri) return 0;
+    for (const c of this.veri.kategoriler) for (const f of c.dosyalar) if (this.secili.has(f.yol)) t += f.boyut;
+    return t;
+  },
+  async tara() {
+    const s = this; s.durum = 'tariyor'; s.ilerleme = ''; s.ciz();
+    dinleyici.tara = (p) => { s.ilerleme = `${p.sayi.toLocaleString('tr-TR')} dosya · ${p.yol.split('/').slice(-2).join('/')}`; const el = $('.sub', s.el); if (el) el.textContent = s.ilerleme; };
+    try {
+      s.kok = A.analizKok() + '/';
+      s.veri = await cagir('tara');
+      s.secili = new Set(); s.acik = new Set();
+      for (const c of s.veri.kategoriler) if (c.secili) c.dosyalar.forEach((f) => s.secili.add(f.yol));
+      s.durum = 'sonuc';
+    } catch (e) { toast(e.message, 'err'); s.durum = 'giris'; }
+    s.ciz();
+  },
+  async temizle() {
+    const s = this, n = s.secili.size, b = s.seciliBoyut();
+    if (!await onayla({ baslik: `${n} öğe silinecek`, metin: `<p>${bytes(b)} yer açılacak. Silinen dosyalar <b>geri getirilemez</b>.</p>`, ok: 'Temizle', tehlike: true })) return;
+    s.durum = 'temizliyor'; s.ilerleme = ''; s.ciz();
+    dinleyici.temizle = (p) => { const el = $('.sub', s.el); if (el) el.textContent = `${p.i}/${p.n}`; };
+    try {
+      const r = await cagir('temizle', JSON.stringify([...s.secili]));
+      toast(`${bytes(r.bosalan)} yer açıldı · ${r.silinen} öğe silindi${r.hata ? `, ${r.hata} öğe silinemedi` : ''}.`, r.hata ? 'err' : 'ok');
+    } catch (e) { toast(e.message, 'err'); }
+    s.tara();
+  },
+  resume() { if (this.durum === 'giris') this.ciz(); },
+  geri() { return false; },
+};
+
+// KALDIR
+SAYFALAR.uninstall = {
+  ad: 'Kaldır', gezegen: 'mars', renk: '#ff8a6b', ust: '#1d0a0a',
+  durum: 'giris', liste: [], q: '', filtre: 'all', sira: 'ad', sistem: false, secili: new Set(), kuyruk: null,
+  ciz() {
+    const s = this;
+    if (s.durum === 'giris') { hero(s, { satirlar: ['Kızıl tozda iz bırakmadan,', 'gereksizi uğurla.'], dugme: 'Uygulamaları listele' }).onclick = () => s.yukle(); return; }
+    if (s.durum === 'yukleniyor') { hero(s, { mesgul: true, durum: 'Uygulamalar okunuyor…' }); return; }
+    const iz = izin();
+    const ql = s.q.toLocaleLowerCase('tr');
+    const ay = Date.now() - 30 * 86400000;
+    let f = s.liste.filter((a) => (a.ad + ' ' + a.pkg).toLocaleLowerCase('tr').includes(ql));
+    if (s.filtre === 'big') f = f.filter((a) => a.boyut > 500 * 1048576);
+    if (s.filtre === 'recent') f = f.filter((a) => a.kurulum > ay);
+    if (s.filtre === 'old') f = f.filter((a) => a.guncelleme && a.guncelleme < Date.now() - 365 * 86400000);
+    if (s.filtre === 'boot') f = f.filter((a) => a.acilis > 0);
+    f = [...f].sort(s.sira === 'boyut' ? (a, b) => b.boyut - a.boyut : s.sira === 'tarih' ? (a, b) => b.kurulum - a.kurulum : (a, b) => a.ad.localeCompare(b.ad, 'tr'));
+    const secB = s.liste.filter((a) => s.secili.has(a.pkg)).reduce((t, a) => t + a.boyut, 0);
+    const odak = document.activeElement && document.activeElement.classList.contains('search');
+    s.el.innerHTML = `
+      <div class="head"><div class="grow"><div class="headline">${s.liste.length} <span>uygulama · ${bytes(s.liste.reduce((t, a) => t + a.boyut, 0))}</span></div></div>
+        <button class="sm" data-a="sistem">${s.sistem ? 'Sistemi gizle' : 'Sistemi göster'}</button></div>
+      ${!iz.kullanim ? `<div class="banner"><div class="grow">Gerçek boyutlar (veri ve önbellek dahil) için <b>Kullanım erişimi</b> verin.</div><button class="sm" data-a="kullanim">İzin ver</button></div>` : ''}
+      <div class="tools"><input class="search" placeholder="Uygulama ara…" value="${esc(s.q)}">
+        <select data-a="sira"><option value="ad">Ada göre</option><option value="boyut">Boyuta göre</option><option value="tarih">Kurulum tarihi</option></select></div>
+      <div class="chips">${[['all', 'Tümü'], ['big', 'Büyük (>500 MB)'], ['recent', 'Son 30 gün'], ['old', '1 yıldır güncellenmemiş'], ['boot', 'Açılışta başlayan']]
+        .map(([id, ad]) => `<button class="${s.filtre === id ? 'on' : ''}" data-fl="${id}">${ad}</button>`).join('')}</div>
+      <div class="wrap"><div class="grid2">
+        ${f.map((a, i) => `<div class="row stagger ${s.secili.has(a.pkg) ? 'sel' : ''}" data-p="${esc(a.pkg)}" style="--i:${Math.min(i, 15)}">
+          <button class="check ${s.secili.has(a.pkg) ? 'on' : ''}" data-ck="1">${CHECK}</button>${ikon(a)}
+          <div class="grow"><b class="ell" style="display:block">${esc(a.ad)}</b>
+            <small class="ell">${esc(a.surum || '')}${a.surum ? ' · ' : ''}${bytes(a.boyut)}${a.boyutTam ? '' : '+'} · ${tarih(a.kurulum)}</small>
+            ${a.sistem || !a.etkin ? `<div class="tags">${a.sistem ? '<span class="tag soft">Sistem</span>' : ''}${!a.etkin ? '<span class="tag soft">Devre dışı</span>' : ''}</div>` : ''}</div>
+        </div>`).join('')}</div>
+        ${!f.length ? '<div class="empty">Eşleşen uygulama yok.</div>' : ''}
+      </div>
+      <div class="actionbar ${s.secili.size ? '' : 'hidden'}"><span>${s.secili.size} seçili · ${bytes(secB)}</span>
+        <button class="ghost sm" data-a="vazgec">Vazgeç</button><button class="pill danger" data-a="kaldir">Kaldır</button></div>`;
+    const inp = $('.search', s.el);
+    inp.oninput = () => { s.q = inp.value; s.yenidenCiz(); };
+    if (odak) { inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); }
+    const sel = $('[data-a=sira]', s.el); sel.value = s.sira; sel.onchange = () => { s.sira = sel.value; s.ciz(); };
+    $('[data-a=sistem]', s.el).onclick = () => { s.sistem = !s.sistem; s.yukle(); };
+    const ku = $('[data-a=kullanim]', s.el); if (ku) ku.onclick = () => { s.boyutBekle = true; A.kullanimIzniIste(); };
+    s.el.querySelectorAll('[data-fl]').forEach((b) => b.onclick = () => { s.filtre = b.dataset.fl; s.ciz(); });
+    s.el.querySelectorAll('[data-p]').forEach((r) => r.onclick = (e) => {
+      const p = r.dataset.p;
+      if (e.target.closest('[data-ck]') || s.secili.size) { s.secili.has(p) ? s.secili.delete(p) : s.secili.add(p); s.yenidenCiz(); }
+      else s.detay(s.liste.find((a) => a.pkg === p));
+    });
+    $('[data-a=vazgec]', s.el).onclick = () => { s.secili.clear(); s.yenidenCiz(); };
+    $('[data-a=kaldir]', s.el).onclick = () => s.topluKaldir();
+  },
+  yenidenCiz() { const w = $('.wrap', this.el), y = w ? w.scrollTop : 0; this.ciz(); const w2 = $('.wrap', this.el); if (w2) w2.scrollTop = y; },
+  async yukle() {
+    const s = this; if (!s.liste.length) { s.durum = 'yukleniyor'; s.ciz(); }
+    try { const r = await cagir('uygulamalar', s.sistem); s.liste = r.liste; s.durum = 'liste'; }
+    catch (e) { toast(e.message, 'err'); if (!s.liste.length) s.durum = 'giris'; }
+    s.ciz();
+  },
+  detay(a) {
+    const s = this;
+    sheet(`<div style="display:flex;gap:14px;align-items:center">${ikon(a)}<div class="grow" style="min-width:0"><h3 class="ell" style="margin:0">${esc(a.ad)}</h3><small class="ell">${esc(a.pkg)}</small></div></div>
+      <div style="margin-top:14px">
+        <div class="kv"><span>Sürüm</span><span>${esc(a.surum || '—')}</span></div>
+        <div class="kv"><span>Uygulama</span><span>${bytes(a.uygulamaBoyut)}</span></div>
+        ${a.boyutTam ? `<div class="kv"><span>Veri</span><span>${bytes(a.veriBoyut)}</span></div><div class="kv"><span>Önbellek</span><span>${bytes(a.onbellekBoyut)}</span></div>` : ''}
+        <div class="kv"><span>Kurulum</span><span>${tarih(a.kurulum)}</span></div>
+        <div class="kv"><span>Son güncelleme</span><span>${tarih(a.guncelleme)}</span></div>
+        <div class="kv"><span>Açılışta başlar</span><span>${a.acilis ? (a.durdurulmus ? 'Durduruldu' : 'Evet') : 'Hayır'}</span></div>
+      </div>
+      <div class="acts">${a.acilabilir ? '<button data-x="ac">Aç</button>' : ''}<button data-x="bilgi">Uygulama bilgisi</button>
+        <button class="pill danger" data-x="kaldir">Kaldır</button></div>`, (el) => {
+      el.querySelectorAll('[data-x]').forEach((b) => b.onclick = () => {
+        kapatSheet();
+        if (b.dataset.x === 'ac') A.uygulamayiAc(a.pkg);
+        if (b.dataset.x === 'bilgi') A.uygulamaBilgisi(a.pkg);
+        if (b.dataset.x === 'kaldir') { s.kuyruk = [a.pkg]; s.siradaki(); }
+      });
+    });
+  },
+  async topluKaldir() {
+    const s = this, n = s.secili.size;
+    if (!await onayla({ baslik: `${n} uygulama kaldırılacak`, metin: '<p>Android her uygulama için kendi onay penceresini sırayla açacak.</p>', ok: 'Başlat', tehlike: true })) return;
+    s.kuyruk = [...s.secili]; s.secili.clear(); s.siradaki();
+  },
+  siradaki() {
+    const s = this;
+    if (!s.kuyruk || !s.kuyruk.length) { s.kuyruk = null; s.yukle(); return; }
+    s.bekleyen = s.kuyruk.shift();
+    A.kaldir(s.bekleyen);
+  },
+  resume() {
+    const s = this;
+    if (s.bekleyen) {
+      const p = s.bekleyen; s.bekleyen = null;
+      const a = s.liste.find((x) => x.pkg === p);
+      if (!A.yuklu(p)) { toast(`${a ? a.ad : p} kaldırıldı.`, 'ok'); s.liste = s.liste.filter((x) => x.pkg !== p); }
+      setTimeout(() => s.siradaki(), 350);
+      return;
+    }
+    if (s.boyutBekle) { s.boyutBekle = false; s.yukle(); return; }
+    if (s.durum === 'liste') s.yenidenCiz();
+  },
+  geri() { if (this.secili.size) { this.secili.clear(); this.yenidenCiz(); return true; } return false; },
+};
+
+// BAŞLANGIÇ
+SAYFALAR.startup = {
+  ad: 'Başlangıç', gezegen: 'venus', renk: '#f0a6e0', ust: '#1c0f1f',
+  durum: 'giris', liste: [], sistem: false, filtre: 'all',
+  ciz() {
+    const s = this;
+    if (s.durum === 'giris') { hero(s, { satirlar: ['Gün doğmadan uyananlar,', 'yalnızca istediklerin olsun.'], dugme: 'Başlangıcı incele' }).onclick = () => s.yukle(); return; }
+    if (s.durum === 'yukleniyor') { hero(s, { mesgul: true, durum: 'Sabah yıldızı uyananları sayıyor…' }); return; }
+    const aktif = s.liste.filter((a) => !a.durdurulmus).length;
+    let f = s.liste;
+    if (s.filtre === 'on') f = f.filter((a) => !a.durdurulmus);
+    if (s.filtre === 'off') f = f.filter((a) => a.durdurulmus);
+    if (s.filtre === 'free') f = f.filter((a) => !a.pilSiniri);
+    f = [...f].sort((a, b) => (a.durdurulmus === b.durdurulmus ? a.ad.localeCompare(b.ad, 'tr') : a.durdurulmus ? 1 : -1));
+    s.el.innerHTML = `
+      <div class="head"><div class="grow"><div class="headline">${aktif} <span>/ ${s.liste.length} uygulama açılışta başlayabilir</span></div></div>
+        <button class="sm" data-a="sistem">${s.sistem ? 'Sistemi gizle' : 'Sistemi göster'}</button></div>
+      <div class="chips">${[['all', 'Tümü'], ['on', 'Başlayabilir'], ['off', 'Durduruldu'], ['free', 'Pil kısıtlamasız']]
+        .map(([id, ad]) => `<button class="${s.filtre === id ? 'on' : ''}" data-fl="${id}">${ad}</button>`).join('')}</div>
+      <div class="wrap">
+        <div class="note">Android, başka bir uygulamanın açılışta başlamasını doğrudan kapatmaya izin vermez. İşe yarayan yollar:
+          <b>Durdur</b> ile "Zorla durdur" yaptığınız uygulama, siz yeniden açana kadar açılışta başlamaz.
+          <b>Pil</b> ile "Kısıtlı" seçerseniz arka planda çalışamaz. Kalıcı kapatma için bilgisayardan ADB komutunu kopyalayabilirsiniz.</div>
+        <div class="grid2">
+        ${f.map((a, i) => `<div class="row stagger" data-p="${esc(a.pkg)}" style="--i:${Math.min(i, 15)};${a.durdurulmus ? 'opacity:.62' : ''}">
+          ${ikon(a)}
+          <div class="grow"><b class="ell" style="display:block">${esc(a.ad)}</b>
+            <div class="tags">${a.durdurulmus ? '<span class="tag ok">Durduruldu</span>' : '<span class="tag">Açılışta başlar</span>'}
+              ${!a.pilSiniri ? '<span class="tag bad">Pil kısıtlaması yok</span>' : ''}${a.sistem ? '<span class="tag soft">Sistem</span>' : ''}</div>
+            <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+              <button class="sm" data-x="durdur">Durdur</button><button class="sm" data-x="pil">Pil</button><button class="sm ghost" data-x="adb">ADB</button></div>
+          </div></div>`).join('')}</div>
+        ${!f.length ? '<div class="empty">Bu filtreye uyan uygulama yok.</div>' : ''}
+      </div>`;
+    $('[data-a=sistem]', s.el).onclick = () => { s.sistem = !s.sistem; s.yukle(); };
+    s.el.querySelectorAll('[data-fl]').forEach((b) => b.onclick = () => { s.filtre = b.dataset.fl; s.ciz(); });
+    s.el.querySelectorAll('[data-p]').forEach((r) => r.querySelectorAll('[data-x]').forEach((b) => b.onclick = () => {
+      const p = r.dataset.p;
+      if (b.dataset.x === 'durdur') { s.yenile = true; A.uygulamaBilgisi(p); toast('"Zorla durdur"a dokunun.'); }
+      if (b.dataset.x === 'pil') { s.yenile = true; A.pilAyarlari(p); }
+      if (b.dataset.x === 'adb') {
+        sheet(`<h3>Bilgisayardan kalıcı kapatma</h3><div style="color:var(--muted);font-size:13.5px">USB hata ayıklama açıkken bilgisayarda çalıştırın. Uygulamanın arka planda (açılış dahil) çalışmasını engeller; geri almak için sondaki <b>ignore</b> yerine <b>allow</b> yazın.</div>
+          <pre style="white-space:pre-wrap;word-break:break-all;background:rgba(0,0,0,.35);padding:12px;border-radius:12px;font-size:12.5px;user-select:text;-webkit-user-select:text">adb shell cmd appops set ${esc(p)} RUN_ANY_IN_BACKGROUND ignore</pre>
+          <div class="acts"><button class="ghost" data-k="0">Kapat</button><button class="pill" data-k="1">Kopyala</button></div>`, (el) => {
+          el.querySelector('[data-k="0"]').onclick = kapatSheet;
+          el.querySelector('[data-k="1"]').onclick = () => { A.kopyala(`adb shell cmd appops set ${p} RUN_ANY_IN_BACKGROUND ignore`); kapatSheet(); toast('Komut kopyalandı.', 'ok'); };
+        });
+      }
+    }));
+  },
+  async yukle() {
+    const s = this; if (!s.liste.length) { s.durum = 'yukleniyor'; s.ciz(); }
+    try { s.liste = (await cagir('baslangic', s.sistem)).liste; s.durum = 'liste'; }
+    catch (e) { toast(e.message, 'err'); if (!s.liste.length) s.durum = 'giris'; }
+    const w = $('.wrap', s.el), y = w ? w.scrollTop : 0; s.ciz(); const w2 = $('.wrap', s.el); if (w2) w2.scrollTop = y;
+  },
+  resume() { if (this.yenile) { this.yenile = false; this.yukle(); } },
+  geri() { return false; },
+};
+
+// ANALİZ
+SAYFALAR.analyze = {
+  ad: 'Analiz', gezegen: 'jupiter', renk: '#6ee0c2', ust: '#061b1a',
+  durum: 'giris', veri: null, yigin: [], sekme: 'klasor', buyuk: null,
+  ciz() {
+    const s = this;
+    const iz = izin();
+    if (s.durum === 'giris') {
+      const b = hero(s, { satirlar: ['Fırtınaların ardında,', 'yerin nereye gittiği.'], dugme: iz.dosya ? 'Depolamayı analiz et' : 'Dosya erişimi ver' });
+      b.onclick = () => iz.dosya ? s.ac('', false) : A.dosyaIzniIste();
+      return;
+    }
+    if (s.durum === 'yukleniyor') { hero(s, { mesgul: true, durum: 'Klasörler ölçülüyor…', alt: s.ilerleme || '' }); return; }
+    const v = s.veri, kok = v.kok;
+    const parcalar = v.yol === kok ? [] : v.yol.slice(kok.length + 1).split('/');
+    const enBuyuk = Math.max(1, ...v.ogeler.map((o) => o.boyut));
+    const kullanilan = v.diskToplam - v.diskBos;
+    const liste = s.sekme === 'klasor'
+      ? [...v.ogeler].sort((a, b) => b.boyut - a.boyut).map((o, i) => `
+        <div class="row rel stagger" data-y="${esc(o.yol)}" data-k="${o.klasor ? 1 : 0}" style="--i:${Math.min(i, 15)}">
+          <i class="fbar" style="width:${(o.boyut / enBuyuk * 100).toFixed(1)}%"></i>
+          <span class="fi">${o.klasor ? '📁' : '📄'}</span>
+          <div class="grow"><b class="ell" style="display:block">${esc(o.ad)}</b><small>${o.klasor ? `${o.sayi.toLocaleString('tr-TR')} dosya · ` : ''}${tarih(o.tarih)}</small></div>
+          <b>${bytes(o.boyut)}</b><button class="sm ghost" data-sil="1">⋯</button></div>`).join('')
+      : (s.buyuk ? s.buyuk.map((o, i) => `
+        <div class="row stagger" data-y="${esc(o.yol)}" data-k="0" style="--i:${Math.min(i, 15)}"><span class="fi">📄</span>
+          <div class="grow"><b class="ell" style="display:block">${esc(o.ad)}</b><small class="ell">${esc(o.yol.slice(kok.length + 1))}</small></div>
+          <b>${bytes(o.boyut)}</b><button class="sm ghost" data-sil="1">⋯</button></div>`).join('') : '<div class="empty"><span class="spin"></span> En büyük dosyalar aranıyor…</div>');
+    s.el.innerHTML = `
+      <div class="head"><div class="grow"><div class="headline">${bytes(kullanilan)} <span>/ ${bytes(v.diskToplam)} dolu · ${bytes(v.diskBos)} boş</span></div>
+        <div class="bar"><i style="width:${(kullanilan / v.diskToplam * 100).toFixed(1)}%"></i></div></div>
+        <button class="sm" data-a="yenile">Yenile</button></div>
+      <div class="chips"><button class="${s.sekme === 'klasor' ? 'on' : ''}" data-s="klasor">Klasörler</button><button class="${s.sekme === 'buyuk' ? 'on' : ''}" data-s="buyuk">En büyük dosyalar</button></div>
+      ${s.sekme === 'klasor' ? `<div class="crumbs"><span data-c="-1">Dahili depolama</span>${parcalar.map((p, i) => `› <span data-c="${i}">${esc(p)}</span>`).join('')}</div>
+        <div style="padding:0 16px 8px;color:var(--muted);font-size:13px">Bu klasörde ${bytes(v.toplam)}</div>` : ''}
+      <div class="wrap"><div>${liste}</div>${s.sekme === 'klasor' && !v.ogeler.length ? '<div class="empty">Klasör boş.</div>' : ''}</div>`;
+    $('[data-a=yenile]', s.el).onclick = () => { s.buyuk = null; s.ac(v.yol, true); };
+    s.el.querySelectorAll('[data-s]').forEach((b) => b.onclick = () => { s.sekme = b.dataset.s; s.ciz(); if (s.sekme === 'buyuk' && !s.buyuk) s.buyukleriBul(); });
+    s.el.querySelectorAll('[data-c]').forEach((c) => c.onclick = () => { const i = +c.dataset.c; s.ac(i < 0 ? kok : kok + '/' + parcalar.slice(0, i + 1).join('/'), false); });
+    s.el.querySelectorAll('[data-y]').forEach((r) => r.onclick = (e) => {
+      const y = r.dataset.y, ad = y.split('/').pop();
+      if (e.target.closest('[data-sil]') || r.dataset.k === '0') {
+        onayla({ baslik: `${ad} silinsin mi?`, metin: `<p class="ell">${esc(y.slice(kok.length + 1))}</p><p>${r.dataset.k === '1' ? 'Klasör ve içindeki her şey' : 'Dosya'} kalıcı olarak silinecek, geri getirilemez.</p>`, ok: 'Sil', tehlike: true })
+          .then(async (ok) => {
+            if (!ok) return;
+            try { const res = await cagir('sil', y); toast(res.ok ? `${bytes(res.bosalan)} yer açıldı.` : 'Silinemedi.', res.ok ? 'ok' : 'err'); } catch (er) { toast(er.message, 'err'); }
+            if (s.buyuk) s.buyuk = s.buyuk.filter((o) => o.yol !== y);
+            s.ac(v.yol, false);
+          });
+      } else s.ac(y, false);
+    });
+  },
+  async ac(yol, yenile) {
+    const s = this; const ilk = !s.veri; if (ilk || yenile) { s.durum = 'yukleniyor'; s.ilerleme = ''; s.ciz(); }
+    dinleyici.analiz = (p) => { s.ilerleme = `${p.i + 1}/${p.n} · ${p.ad}`; const el = $('.sub', s.el); if (el) el.textContent = s.ilerleme; };
+    try { s.veri = await cagir('analiz', yol, !!yenile); s.durum = 'liste'; }
+    catch (e) { toast(e.message, 'err'); if (!s.veri) s.durum = 'giris'; }
+    s.ciz();
+  },
+  async buyukleriBul() {
+    try { this.buyuk = (await cagir('buyukDosyalar', 60)).liste; } catch (e) { this.buyuk = []; toast(e.message, 'err'); }
+    if (this.sekme === 'buyuk') this.ciz();
+  },
+  resume() { if (this.durum === 'giris') this.ciz(); },
+  geri() {
+    const v = this.veri; if (!v || this.durum !== 'liste') return false;
+    if (this.sekme === 'buyuk') { this.sekme = 'klasor'; this.ciz(); return true; }
+    if (v.yol !== v.kok) { this.ac(v.yol.slice(0, v.yol.lastIndexOf('/')), false); return true; }
+    return false;
+  },
+};
+
+// DURUM
+SAYFALAR.status = {
+  ad: 'Durum', gezegen: 'sun', renk: '#ffa24c', ust: '#15100c',
+  tarih: { ram: [], cpu: [] }, zaman: 0,
+  ring(v, renk, metin, boy = 84) {
+    const r = (boy - 9) / 2, c = 2 * Math.PI * r;
+    return `<div class="ring" style="width:${boy}px;height:${boy}px"><svg width="${boy}" height="${boy}"><circle cx="${boy / 2}" cy="${boy / 2}" r="${r}" stroke="var(--track)" stroke-width="8" fill="none"/>
+      <circle cx="${boy / 2}" cy="${boy / 2}" r="${r}" stroke="${renk}" stroke-width="8" fill="none" stroke-linecap="round" stroke-dasharray="${c}" stroke-dashoffset="${c * (1 - Math.max(0, Math.min(1, v)))}"/></svg><div class="lbl">${metin}</div></div>`;
+  },
+  spark(d, max = 100) {
+    if (d.length < 2) return '<svg class="spark"></svg>';
+    const n = 30, pts = d.map((v, i) => [((i + n - d.length) / (n - 1)) * 100, 30 - (v / max) * 27]);
+    const line = pts.map((p) => p.join(',')).join(' ');
+    return `<svg class="spark" viewBox="0 0 100 30" preserveAspectRatio="none"><polygon points="${pts[0][0]},30 ${line} ${pts[pts.length - 1][0]},30" fill="var(--accent)" fill-opacity=".18"/>
+      <polyline points="${line}" fill="none" stroke="var(--accent)" stroke-width="1.6" vector-effect="non-scaling-stroke"/></svg>`;
+  },
+  ciz() {
+    const s = this; let d;
+    try { d = JSON.parse(A.durum()); } catch (e) { s.el.innerHTML = `<div class="empty">${esc(e.message)}</div>`; return; }
+    const ram = (d.ramToplam - d.ramBos) / d.ramToplam, depo = (d.depoToplam - d.depoBos) / d.depoToplam;
+    s.tarih.ram = [...s.tarih.ram, ram * 100].slice(-30);
+    if (d.cpu >= 0) s.tarih.cpu = [...s.tarih.cpu, d.cpu].slice(-30);
+    const renk = (v) => v > .9 ? 'var(--danger)' : v > .75 ? 'var(--warn)' : 'var(--accent)';
+    s.el.innerHTML = `
+      <div class="head"><div class="grow"><div class="headline">${esc(d.cihaz)}</div><small>Android ${esc(d.android)} · ${sure(d.acikKalma)} açık</small></div></div>
+      <div class="wrap"><div class="cards">
+        <div class="card"><small>Bellek (RAM)</small><div style="display:flex;align-items:center;gap:12px">${s.ring(ram, renk(ram), Math.round(ram * 100) + '%')}
+          <div><b>${bytes(d.ramToplam - d.ramBos)}</b><small>/ ${bytes(d.ramToplam)}</small></div></div>${s.spark(s.tarih.ram)}
+          <button class="sm" data-a="temizle">Arka planı temizle</button></div>
+        <div class="card"><small>Depolama</small><div style="display:flex;align-items:center;gap:12px">${s.ring(depo, renk(depo), Math.round(depo * 100) + '%')}
+          <div><b>${bytes(d.depoBos)}</b><small>boş / ${bytes(d.depoToplam)}</small></div></div>
+          <button class="sm" data-a="analiz" style="margin-top:auto">Neye gitti?</button></div>
+        <div class="card"><small>Pil</small><div style="display:flex;align-items:center;gap:12px">${s.ring(d.pil / 100, d.pil < 20 ? 'var(--danger)' : 'var(--ok)', d.pil + '%')}
+          <div><b>${d.sarj ? 'Şarj oluyor' : 'Pilde'}</b><small>${d.pilSicaklik.toFixed(1)} °C · ${esc(d.pilSaglik)}</small></div></div></div>
+        ${d.cpu >= 0 ? `<div class="card"><small>İşlemci</small><div class="big">${d.cpu}%</div>${s.spark(s.tarih.cpu)}</div>` : ''}
+        <div class="card ${d.cpu >= 0 ? '' : ''}"><small>Cihaz</small>
+          <div class="kv"><span>İşlemci</span><span class="ell">${esc(d.islemci)} · ${d.cekirdek} çekirdek</span></div>
+          <div class="kv"><span>Ekran</span><span>${esc(d.ekran)}</span></div>
+          <div class="kv"><span>Ağ</span><span>${esc(d.ag)}</span></div>
+          <div class="kv"><span>Pil gerilimi</span><span>${d.pilGerilim.toFixed(2)} V</span></div></div>
+      </div></div>`;
+    $('[data-a=temizle]', s.el).onclick = async (e) => {
+      const b = e.currentTarget; b.disabled = true; b.innerHTML = '<span class="spin"></span>';
+      try { const r = await cagir('arkaPlaniTemizle'); toast(`${r.uygulama} uygulamanın arka plan işlemi kapatıldı · ${bytes(r.kazanilan)} bellek açıldı.`, 'ok'); } catch (er) { toast(er.message, 'err'); }
+      s.ciz();
+    };
+    $('[data-a=analiz]', s.el).onclick = () => git('analyze');
+  },
+  goster() { this.ciz(); clearInterval(this.zaman); this.zaman = setInterval(() => { if (aktif === 'status' && !document.hidden && !$('.spin', this.el)) this.ciz(); }, 2000); },
+  gizle() { clearInterval(this.zaman); },
+  resume() {}, geri() { return false; },
+};
+
+/* ---------- Kabuk ---------- */
+const IDS = Object.keys(SAYFALAR);
+let aktif = null;
+const stage = $('#stage'), nav = $('#nav');
+for (const id of IDS) {
+  const s = SAYFALAR[id];
+  s.el = document.createElement('section'); s.el.className = 'page'; stage.appendChild(s.el);
+  const b = document.createElement('button'); b.dataset.id = id;
+  b.innerHTML = `<span class="dot p-${s.gezegen}"></span>${s.ad}`; b.onclick = () => git(id); nav.appendChild(b);
+}
+function git(id) {
+  if (aktif === id) return;
+  const eski = SAYFALAR[aktif]; if (eski) { eski.el.classList.remove('on'); eski.gizle && eski.gizle(); }
+  aktif = id; const s = SAYFALAR[id];
+  document.querySelectorAll('.bg').forEach((b) => b.classList.toggle('on', b.classList.contains('bg-' + id)));
+  nav.querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.id === id));
+  document.documentElement.style.setProperty('--accent', s.renk);
+  $('#title').textContent = s.ad;
+  s.el.classList.add('on');
+  if (s.goster) s.goster(); else if (!s.el.innerHTML) s.ciz();
+  try { localStorage.setItem('sekme', id); } catch {}
+}
+window.__resume = () => { const s = SAYFALAR[aktif]; s && s.resume && s.resume(); };
+window.__back = () => {
+  if (kapatSheet()) return true;
+  const s = SAYFALAR[aktif];
+  if (s && s.geri && s.geri()) return true;
+  if (aktif !== 'clean') { git('clean'); return true; }
+  return false;
+};
+let olcuEski = innerWidth;
+addEventListener('resize', () => {
+  // Döndürme: karşılama gezegeni yeni boyuta göre yeniden çizilsin.
+  if (Math.abs(innerWidth - olcuEski) < 40) return; olcuEski = innerWidth;
+  for (const id of IDS) { const s = SAYFALAR[id]; if (s.durum === 'giris' && s.el.innerHTML) s.ciz(); }
+});
+if (!A) document.body.insertAdjacentHTML('beforeend', '<div class="toast err">Bu sayfa WinKeeper Android uygulaması içinde çalışır.</div>');
+let ilk = 'clean'; try { ilk = localStorage.getItem('sekme') || 'clean'; } catch {}
+git(SAYFALAR[ilk] ? ilk : 'clean');
+</script>
+</body>
+</html>
