@@ -5,6 +5,8 @@
     <string name="wifi">Wi-Fi</string>
     <string name="settings">Ayarlar</string>
     <string name="restart">Yeniden başlat</string>
+    <string name="close_apps">Açık uygulamaları kapat</string>
+    <string name="close_apps_done">Açık uygulamalar kapatıldı · %1$d MB boşaldı (boş: %2$d MB)</string>
     <string name="restart_hint">Bir kez açılan ekranda “Ev Ekranı” servisini açın; sonra bu düğme Yeniden başlat menüsünü açar. Şimdilik güç tuşuna basılı tutabilirsiniz.</string>
     <string name="choose_input">Girişler</string>
     <string name="connected">Bağlı</string>

@@ -460,6 +460,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         btnSettings.setOnClickListener(v -> open(systemIntent(Settings.ACTION_SETTINGS)));
         View btnRestart = findViewById(R.id.btnRestart);
         btnRestart.setOnClickListener(v -> restartDevice());
+        View btnCloseApps = findViewById(R.id.btnCloseApps);
+        btnCloseApps.setOnClickListener(v -> closeOpenApps());
         btnReorder = findViewById(R.id.btnReorder);
         btnReorder.setOnClickListener(v -> toggleReorder());
         btnReorder.setVisibility(cfg.reorderButton ? View.VISIBLE : View.GONE);
@@ -489,9 +491,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         btnWifi.setOnKeyListener(pillKeys);
         btnSettings.setOnKeyListener(pillKeys);
         btnRestart.setOnKeyListener(pillKeys);
+        btnCloseApps.setOnKeyListener(pillKeys);
         btnReorder.setOnKeyListener(pillKeys);
         if (advancedEffects) {
-            for (View button : new View[]{btnInputs, btnWifi, btnReorder, btnSettings, btnRestart}) {
+            for (View button : new View[]{btnInputs, btnWifi, btnReorder, btnSettings, btnCloseApps, btnRestart}) {
                 button.setOnFocusChangeListener((view, focused) -> view.animate()
                         .scaleX(focused ? 1.04f : 1f).scaleY(focused ? 1.04f : 1f)
                         .setDuration(160).start());
@@ -2127,6 +2130,42 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      * Ev Ekranı: "Yeniden başlat" düğmesi. Uygulamalar cihazı kendisi yeniden başlatamaz (REBOOT sistem izni);
      * kumanda servislerinden biri açıksa Android'in güç menüsü açılır (Kapat / Yeniden başlat). Değilse ipucu verir.
      */
+    /**
+     * Arka planda açık kalan uygulamaları kapatır (ActivityManager.killBackgroundProcesses). Ev Ekranı ön planda olduğu için
+     * diğerleri arka plandadır. Ön plan hizmeti çalışanlara (ör. Kutu Kurucu'nun gol bildirimi) dokunulmaz; Kutu Kurucu ayrıca hariç.
+     */
+    private void closeOpenApps() {
+        final android.app.ActivityManager am = (android.app.ActivityManager) getSystemService(ACTIVITY_SERVICE);
+        if (am == null) return;
+        final String self = getPackageName();
+        new Thread(() -> {
+            java.util.Set<String> apps = new java.util.HashSet<>();
+            android.content.pm.PackageManager pm = getPackageManager();
+            for (String cat : new String[]{Intent.CATEGORY_LEANBACK_LAUNCHER, Intent.CATEGORY_LAUNCHER}) {
+                for (android.content.pm.ResolveInfo ri : pm.queryIntentActivities(new Intent(Intent.ACTION_MAIN).addCategory(cat), 0)) {
+                    apps.add(ri.activityInfo.packageName);
+                }
+            }
+            apps.remove(self);
+            apps.remove("com.gokhan.kutukurucu");
+            android.app.ActivityManager.MemoryInfo mi = new android.app.ActivityManager.MemoryInfo();
+            am.getMemoryInfo(mi);
+            final long before = mi.availMem;
+            for (String pkg : apps) {
+                try {
+                    am.killBackgroundProcesses(pkg);
+                } catch (Exception ignored) {
+                }
+            }
+            SystemClock.sleep(1200);
+            am.getMemoryInfo(mi);
+            final int freedMb = (int) Math.max(0, (mi.availMem - before) / (1024 * 1024));
+            final int freeMb = (int) (mi.availMem / (1024 * 1024));
+            runOnUiThread(() -> Toast.makeText(this, getString(R.string.close_apps_done, freedMb, freeMb),
+                    Toast.LENGTH_SHORT).show());
+        }, "close-apps").start();
+    }
+
     private void restartDevice() {
         try {
             ((android.os.PowerManager) getSystemService(POWER_SERVICE)).reboot(null);

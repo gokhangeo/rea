@@ -225,6 +225,13 @@
                     android:nextFocusDown="@+id/grid" />
 
                 <TextView
+                    android:id="@+id/btnCloseApps"
+                    style="@style/TopButtonIcon"
+                    android:contentDescription="@string/close_apps"
+                    android:drawableStart="@drawable/ic_clear_all"
+                    android:nextFocusDown="@+id/grid" />
+
+                <TextView
                     android:id="@+id/btnRestart"
                     style="@style/TopButtonIcon"
                     android:contentDescription="@string/restart"
