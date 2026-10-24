@@ -5,7 +5,6 @@ import android.os.Build
 import android.util.Log
 import dadb.AdbKeyPair
 import dadb.Dadb
-import dadb.InstallResult
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
@@ -81,15 +80,13 @@ object Sessiz {
 
     /** APK'yı sessizce kurar. Başarısızsa hata metni, başarılıysa null döner. */
     fun kur(c: Context, apk: File): String? = runCatching {
-        baglan(c, bekle = 120_000) { d ->
-            when (val r = d.install(apk, "-r")) {
-                is InstallResult.Success -> null
-                is InstallResult.Failure -> r.reason.trim().ifEmpty { "kurulamadı" }
-            }
-        }
+        baglan(c, bekle = 120_000) { d -> d.install(apk, "-r") }
+        null
     }.getOrElse { e ->
-        durum = "kapali"; mesaj = e.message ?: e.javaClass.simpleName
-        mesaj
+        val m = e.message ?: e.javaClass.simpleName
+        // Bağlantı koptuysa yeniden denenecek; paket hatası (imza vb.) bağlantıyı bozmaz.
+        if (!m.contains("INSTALL_FAILED") && !m.contains("Failure")) { durum = "kapali"; mesaj = m }
+        m
     }
 
     private fun kuruluSurum(c: Context, paket: String): Int = runCatching {
